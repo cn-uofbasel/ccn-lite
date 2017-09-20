@@ -326,8 +326,8 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
 }
 
 int
-mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *ip6src,
-         char *host, char *port, char *flags, char *private_key_path)
+mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *ip6src, char *wpan_addr,
+         char *wpan_panid, char *host, char *port, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
@@ -359,6 +359,10 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *ip6src,
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_HOST, CCN_TT_DTAG, host);
     if (port)
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+    if (wpan_addr && wpan_panid) {
+        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_WPANADR, CCN_TT_DTAG, wpan_addr);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_WPANPANID, CCN_TT_DTAG, wpan_panid);
+    }
     /*
     if (frag)
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
@@ -1114,6 +1118,7 @@ help:
        "  echoserver    PREFIX [SUITE]\n"
        "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
        "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
+       "  newWPANface   WPAN_ADDR WPAN_PANID [FACEFLAGS]\n"
        "  newUDP6face   IP6SRC|any IP6DST PORT [FACEFLAGS]\n"
        "  newUNIXface   PATH [FACEFLAGS]\n"
        "  destroyface   FACEID\n"
@@ -1192,8 +1197,13 @@ help:
                        !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
                        !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
                        !strcmp(argv[1], "newUDP6face") ? argv[2] : NULL,
+                       NULL, NULL,
                        argv[3], argv[4],
                        argc > 5 ? argv[5] : "0x0001", private_key_path);
+    } else if (!strcmp(argv[1], "newWPANface")) {
+        if (argc < 4)
+            goto help;
+        len = mkNewFaceRequest(out, NULL, NULL, NULL, argv[2], argv[3], NULL, NULL, argc > 5 ? argv[5] : "0x0001", private_key_path);
     } else if (!strcmp(argv[1], "newUNIXface")) {
         if (argc < 3)
             goto help;

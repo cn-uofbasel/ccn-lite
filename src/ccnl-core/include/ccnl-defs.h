@@ -125,6 +125,8 @@ enum {
 #define CCNL_DTAG_DEVNAME       99008 // name of interface (eth0, wlan0)
 #define CCNL_DTAG_DEVFLAGS      99009 //
 #define CCNL_DTAG_MTU           99010 //
+#define CCNL_DTAG_WPANADR       99011 // newface: WPAN 
+#define CCNL_DTAG_WPANPANID     99012 // newface: WPAN 
 
 #define CCNL_DTAG_DEBUGREQUEST  99100 //
 #define CCNL_DTAG_DEBUGACTION   99101 // dump, halt, dump+halt

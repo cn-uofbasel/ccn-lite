@@ -889,7 +889,7 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
         struct ccnl_interest_s *i = NULL;
         for (i = relay->pit; i; i = i->next) {
             if(buf_equal(i->pkt->s.ndntlv.nonce, pkt->s.ndntlv.nonce)){
-                return -1;
+                return 1;
             }
         }
         return 0;

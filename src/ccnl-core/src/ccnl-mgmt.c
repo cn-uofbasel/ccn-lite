@@ -827,8 +827,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     unsigned char *buf;
     int buflen, num, typ;
-    unsigned char *action, *macsrc, *ip4src, *ip6src, *proto, *host, *port,
-        *path, *frag, *flags;
+    unsigned char *action, *macsrc, *ip4src, *ip6src, *proto, *host, *port, *wpanaddr, 
+        *wpanpanid, *path, *frag, *flags;
     char *cp = "newface cmd failed";
     int rc = -1;
     struct ccnl_face_s *f = NULL;
@@ -842,7 +842,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(TRACE, "ccnl_mgmt_newface from=%p, ifndx=%d\n",
              (void*) from, from->ifndx);
     action = macsrc = ip4src = ip6src = proto = host = port = NULL;
-    path = frag = flags = NULL;
+    path = frag = flags = wpanaddr = wpanpanid = NULL;
+    
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -868,7 +869,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         extractStr(proto, CCN_DTAG_IPPROTO);
         extractStr(host, CCN_DTAG_HOST);
         extractStr(port, CCN_DTAG_PORT);
-//      extractStr(frag, CCNL_DTAG_FRAG);
+        extractStr(wpanaddr, CCNL_DTAG_WPANADR);
+        extractStr(wpanpanid, CCNL_DTAG_WPANPANID);
         extractStr(flags, CCNL_DTAG_FACEFLAGS);
 
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
@@ -931,6 +933,17 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         strcpy(su.ux.sun_path, (char*) path);
         f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
                                     &su.sa, sizeof(struct sockaddr_un));
+    }
+#endif
+#ifdef USE_WPAN
+    if (wpanaddr && wpanpanid) {
+         /* initialize address with 0xFF for broadcast */
+         DEBUGMSG(TRACE, "  adding WPAN face ADDR=%s PANID=%s\n", wpanaddr, wpanpanid);
+         sun.sa.sa_family = AF_IEEE802154;
+         sun.wpan.addr.addr_type = IEEE802154_ADDR_SHORT;
+         sun.wpan.addr.pan_id = aton(wpanpanid);
+         sun.wpan.addr.addr.short_addr = aton(wpanaddr);
+         f = ccnl_get_face_or_create(ccnl, -1, &sun.sa, sizeof(sun.wpan));
     }
 #endif
 
