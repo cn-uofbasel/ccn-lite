@@ -8,7 +8,6 @@ set(CMAKE_SYSTEM_NAME Generic)
 # CCNL flags
 set(CCNL_BASIC_FLAGS
     -DUSE_DEBUG
-    -DUSE_DEBUG_MALLOC
     -DUSE_LOGGING
 #    -DUSE_SIGNATURES
     -DUSE_DUP_CHECK
@@ -31,6 +30,7 @@ if (NOT DEFINED CCNL_RIOT)
         -DUSE_UNIXSOCKET
         -DUSE_IPV4
         -DUSE_IPV6
+        -DUSE_DEBUG_MALLOC
     )
     add_definitions(${CCNL_EXTRA_FLAGS})
 endif()
