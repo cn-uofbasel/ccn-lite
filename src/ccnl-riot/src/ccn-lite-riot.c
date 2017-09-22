@@ -438,9 +438,12 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     gnrc_netif_hdr_t *nethdr = (gnrc_netif_hdr_t *)netif_pkt->data;
     sockunion su;
     memset(&su, 0, sizeof(su));
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
+#pragma message "ethernet support in FreeBSD and MacOS is work in progress"
     su.sa.sa_family = AF_PACKET;
     su.linklayer.sll_halen = nethdr->src_l2addr_len;
     memcpy(su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
+#endif
 
     /* call CCN-lite callback and free memory in packet buffer */
     ccnl_core_RX(ccnl, i, ccn_pkt->data, ccn_pkt->size, &su.sa, sizeof(su.sa));
