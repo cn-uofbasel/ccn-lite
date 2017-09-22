@@ -48,6 +48,15 @@
 #  include <sys/socket.h>
 #  ifdef USE_LINKLAYER
 #pragma message "ethernet support in FreeBSD and MacOS is work in progress"
+struct sockaddr_ll {
+    unsigned short sll_family;   /* Always AF_PACKET */
+    unsigned short sll_protocol; /* Physical-layer protocol */
+    int            sll_ifindex;  /* Interface number */
+    unsigned short sll_hatype;   /* ARP hardware type */
+    unsigned char  sll_pkttype;  /* Packet type */
+    unsigned char  sll_halen;    /* Length of address */
+    unsigned char  sll_addr[8];  /* Physical-layer address */
+};
 #  endif
 #elif defined(__linux__)
 #  include <endian.h>
@@ -92,9 +101,7 @@ typedef union {
     struct sockaddr_in6 ip6;
 #endif
 #ifdef USE_LINKLAYER
-#if !(defined(__FreeBSD__) || defined(__APPLE__))
     struct sockaddr_ll linklayer;
-#endif
 #endif
 #ifdef USE_WPAN
     struct sockaddr_ieee802154 wpan;
