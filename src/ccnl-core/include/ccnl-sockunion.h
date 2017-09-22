@@ -34,6 +34,7 @@
 #include <sys/un.h>
 #else
 #include "net/packet.h"
+#include <net/packet.h>
 #endif
 
 
@@ -54,11 +55,9 @@
 #ifndef CCNL_RIOT
 #  include <linux/if_ether.h>  // ETH_ALEN
 #  include <linux/if_packet.h> // sockaddr_ll
-#elif //CCNL_RIOT
-#include <net/packet.h>
 #endif //CCNL_RIOT
 #endif
-#endif //CCNL_LINUXKERNEL
+#endif //!CCNL_LINUXKERNEL
 
 #ifdef USE_WPAN
 /* TODO: remove when af_ieee802154.h is in linux mainline */
@@ -96,9 +95,9 @@ typedef union {
 #ifdef USE_LINKLAYER
 #if (!defined(__FreeBSD__) && !defined(__APPLE__)) || \
     (defined(CCNL_RIOT) && defined(__FreeBSD__)) ||  \
-    (defined(CCNL_RIOT) && defined(__APPLE__))
-)
+    (defined(CCNL_RIOT) && defined(__APPLE__)) 
     struct sockaddr_ll linklayer;
+#endif
 #endif
 #ifdef USE_WPAN
     struct sockaddr_ieee802154 wpan;
@@ -125,7 +124,6 @@ _half_byte_to_char(uint8_t half_byte);
 
 //char 
 //*inet_ntoa(struct in_addr in);
-
 
 
 #endif
