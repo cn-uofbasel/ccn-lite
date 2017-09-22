@@ -294,6 +294,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     xtimer_set_msg(&_ageing_timer, US_PER_SEC, &_ageing_reset, _ccnl_event_loop_pid);
     DEBUGMSG(TRACE, "ccnl_ll_TX: reset timer\n");
 
+    (void) ifc;
     switch(dest->sa.sa_family) {
         /* link layer sending */
 #if !(defined(__FreeBSD__) || defined(__APPLE__))
@@ -438,6 +439,7 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     gnrc_netif_hdr_t *nethdr = (gnrc_netif_hdr_t *)netif_pkt->data;
     sockunion su;
     memset(&su, 0, sizeof(su));
+    (void )nethdr;
 #if !(defined(__FreeBSD__) || defined(__APPLE__))
 #pragma message "ethernet support in FreeBSD and MacOS is work in progress"
     su.sa.sa_family = AF_PACKET;
