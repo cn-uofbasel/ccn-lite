@@ -297,7 +297,6 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     (void) ifc;
     switch(dest->sa.sa_family) {
         /* link layer sending */
-#if !(defined(__FreeBSD__) || defined(__APPLE__))
         case AF_PACKET: {
                             /* allocate memory */
                             gnrc_pktsnip_t *hdr = NULL;
@@ -373,7 +372,6 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                             }
                             break;
                         }
-#endif
         default:
                         DEBUGMSG(WARNING, "unknown transport\n");
                         break;
