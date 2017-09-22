@@ -95,7 +95,13 @@ typedef union {
 #endif
 
 #ifdef USE_LINKLAYER
-#if !(defined(__FreeBSD__) || defined(__APPLE__))
+#ifdef CCNL_RIOT
+    struct sockaddr_ll linklayer;
+#endif
+#if (!defined(__FreeBSD__) && !defined(__APPLE__)) || \
+    (defined(CCNL_RIOT) && defined(__FreeBSD__)) ||  \
+    (defined(CCNL_RIOT) && defined(__APPLE__))
+)
     struct sockaddr_ll linklayer;
 #endif
 #endif
