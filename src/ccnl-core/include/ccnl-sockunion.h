@@ -93,17 +93,12 @@ typedef union {
 #ifdef USE_IPV6
     struct sockaddr_in6 ip6;
 #endif
-
 #ifdef USE_LINKLAYER
-#ifdef CCNL_RIOT
-    struct sockaddr_ll linklayer;
-#endif
 #if (!defined(__FreeBSD__) && !defined(__APPLE__)) || \
     (defined(CCNL_RIOT) && defined(__FreeBSD__)) ||  \
     (defined(CCNL_RIOT) && defined(__APPLE__))
 )
     struct sockaddr_ll linklayer;
-#endif
 #endif
 #ifdef USE_WPAN
     struct sockaddr_ieee802154 wpan;
