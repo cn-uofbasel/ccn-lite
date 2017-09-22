@@ -48,7 +48,8 @@
 #  include <sys/types.h>
 #  include <sys/socket.h>
 #  ifdef USE_LINKLAYER
-#pragma message "ethernet support in FreeBSD and MacOS is work in progress"
+#pragma message "ethernet support in FreeBSD and MacOS is work in progress \
+ and not fully implemented!"
 #  endif
 #elif defined(__linux__)
 #  include <endian.h>
