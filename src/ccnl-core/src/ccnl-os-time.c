@@ -32,7 +32,7 @@
 struct ccnl_timer_s *eventqueue;
 
 
-#ifdef CCNL_RIOT
+#if defined(CCNL_RIOT) && !(defined(__FreeBSD__) || defined(__APPLE__) || defined(__linux__))
 #include <xtimer.h>
 
 int gettimeofday(struct timeval *__restrict __p, void *__restrict __tz)
