@@ -45,8 +45,10 @@
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>
-#  undef USE_LINKLAYER
-   // ethernet support in FreeBSD is work in progress ...
+#  include <sys/socket.h>
+#  ifdef USE_LINKLAYER
+#pragma message "ethernet support in FreeBSD and MacOS is work in progress"
+#  endif
 #elif defined(__linux__)
 #  include <endian.h>
 #ifndef CCNL_RIOT
@@ -90,7 +92,9 @@ typedef union {
     struct sockaddr_in6 ip6;
 #endif
 #ifdef USE_LINKLAYER
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
     struct sockaddr_ll linklayer;
+#endif
 #endif
 #ifdef USE_WPAN
     struct sockaddr_ieee802154 wpan;

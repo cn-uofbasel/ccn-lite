@@ -47,8 +47,10 @@ static int inter_ccn_interval = 0; // in usec
 static int inter_pkt_interval = 0; // in usec
 
 #ifdef USE_LINKLAYER
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
 int
 ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);
+#endif
 #endif
 
 #ifdef USE_WPAN

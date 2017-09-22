@@ -473,7 +473,8 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
     struct ccnl_face_s *fibface = NULL;
     for (unsigned i = 0; i < CCNL_MAX_INTERFACES; i++) {
         switch (ccnl->ifs[i].addr.sa.sa_family) {
-#ifdef USE_LINKLAYER
+#ifdef USE_LINKLAYER 
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
             case (AF_PACKET): {
                 /* initialize address with 0xFF for broadcast */
                 uint8_t relay_addr[CCNL_MAX_ADDRESS_LEN];
@@ -487,6 +488,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
                 fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.linklayer));
                 break;
                               }
+#endif
 #endif
 #ifdef USE_WPAN
             case (AF_IEEE802154): {

@@ -373,8 +373,10 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
         if(facetype[it] == AF_INET)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
 #ifdef USE_LINKLAYER
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
         else if(facetype[it] == AF_PACKET)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it]);
+#endif
 #endif
         else if(facetype[it] == AF_UNIX)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
@@ -879,6 +881,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     // should (re)verify that action=="newface"
 
 #ifdef USE_LINKLAYER
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
     if (macsrc && host && port) {
         sockunion su;
         DEBUGMSG(TRACE, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
@@ -894,6 +897,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.linklayer));
         }
     } else
+#endif
 #endif
     if ( (proto && host && port && !strcmp((const char*)proto, "17")) ||
                     (wpanaddr && wpanpanid) ) {
@@ -1340,11 +1344,13 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             dev_add_pack(&i->ccnl_packet);
         }
 #elif defined(USE_LINKLAYER)
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
         i->sock = ccnl_open_ethdev((char*)devname, &i->addr.linklayer, portnum);
         if (!i->sock) {
             DEBUGMSG(TRACE, "  could not open device %s\n", devname);
             goto Bail;
         }
+#endif
 #endif
 //      i->frag = frag ? atoi(frag) : 0;
         i->mtu = 1500;

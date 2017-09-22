@@ -142,8 +142,10 @@ ccnl_dump(int lev, int typ, void *p)
                     CONSOLE(" ip=%s", ccnl_addr2ascii(&fac->peer));
 #endif
 #ifdef USE_LINKLAYER
-                    else if (fac->peer.sa.sa_family == AF_PACKET)
-                CONSOLE(" eth=%s", ccnl_addr2ascii(&fac->peer));
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
+                else if (fac->peer.sa.sa_family == AF_PACKET)
+                    CONSOLE(" eth=%s", ccnl_addr2ascii(&fac->peer));
+#endif
 #endif
 #ifdef USE_WPAN
                     else if (fac->peer.sa.sa_family == AF_IEEE802154)
@@ -352,8 +354,10 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
             type[line] = AF_INET6;
 #endif
 #ifdef USE_LINKLAYER
-            else if (fac->peer.sa.sa_family == AF_PACKET)
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
+        else if (fac->peer.sa.sa_family == AF_PACKET)
             type[line] = AF_PACKET;
+#endif
 #endif
 #ifdef USE_UNIXSOCKET
         else if (fac->peer.sa.sa_family == AF_UNIX)

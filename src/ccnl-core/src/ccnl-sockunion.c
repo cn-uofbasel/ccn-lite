@@ -70,6 +70,7 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_LINKLAYER
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->linklayer;
         strcpy(result, ll2ascii(ll->sll_addr, ll->sll_halen & 0x0f));
@@ -77,6 +78,7 @@ ccnl_addr2ascii(sockunion *su)
             ntohs(ll->sll_protocol));
         return result;
     }
+#endif
 #endif
 #ifdef USE_WPAN
     case AF_IEEE802154: {
@@ -141,9 +143,11 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
         return -1;
     switch (s1->sa.sa_family) {
 #ifdef USE_LINKLAYER
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
         case AF_PACKET:
             return memcmp(s1->linklayer.sll_addr, s2->linklayer.sll_addr,
                           s1->linklayer.sll_halen);
+#endif
 #endif
 #ifdef USE_WPAN
         case AF_IEEE802154:
