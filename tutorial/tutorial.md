@@ -315,7 +315,7 @@ available in the release downloads of [release v0.1.0 of nfn-scala](https://gith
 
 In order to run the compute server, Java needs to be installed:
 
-- Ubuntu: `sudo apt-get install openjdk-7-jre`
+- Ubuntu: `sudo apt-get install openjdk-8-jre`
 - OS X: Java 7 should already be available. If not, download and install directly from [Oracle](http://java.com/).
 
 Additionally, the Java binary is also needed:
