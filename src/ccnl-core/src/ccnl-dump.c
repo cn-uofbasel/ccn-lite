@@ -354,7 +354,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         if (fac->peer.sa.sa_family == AF_INET6)
             type[line] = AF_INET6;
 #endif
-#if defined(USE_LINKLAYER) &&
+#if defined(USE_LINKLAYER) && \
     ((!defined(__FreeBSD__) && !defined(__APPLE__)) || \
     (defined(CCNL_RIOT) && defined(__FreeBSD__)) ||  \
     (defined(CCNL_RIOT) && defined(__APPLE__)) )
