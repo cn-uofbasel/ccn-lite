@@ -142,12 +142,14 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
     if (s1->sa.sa_family != s2->sa.sa_family)
         return -1;
     switch (s1->sa.sa_family) {
-#ifdef USE_LINKLAYER
-#if !(defined(__FreeBSD__) || defined(__APPLE__))
+
+#if defined(USE_LINKLAYER) && \
+    ((!defined(__FreeBSD__) && !defined(__APPLE__)) || \
+    (defined(CCNL_RIOT) && defined(__FreeBSD__)) ||  \
+    (defined(CCNL_RIOT) && defined(__APPLE__)) )
         case AF_PACKET:
             return memcmp(s1->linklayer.sll_addr, s2->linklayer.sll_addr,
                           s1->linklayer.sll_halen);
-#endif
 #endif
 #ifdef USE_WPAN
         case AF_IEEE802154:
