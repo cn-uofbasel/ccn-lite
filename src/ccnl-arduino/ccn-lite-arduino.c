@@ -166,6 +166,7 @@ typedef long ssize_t;
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
+#include "ccnl-http-status.h"
 
 extern char __heap_start;
 extern char *__brkval;
