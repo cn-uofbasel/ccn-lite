@@ -28,6 +28,7 @@ set(CCNL_ANDROID_BASIC_FLAGS
         -DUSE_UNIXSOCKET
         -DUSE_IPV4
         -DUSE_IPV6
+        -DUSE_HTTP_STATUS
         CACHE PATH
         "basic build flags for CCN-lite"
         )
