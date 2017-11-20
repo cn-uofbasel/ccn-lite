@@ -24,7 +24,7 @@
 
 #include "ccn-lite-android.h"
 
-
+#define USE_HTTP_STATUS
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
