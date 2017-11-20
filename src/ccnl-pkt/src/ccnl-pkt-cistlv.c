@@ -22,15 +22,20 @@
 
 #ifdef USE_SUITE_CISTLV
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-cistlv.h"
-
+#include "ccnl-core.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#else
+#include <ccnl-pkt-cistlv.h>
+#include <ccnl-core.h>
+#endif
 
-#include "ccnl-core.h"
+
 
 
 // ----------------------------------------------------------------------
@@ -218,9 +223,10 @@ Bail:
 int
 ccnl_cistlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
+#ifndef CCNL_LINUXKERNEL
     assert(p);
     assert(p->suite == CCNL_SUITE_CISTLV);
-
+#endif
     if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
     // TODO: check keyid

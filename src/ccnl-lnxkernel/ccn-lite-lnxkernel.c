@@ -31,7 +31,7 @@
 #define USE_LINKLAYER
 #define USE_LOGGING
 #define USE_IPV4
-#define USE_MGMT
+//#define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
@@ -44,6 +44,7 @@
 #define USE_UNIXSOCKET
 
 #define NEEDS_PREFIX_MATCHING
+#define NEEDS_PACKET_CRAFTING
 
 #include <stddef.h>
 
@@ -77,9 +78,8 @@
 
 #define strtol(s,p,b)   simple_strtol(s,p,b)
 #define inet_aton(s,p)  (p)->s_addr = in_aton(s)
+
 #define USE_LINKLAYER
-
-
 
 #include <ccnl-defs.h>
 #include <ccnl-frag.h>
@@ -89,13 +89,51 @@
 #include <ccnl-os-time.h>
 #include <ccnl-logging.h>
 #include <ccnl-dispatch.h>
+#include <ccnl-malloc.h>
+#include <ccnl-pkt-switch.h>
+
+#include "../../ccnl-pkt/src/ccnl-pkt-switch.c"
+#ifdef USE_SUITE_NDNTLV
+#include "../../ccnl-pkt/src/ccnl-pkt-ndntlv.c"
+#endif
+#ifdef USE_SUITE_CCNTLV
+#include "../../ccnl-pkt/src/ccnl-pkt-ccntlv.c"
+#endif
+#ifdef USE_SUITE_CISTLV
+#include "../../ccnl-pkt/src/ccnl-pkt-cistlv.c"
+#endif
+#ifdef USE_SUITE_CCNB
+#include "../../ccnl-pkt/src/ccnl-pkt-ccnb.c"
+#endif
+#ifdef USE_SUITE_IOTTLV
+#include "../../ccnl-pkt/src/ccnl-pkt-iottlv.c"
+#endif
+#include "../../ccnl-core/src/ccnl-pkt.c"
+#include "../../ccnl-core/src/ccnl-logging.c"
+#include "../../ccnl-core/src/ccnl-os-time.c"
+#include "../../ccnl-core/src/ccnl-prefix.c"
+#include "../../ccnl-core/src/ccnl-relay.c"
+#include "../../ccnl-core/src/ccnl-sched.c"
+#include "../../ccnl-core/src/ccnl-interest.c"
+#include "../../ccnl-core/src/ccnl-content.c"
+#include "../../ccnl-core/src/ccnl-if.c"
+#include "../../ccnl-core/src/ccnl-buf.c"
+#include "../../ccnl-core/src/ccnl-pkt-util.c"
+#include "../../ccnl-core/src/ccnl-sockunion.c"
+#include "../../ccnl-fwd/src/ccnl-fwd.c"
+#include "../../ccnl-fwd/src/ccnl-dispatch.c"
+#include "../../ccnl-core/src/ccnl-mgmt.c"
+
 // ----------------------------------------------------------------------
 
 #define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
-#define local_producer(...)             0
+//#define local_producer(...)             0
+
 #define cache_strategy_remove(...)      0
+
+
 
 static struct ccnl_relay_s theRelay;
 
@@ -103,6 +141,12 @@ static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
                       struct packet_type *pt, struct net_device *outdev);
 
 void ccnl_udp_data_ready(struct sock *sk);
+
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+               struct ccnl_pkt_s *pkt){
+    return 0;
+}
 
 // ----------------------------------------------------------------------
 
@@ -116,6 +160,7 @@ random(void)
 }
 */
 
+#ifdef USE_MGMT
 static char*
 inet_ntoa(struct in_addr in)
 {
@@ -126,7 +171,7 @@ inet_ntoa(struct in_addr in)
     }
     return buf;
 }
-
+#endif
 // ----------------------------------------------------------------------
 
 static inline void*
@@ -544,6 +589,8 @@ MODULE_PARM_DESC(x, "name (path) of mgmt unix socket");
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("christian.tschudin@unibas.ch");
+
+int debug_level;
 
 static int __init
 ccnl_init(void)

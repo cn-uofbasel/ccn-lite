@@ -23,12 +23,7 @@
 #ifndef CCNL_IF_H
 #define CCNL_IF_H
 
-#ifdef CCNL_LINUXKERNEL
-#include <linux/workqueue.h>
-#include <linux/socket.h>
-#include <linux/netdevice.h>
-#include <net/sock.h>
-#elif defined(CCNL_RIOT)
+#if defined(CCNL_RIOT)
 #include "kernel_types.h"
 #endif
 
@@ -79,7 +74,7 @@ struct ccnl_if_s { // interface for packet IO
 void
 ccnl_interface_cleanup(struct ccnl_if_s *i);
 
-#ifndef CCNL_LINUXKERNEL
+#if !defined(CCNL_LINUXKERNEL) && !defined(CCNL_ANDROID)
 int
 ccnl_close_socket(int s);
 #endif

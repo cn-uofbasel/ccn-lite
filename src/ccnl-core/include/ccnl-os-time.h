@@ -50,8 +50,6 @@ timestamp(void);
  #include <sys/time.h>
 #endif
 
-#define CCNL_NOW()                    current_time()
-
 #ifndef CCNL_LINUXKERNEL
 double
 current_time(void);
@@ -68,7 +66,7 @@ timestamp(void);
 
 #ifndef CCNL_OMNET
 #  define CCNL_NOW()                    current_time()
-#endif
+#endif //CCNL_OMNET
 
 #endif // CCNL_UNIX
 
@@ -115,8 +113,13 @@ static struct ccnl_timerlist_s *spare_timer;
 inline void
 ccnl_get_timeval(struct timeval *tv);
 
-//int
-//current_time(void);
+int
+current_time2(void);
+
+long
+timevaldelta(struct timeval *a, struct timeval *b);
+
+#  define CCNL_NOW()                    current_time2()
 
 static void
 ccnl_timer_callback(unsigned long data);

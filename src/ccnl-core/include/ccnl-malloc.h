@@ -97,4 +97,17 @@ debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
 
 #endif// USE_DEBUG_MALLOC
 
+#ifdef CCNL_LINUXKERNEL
+
+
+static inline void*
+ccnl_malloc(int s);
+
+static inline void*
+ccnl_calloc(int n, int s);
+
+static inline void
+ccnl_free(void *ptr);
+#endif
+
 #endif //CCNL_MALLOC_H

@@ -21,17 +21,23 @@
  */
 
 #ifdef USE_SUITE_IOTTLV
-
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-iottlv.h"
-
+#include "ccnl-core.h"
+#include "ccnl-pkt-switch.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#else
+#include <ccnl-pkt-iottlv.h>
+#include <ccnl-core.h>
+#include <ccnl-pkt-switch.h>
+int
+ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf);
+#endif
 
-#include "ccnl-core.h"
-#include "ccnl-pkt-switch.h"
 
 // ----------------------------------------------------------------------
 // packet decomposition
@@ -336,9 +342,10 @@ Bail:
 int
 ccnl_iottlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
+#ifndef CCNL_LINUXKERNEL
     assert(p);
     assert(p->suite == CCNL_SUITE_IOTTLV);
-
+#endif
     if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
     return 0;
@@ -500,8 +507,8 @@ ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
                          unsigned int *final_block_id,
                          unsigned char *buf)
 {
-    (void) final_block_id;
     int oldoffset = *offset;
+    (void) final_block_id;
 
     if (contentpos)
         *contentpos = *offset - paylen;

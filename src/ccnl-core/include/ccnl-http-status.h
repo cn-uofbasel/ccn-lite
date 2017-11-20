@@ -21,6 +21,9 @@
 
 #ifdef USE_HTTP_STATUS
 
+#include "ccnl-core.h"
+#include "ccnl-sockunion.h"
+#include <time.h>
 
 struct ccnl_http_s {
     int server, client; // socket

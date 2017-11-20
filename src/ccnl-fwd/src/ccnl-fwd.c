@@ -30,14 +30,23 @@
 #include "ccnl-nfn-common.h"
 #endif
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
-
 #include <inttypes.h>
+#else
+#include <ccnl-pkt-ccnb.h>
+#include <ccnl-pkt-ccntlv.h>
+#include <ccnl-pkt-cistlv.h>
+#include <ccnl-pkt-iottlv.h>
+#include <ccnl-pkt-ndntlv.h>
+#include <ccnl-pkt-switch.h>
+#endif
+
 //#include "ccnl-logging.h"
 
 
@@ -213,9 +222,13 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
     return -1;
 }
 
+#ifndef CCNL_ANDROID
 int
 local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
+#else
+#define local_producer(...) 0
+#endif
 
 int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -224,7 +237,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
     int propagate= 0;
-
+    char *s = NULL;
     int32_t nonce = 0;
     if (pkt != NULL && (*pkt) != NULL && (*pkt)->s.ndntlv.nonce != NULL) {
         if ((*pkt)->s.ndntlv.nonce->datalen == 4) {
@@ -232,16 +245,28 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-    char *s = NULL;
+
+#ifndef CCNL_LINUXKERNEL
     DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%"PRIi32" from=%s\n",
                   (s = ccnl_prefix_to_path((*pkt)->pfx)),
                   ccnl_suite2str((*pkt)->suite), nonce,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
+#else
+    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%d from=%s\n",
+                  (s = ccnl_prefix_to_path((*pkt)->pfx)),
+                  ccnl_suite2str((*pkt)->suite), nonce,
+                  ccnl_addr2ascii(from ? &from->peer : NULL));
+#endif
     ccnl_free(s);
 
 #ifdef USE_DUP_CHECK
+
     if (ccnl_nonce_isDup(relay, *pkt)) {
+    #ifndef CCNL_LINUXKERNEL
         DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce %"PRIi32"\n", nonce);
+    #else
+        DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce %d\n", nonce);
+    #endif
         return 0;
     }
 #endif
@@ -363,7 +388,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
 
-    char *s = NULL;
 #ifdef USE_NFN
         DEBUGMSG_CFWD(DEBUG,
                       "  created new interest entry %p (prefix=%s, nfnflags=%d)\n",

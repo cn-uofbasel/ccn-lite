@@ -20,12 +20,19 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-interest.h"
-
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"
 #include "ccnl-prefix.h"
 #include "ccnl-logging.h"
+#else
+#include <ccnl-interest.h>
+#include <ccnl-malloc.h>
+#include <ccnl-os-time.h>
+#include <ccnl-prefix.h>
+#include <ccnl-logging.h>
+#endif
 
 //FIXME: RELEAY FUNCTION MUST BE RENAMED!
 
@@ -94,6 +101,7 @@ int
 ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *from)
 {
     struct ccnl_pendint_s *pi, *last = NULL;
+    char *s = NULL;
     DEBUGMSG_CORE(TRACE, "ccnl_append_pending\n");
 
     for (pi = i->pending; pi; pi = pi->next) { // check whether already listed
@@ -109,7 +117,7 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *fro
         DEBUGMSG_CORE(DEBUG, "  no mem\n");
         return -1;
     }
-    char *s = NULL;
+
     DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n",
                   (void *) pi, (s = ccnl_prefix_to_path(i->pkt->pfx)), (void*)i->pkt->pfx);
     ccnl_free(s);
@@ -125,11 +133,11 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *fro
 int
 ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face)
 {
-    DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
     int found = 0;
     char *s = NULL;
     struct ccnl_pendint_s *prev = NULL;
     struct ccnl_pendint_s *pend = i->pending;
+    DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
     while (pend) {  // TODO: is this really the most elegant solution?
         if (face->faceid == pend->face->faceid) {
             DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",

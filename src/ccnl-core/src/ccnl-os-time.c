@@ -20,13 +20,18 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-os-time.h"
-
 #include "ccnl-malloc.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#else
+#include <ccnl-os-time.h>
+#include <ccnl-malloc.h>
+#endif
+
+
 
 
 struct ccnl_timer_s *eventqueue;
@@ -111,17 +116,17 @@ timestamp(void)
 
 #endif // !CCNL_ARDUINO
 
+long
+timevaldelta(struct timeval *a, struct timeval *b) {
+    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
+}
+
 #if defined(CCNL_UNIX) || defined (CCNL_RIOT) || defined (CCNL_ARDUINO)
 
 void
 ccnl_get_timeval(struct timeval *tv)
 {
     gettimeofday(tv, NULL);
-}
-
-long
-timevaldelta(struct timeval *a, struct timeval *b) {
-    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
 }
 
 void*
@@ -181,7 +186,7 @@ ccnl_get_timeval(struct timeval *tv)
 }
 
 int
-current_time(void)
+current_time2(void)
 {
     struct timeval tv;
 

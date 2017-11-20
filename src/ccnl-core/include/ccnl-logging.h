@@ -23,6 +23,10 @@
 #ifndef CCNL_LOGGING_H
 #define CCNL_LOGGING_H
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 #ifndef CCNL_RIOT
 #define FATAL   0  // FATAL
 #define ERROR   1  // ERROR

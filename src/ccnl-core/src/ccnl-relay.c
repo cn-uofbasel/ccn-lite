@@ -20,20 +20,22 @@
  * 2017-06-16 created
  */
 
-#include <stdio.h>
-#include <inttypes.h>
-
+#ifndef CCNL_LINUXKERNEL
 #ifdef USE_NFN
 #include "ccnl-nfn-common.h"
 #endif
 #include "ccnl-core.h"
-#include <assert.h>
-
 #ifdef USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_NDNTLV
 #include "ccnl-pkt-ndn-compression.h"
 #endif //USE_SUITE_NDNTLV
 #endif //USE_SUITE_COMPRESSED
+#include <stdio.h>
+#include <inttypes.h>
+#include <assert.h>
+#else //CCNL_LINUXKERNEL
+#include <ccnl-core.h>
+#endif //CCNL_LINUXKERNEL
 
 
 
@@ -386,6 +388,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
     int rc = 0;
+    char *s = NULL;
 #if defined(USE_NACK) || defined(USE_RONR)
     int matching_face = 0;
 #endif
@@ -427,7 +430,6 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                 }
             }
 
-            char *s = NULL;
             DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> nonce=%i to=%s\n",
                           (s = ccnl_prefix_to_path(i->pkt->pfx)), nonce,
                           fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
@@ -471,7 +473,9 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
 {
     sockunion sun;
     struct ccnl_face_s *fibface = NULL;
-    for (unsigned i = 0; i < CCNL_MAX_INTERFACES; i++) {
+    extern int ccnl_suite2defaultPort(int suite);
+    unsigned i = 0;
+    for (i = 0; i < CCNL_MAX_INTERFACES; i++) {
         switch (ccnl->ifs[i].addr.sa.sa_family) {
 #ifdef USE_LINKLAYER 
 #if !(defined(__FreeBSD__) || defined(__APPLE__))
@@ -506,9 +510,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
             case (AF_INET):
                 sun.sa.sa_family = AF_INET;
                 sun.ip4.sin_addr.s_addr = INADDR_BROADCAST;
-                extern int ccnl_suite2defaultPort(int suite);
                 sun.ip4.sin_port = htons(ccnl_suite2defaultPort(interest->pkt->suite));
-
                 fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.ip4));
                 break;
 #endif
@@ -516,9 +518,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
             case (AF_INET6):
                 sun.sa.sa_family = AF_INET6;
                 sun.ip6.sin6_addr = in6addr_any;
-                extern int ccnl_suite2defaultPort(int suite);
                 sun.ip6.sin6_port = ccnl_suite2defaultPort(interest->pkt->suite);
-
                 fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.ip6));
                 break;
 #endif
@@ -604,6 +604,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     struct ccnl_interest_s *i;
     struct ccnl_face_s *f;
     int cnt = 0;
+    char *s = NULL;
     DEBUGMSG_CORE(TRACE, "ccnl_content_serve_pending\n");
 
  #ifdef USE_TIMEOUT_KEEPALIVE // TODO: shouldn't this be USE_NFN_REQUESTS?
@@ -719,12 +720,17 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                     nfn_request_content_set_prefix(c, i->pkt->pfx);
                 }
 #endif
-
-                char *s = NULL;
+#ifndef CCNL_LINUXKERNEL
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%"PRIi32" to=%s\n",
                           (s = ccnl_prefix_to_path(i->pkt->pfx)),
                           ccnl_suite2str(i->pkt->pfx->suite), nonce,
                           ccnl_addr2ascii(&pi->face->peer));
+#else
+                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%d to=%s\n",
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
+                          ccnl_suite2str(i->pkt->pfx->suite), nonce,
+                          ccnl_addr2ascii(&pi->face->peer));
+#endif
                 ccnl_free(s);
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
                          pi->face->faceid, (void*) c->pkt);
@@ -772,13 +778,14 @@ ccnl_free(s);
 void
 ccnl_do_ageing(void *ptr, void *dummy)
 {
-    (void) dummy;
+
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
     struct ccnl_content_s *c = relay->contents;
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
     time_t t = CCNL_NOW();
     DEBUGMSG_CORE(VERBOSE, "ageing t=%d\n", (int)t);
+    (void) dummy;
 
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
@@ -959,6 +966,7 @@ ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 {
     struct ccnl_forward_s *fwd;
     int res = -1;
+    struct ccnl_forward_s *last = NULL;
 
     if (pfx != NULL) {
         char *s = NULL;
@@ -967,7 +975,6 @@ ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
         ccnl_free(s);
     }
 
-    struct ccnl_forward_s *last = NULL;
     for (fwd = relay->fib; fwd; last = fwd, fwd = fwd->next) {
         if (((pfx == NULL) || (fwd->suite == pfx->suite)) &&
             ((pfx == NULL) || !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) &&
@@ -995,6 +1002,7 @@ void
 ccnl_fib_show(struct ccnl_relay_s *relay)
 {
 #ifndef CCNL_LINUXKERNEL
+    char *s = NULL;
     struct ccnl_forward_s *fwd;
 
     printf("%-30s | %-10s | %-9s | Peer\n",
@@ -1006,7 +1014,7 @@ ccnl_fib_show(struct ccnl_relay_s *relay)
 #endif
            );
     puts("-------------------------------|------------|-----------|------------------------------------");
-    char *s = NULL;
+
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
         printf("%-30s | %-10s |        %02i | %s\n", (s = ccnl_prefix_to_path(fwd->prefix)),
                                      ccnl_suite2str(fwd->suite), (int)
@@ -1025,6 +1033,7 @@ ccnl_fib_show(struct ccnl_relay_s *relay)
 void
 ccnl_cs_dump(struct ccnl_relay_s *ccnl)
 {
+#ifndef CCNL_LINUXKERNEL
     struct ccnl_content_s *c = ccnl->contents;
     unsigned i = 0;
     char *s;
@@ -1036,6 +1045,7 @@ ccnl_cs_dump(struct ccnl_relay_s *ccnl)
         c = c->next;
         ccnl_free(s);
     }
+#endif
 }
 
 void
@@ -1059,8 +1069,9 @@ ccnl_interface_CTS(void *aux1, void *aux2)
     memcpy(&req, r, sizeof(req));
     ifc->qfront = (ifc->qfront + 1) % CCNL_MAX_IF_QLEN;
     ifc->qlen--;
-
+#ifndef CCNL_LINUXKERNEL
     assert(ccnl->ccnl_ll_TX_ptr != 0);
+#endif
     ccnl->ccnl_ll_TX_ptr(ccnl, ifc, &req.dst, req.buf);
 #ifdef USE_SCHEDULER
     ccnl_sched_CTS_done(ifc->sched, 1, req.buf->datalen);

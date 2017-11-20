@@ -19,20 +19,29 @@
  * 2017-06-20 created
  */
 
-
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-util.h"
-
 #include "ccnl-defs.h"
 #include "ccnl-os-time.h"
-
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
-
 #include "ccnl-logging.h"
+#else
+#include <ccnl-pkt-util.h>
+#include <ccnl-defs.h>
+#include <ccnl-os-time.h>
+#include <ccnl-pkt-ccnb.h>
+#include <ccnl-pkt-ccntlv.h>
+#include <ccnl-pkt-cistlv.h>
+#include <ccnl-pkt-iottlv.h>
+#include <ccnl-pkt-ndntlv.h>
+#include <ccnl-pkt-switch.h>
+#include <ccnl-logging.h>
+#endif
 
 
 int
@@ -237,13 +246,14 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 int
 ccnl_cmp2int(unsigned char *cmp, int cmplen)
 {
-    DEBUGMSG(DEBUG, "  inter a: %i\n", cmplen);
+    long int i;
     char *str = (char *)ccnl_malloc(cmplen+1);
+    DEBUGMSG(DEBUG, "  inter a: %i\n", cmplen);
     DEBUGMSG(DEBUG, "  inter b\n");
     memcpy(str, (char *)cmp, cmplen);
     str[cmplen] = '\0';
     DEBUGMSG(DEBUG, "  inter c: %s\n", str);
-    long int i = strtol(str, NULL, 0);
+    i = strtol(str, NULL, 0);
     DEBUGMSG(DEBUG, "  inter d\n");
     ccnl_free(str);
     return (int)i;

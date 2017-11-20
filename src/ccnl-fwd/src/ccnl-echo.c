@@ -20,6 +20,8 @@
  * 2015-01-12 created
  */
 
+void null_func();
+
 #ifdef USE_ECHO
 
 void

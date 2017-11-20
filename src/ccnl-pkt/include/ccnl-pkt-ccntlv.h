@@ -23,7 +23,9 @@
 #ifndef CCNL_PKT_CCNTLV_H
 #define CCNL_PKT_CCNTLV_H
 
+#ifndef  CCNL_LINUXKERNEL
 #include <stdint.h>
+#endif
 
 #include "ccnl-core.h"
 

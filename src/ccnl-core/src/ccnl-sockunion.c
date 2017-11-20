@@ -20,13 +20,16 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-sockunion.h"
-
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <string.h>
-
 #include "ccnl-logging.h"
+#else
+#include <ccnl-logging.h>
+#include <ccnl-sockunion.h>
+#endif
 
 int
 ccnl_is_local_addr(sockunion *su)
@@ -102,12 +105,12 @@ ccnl_addr2ascii(sockunion *su)
 #endif
 #ifdef USE_IPV4
     case AF_INET:{
-#ifdef __linux__
+#if defined(__linux__) && !defined(CCNL_LINUXKERNEL)
         char str[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, (const void *)&(su->ip4.sin_addr), str, INET_ADDRSTRLEN);
         sprintf(result, "%s/%u",  str,
             ntohs(su->ip4.sin_port));
-#else
+#elif !defined(CCNL_LINUXKERNEL)
         sprintf(result, "%s/%u", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
 #endif

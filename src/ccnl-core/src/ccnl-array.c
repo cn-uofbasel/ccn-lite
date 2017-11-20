@@ -20,6 +20,10 @@
  * 2017-06-16 created
  */
 
+void null_func();
+
+#ifndef CCNL_LINUXKERNEL
+
 #include "ccnl-array.h"
 
 #include <stddef.h>
@@ -145,3 +149,5 @@ ccnl_array_contains(struct ccnl_array_s *array, void *item)
 {
     return ccnl_array_find(array, item) != CCNL_ARRAY_NOT_FOUND;
 }
+
+#endif

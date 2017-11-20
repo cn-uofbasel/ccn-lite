@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.7)
 project(ccnl-lxkernel)
 
+include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-unix/include ../ccnl-nfn/include ../ccnl-pkt-compression/include)
+#file(GLOB CORESOURCE "../ccnl-core/src/*.c")
+#file(GLOB FWDSOURCE "../ccnl-fwd/src/*.c")
+#file(GLOB PKTSOURCE "../ccnl-pkt/src/*.c")
+#add_library(ccn-lite-kernel STATIC ${CORESOURCE} ${FWDSOURCE} ${PKTSOURCE})
+
 
 SET( MODULE_NAME
         ccnl-lxkernel

@@ -20,8 +20,12 @@
  * 2017-06-16 created
  */
 
-#include "ccnl-if.h"
 
+#ifndef CCNL_LINUXKERNEL
+#include "ccnl-if.h"
+#include "ccnl-os-time.h"
+#include "ccnl-malloc.h"
+#include "ccnl-logging.h"
 #include <sys/socket.h>
 #ifndef CCNL_RIOT
 #include <sys/un.h>
@@ -29,12 +33,12 @@
 #include "net/packet.h"
 #endif
 #include <unistd.h>
-#include "ccnl-os-time.h"
-
-#include "ccnl-malloc.h"
-
-#include "ccnl-logging.h"
-
+#else
+#include <ccnl-if.h>
+#include <ccnl-os-time.h>
+#include <ccnl-malloc.h>
+#include <ccnl-logging.h>
+#endif
 
 void
 ccnl_interface_cleanup(struct ccnl_if_s *i)
@@ -47,12 +51,12 @@ ccnl_interface_cleanup(struct ccnl_if_s *i)
         struct ccnl_txrequest_s *r = i->queue + (i->qfront+j)%CCNL_MAX_IF_QLEN;
         ccnl_free(r->buf);
     }
-#ifndef CCNL_RIOT
+#if !defined(CCNL_RIOT) && !defined(CCNL_ANDROID) && !defined(CCNL_LINUXKERNEL)
     ccnl_close_socket(i->sock);
 #endif
 }
 
-#ifndef CCNL_RIOT
+#if !defined(CCNL_RIOT) && !defined(CCNL_ANDROID) && !defined(CCNL_LINUXKERNEL)
 int
 ccnl_close_socket(int s)
 {

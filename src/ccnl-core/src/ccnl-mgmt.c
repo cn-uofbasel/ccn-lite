@@ -18,24 +18,35 @@
  *
  */
 
- #include "ccnl-mgmt.h"
-
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-
+#ifndef CCNL_LINUXKERNEL
+#include "ccnl-mgmt.h"
 #include "ccnl-core.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-builder.h"
 #include "ccnl-dump.h"
-
 #include "ccnl-crypto.h"
 #include "ccnl-forward.h"
 #include "ccnl-pkt-switch.h"
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#else
+#include <ccnl-mgmt.h>
+#include <ccnl-core.h>
+#include <ccnl-pkt-ccnb.h>
+#include <ccnl-pkt-builder.h>
+#include <ccnl-dump.h>
+#include <ccnl-crypto.h>
+#include <ccnl-forward.h>
+#include <ccnl-pkt-switch.h>
+#endif
 
 
 #ifdef USE_MGMT
+
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-unix.h"
+#endif
 
 
 unsigned char contentobj_buf[2000];
@@ -907,7 +918,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
                     ip4src, proto, host, port);
             su.sa.sa_family = AF_INET;
-    #ifdef __linux__
+    #if defined(__linux__) && !defined(CCNL_LINUXKERNEL)
             inet_pton(AF_INET, (const char*)host, &su.ip4.sin_addr);
     #else
             inet_aton((const char*)host, &su.ip4.sin_addr);
@@ -919,6 +930,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
 #endif
 #ifdef USE_IPV6
+#ifndef CCNL_LINUXKERNEL
         if (ip6src != NULL) {
             DEBUGMSG(TRACE, "  adding IP face ip6src=%s, proto=%s, host=%s, port=%s\n",
                     ip6src, proto, host, port);
@@ -928,6 +940,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
                                         &su.sa, sizeof(struct sockaddr_in6));
         }
+#endif //CCNL_LINUXKERNEL
 #endif
 #ifdef USE_WPAN
         if (wpanaddr && wpanpanid) {
@@ -1386,6 +1399,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	}
 #endif
 #ifdef USE_IPV6
+#ifndef CCNL_ANDROID
 	if (ip6src) {
         cp = "newUDPdev cmd worked";
         DEBUGMSG(TRACE, "  adding UDP device ip6src=%s, port=%s\n",
@@ -1401,6 +1415,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             goto Bail;
         }
 	}
+#endif //CCNL_ANDROID
 #endif
 
 #ifdef CCNL_LINUXKERNEL

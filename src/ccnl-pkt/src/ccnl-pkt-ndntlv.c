@@ -23,15 +23,20 @@
 
 #ifdef USE_SUITE_NDNTLV
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ndntlv.h"
-
+#include "ccnl-core.h"
+#include "ccnl-nfn-requests.h"
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#else
+#include <ccnl-pkt-ndntlv.h>
+#include <ccnl-core.h>
+#endif
 
-#include "ccnl-core.h"
-#include "ccnl-nfn-requests.h"
+
 
 
 // ----------------------------------------------------------------------
@@ -316,8 +321,10 @@ Bail:
 int
 ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
+#ifndef CCNL_LINUXKERNEL
     assert(p);
     assert(p->suite == CCNL_SUITE_NDNTLV);
+#endif
 
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
         return -1;

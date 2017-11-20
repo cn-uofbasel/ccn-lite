@@ -2,7 +2,13 @@
 
 #include "ccn-lite-jni.h"
 #include "ccn-lite-android.h"
+#include "ccnl-defs.h"
+#include "ccnl-core.h"
+#include "ccnl-echo.h"
 
+#ifndef USE_DEBUG_MALLOC
+#define debug_memdump(...) 0
+#endif
 
 extern int debug_level;
 extern struct ccnl_relay_s theRelay;

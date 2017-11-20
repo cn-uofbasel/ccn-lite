@@ -20,14 +20,21 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-content.h"
-
 #include "ccnl-malloc.h"
 #include "ccnl-prefix.h"
 #include "ccnl-pkt.h"
 #include "ccnl-os-time.h"
-
-#include "ccnl-logging.h" 
+#include "ccnl-logging.h"
+#else
+#include <ccnl-content.h>
+#include <ccnl-malloc.h>
+#include <ccnl-prefix.h>
+#include <ccnl-pkt.h>
+#include <ccnl-os-time.h>
+#include <ccnl-logging.h>
+#endif
 
 // TODO: remove unused ccnl parameter
 struct ccnl_content_s*

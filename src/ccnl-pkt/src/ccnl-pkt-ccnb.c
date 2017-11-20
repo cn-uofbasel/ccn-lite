@@ -27,16 +27,21 @@
 
 #ifdef USE_SUITE_CCNB
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ccnb.h"
-
+#include "ccnl-core.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <assert.h>
+#else
+#include <ccnl-pkt-ccnb.h>
+#include <ccnl-core.h>
+#endif
 
-#include "ccnl-core.h"
+
 
 // ----------------------------------------------------------------------
 // ccnb parsing support
@@ -289,8 +294,10 @@ ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
 int
 ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
+#ifndef CCNL_LINUXKERNEL
     assert(p);
     assert(p->suite == CCNL_SUITE_CCNB);
+#endif
 
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c))
         return -1;
@@ -432,8 +439,8 @@ int
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
                        unsigned char *out, int outlen)
 {
+     int len = 0;
     (void) outlen;
-    int len = 0;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkName(name, out+len);

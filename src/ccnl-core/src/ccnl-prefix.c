@@ -20,25 +20,32 @@
  * 2017-06-16 created
  */
 
+
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-prefix.h"
-
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#ifndef CCNL_RIOT
-#include <openssl/sha.h>
-
-
-#endif
-#ifdef USE_NFN
-#include "ccnl-nfn-requests.h"
-#include "ccnl-nfn-common.h"
-#endif
-
-
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ccntlv.h"
+#ifdef USE_NFN
+#include "ccnl-nfn-requests.h"
+#include "ccnl-nfn-common.h"
+#endif //USE_NFN
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+#if !defined(CCNL_RIOT) && !defined(CCNL_ANDROID)
+#include <openssl/sha.h>
+#endif // !defined(CCNL_RIOT) && !defined(CCNL_ANDROID)
+#else //CCNL_LINUXKERNEL
+#include <ccnl-prefix.h>
+#include <ccnl-pkt-ndntlv.h>
+#include <ccnl-pkt-cistlv.h>
+#include <ccnl-pkt-ccntlv.h>
+#endif //CCNL_LINUXKERNEL
+
+
+
+
 
 struct ccnl_prefix_s*
 ccnl_prefix_new(int suite, int cnt)
@@ -721,13 +728,12 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 char*
 ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     int len = 0;
+    int i = 0;
     char *buf = (char*) ccnl_malloc(2048);
     if (buf == NULL) {
         DEBUGMSG_CUTL(ERROR, "ccnl_prefix_debug_info: malloc failed, exiting\n");
         return NULL;
     }
-
-    int i = 0;
 
     len += sprintf(buf + len, "<");
 

@@ -22,15 +22,18 @@
  */
 
 #ifdef USE_SUITE_LOCALRPC
-
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-localrpc.h"
-
+#include "ccnl-core.h"
+#include "ccnl-pkt-ndntlv.h"
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
-
-#include "ccnl-core.h"
-#include "ccnl-pkt-ndntlv.h"
+#else
+#include <ccnl-pkt-localrpc.h>
+#include <ccnl-core.h>
+#include <ccnl-pkt-ndntlv.h>
+#endif
 
 // ----------------------------------------------------------------------
 // RDR decoding library

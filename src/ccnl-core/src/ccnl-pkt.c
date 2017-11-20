@@ -79,10 +79,10 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt)
 
 struct ccnl_pkt_s *
 ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
+    struct ccnl_pkt_s * ret = ccnl_malloc(sizeof(struct ccnl_pkt_s));
     if(!pkt){
         return NULL;
     }
-    struct ccnl_pkt_s * ret = ccnl_malloc(sizeof(struct ccnl_pkt_s));
     if(!ret){
         return NULL;
     }

@@ -20,10 +20,13 @@
  * 2017-06-16 created <christopher.scherb@unibas.ch>
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-logging.h"
-
 #include <string.h>
 #include <stdio.h>
+#else
+#include <ccnl-logging.h>
+#endif
 
 int debug_level;
 

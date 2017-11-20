@@ -20,13 +20,19 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-sched.h"
-
-#include <string.h>
-
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"
 #include "ccnl-logging.h"
+#include <string.h>
+#else
+#include <ccnl-sched.h>
+#include <ccnl-malloc.h>
+#include <ccnl-os-time.h>
+#include <ccnl-logging.h>
+#endif
+
 
 int ccnl_sched_init(void)
 {

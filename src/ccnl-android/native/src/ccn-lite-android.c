@@ -24,15 +24,24 @@
 
 #include "ccn-lite-android.h"
 
-#define USE_HTTP_STATUS
-
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
+#include "ccnl-echo.h"
 
 #include "ccnl-defs.h"
 #include "ccnl-os-time.h"
 #include "ccnl-logging.h"
 #include "ccnl-http-status.h"
+
+#include <unistd.h>
+#define _GNU_SOURCE
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <sys/syscall.h>
+int pipe2(int fds[2], int flags){
+    return syscall(__NR_pipe2, fds, flags);
+}
 
 void append_to_log(char *line);
 
@@ -449,7 +458,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         ccnl_content_add2cache(ccnl, c);
         c->flags |= CCNL_CONTENT_FLAGS_STATIC;
 Done:
-        free_packet(pk);
+        ccnl_pkt_free(pk);
         ccnl_free(buf);
         continue;
 notacontent:
@@ -681,7 +690,7 @@ ccnl_android_init()
 
 
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
-
+#ifdef USE_ECHO
 #ifdef USE_SUITE_CCNTLV
     strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
@@ -697,6 +706,7 @@ ccnl_android_init()
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
+#endif // USE_ECHO
 
 #ifdef USE_HMAC256
     ccnl_hmac256_keyval((unsigned char*)secret_key,

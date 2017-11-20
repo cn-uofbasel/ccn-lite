@@ -20,18 +20,27 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_LINUXKERNEL
 #include <stdio.h>
 #include "ccnl-os-time.h"
 #ifdef USE_NFN
 #include "ccnl-nfn-common.h"
 #endif
 #include "ccnl-buf.h"
-
 #include "ccnl-logging.h"
 #include "ccnl-relay.h"
 #include "ccnl-forward.h"
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
+#else
+#include <ccnl-os-time.h>
+#include <ccnl-buf.h>
+#include <ccnl-logging.h>
+#include <ccnl-relay.h>
+#include <ccnl-forward.h>
+#include <ccnl-prefix.h>
+#include <ccnl-malloc.h>
+#endif
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)

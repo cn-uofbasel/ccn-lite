@@ -20,10 +20,13 @@
  * 2013-04-11 created
  */
 
+void null_func();
+
 #ifdef USE_HTTP_STATUS
+
+
 #include "ccnl-http-status.h"
-
-
+#include "ccnl-os-time.h"
 
 // ----------------------------------------------------------------------
 
@@ -191,7 +194,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         "Connection: close\n\r\n\r", *cp;
     int len = strlen(hdr), i, j, cnt;
     time_t t;
-    struct utsname uts;
+    //struct utsname uts;
     struct ccnl_face_s *f;
     struct ccnl_forward_s *fwd;
     struct ccnl_interest_s *ipt;
@@ -207,9 +210,9 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, "\n<table borders=0>\n<tr><td>"
                    "<a href=\"\">[refresh]</a>&nbsp;&nbsp;<td>"
                    "ccn-lite-relay Status Page &nbsp;&nbsp;");
-    uname(&uts);
-    len += sprintf(txt+len, "node <strong>%s (%d)</strong>\n",
-                   uts.nodename, getpid());
+    //uname(&uts);
+    //len += sprintf(txt+len, "node <strong>%s (%d)</strong>\n",
+    //               uts.nodename, getpid());
     t = time(NULL);
     cp = ctime(&t);
     cp[strlen(cp)-1] = 0;
@@ -319,8 +322,8 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, "<tr><td>nonces.max:"
                    "<td align=right> %d<td>\n", CCNL_MAX_NONCES);
 
-    len += sprintf(txt+len, "<tr><td>compile.featureset:<td><td> %s\n",
-                   compile_string);
+    //len += sprintf(txt+len, "<tr><td>compile.featureset:<td><td> %s\n",
+    //               compile_string);
     len += sprintf(txt+len, "<tr><td>compile.time:"
                    "<td><td>%s %s\n", __DATE__, __TIME__);
     len += sprintf(txt+len, "<tr><td>compile.ccnl_core_version:"
