@@ -53,5 +53,5 @@ include_directories(include ../../ccnl-core/include ../../ccnl-pkt/include ../..
 
 file(GLOB JNISOURCE "src/*.c"
 file(GLOB HEADERS "include/*.h"))
-add_library(ccn-lite-android.so SHARED ${JNISOURCE})
+add_library(ccn-lite-android SHARED ${JNISOURCE})
 
