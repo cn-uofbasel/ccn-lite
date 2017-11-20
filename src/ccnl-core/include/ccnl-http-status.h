@@ -19,13 +19,15 @@
 #ifndef CCN_LITE_CCNL_HTTP_STATUS_H
 #define CCN_LITE_CCNL_HTTP_STATUS_H
 
+#ifdef USE_HTTP_STATUS
+
+
 struct ccnl_http_s {
     int server, client; // socket
     unsigned char in[512], *out; // ring buffers
     int inoffs, outoffs, inlen, outlen;
 };
 
-#ifdef USE_HTTP_STATUS
 
 struct ccnl_http_s*
 ccnl_http_new(struct ccnl_relay_s *ccnl, int serverport);
