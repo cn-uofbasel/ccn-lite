@@ -32,6 +32,7 @@
 #include "ccnl-defs.h"
 #include "ccnl-os-time.h"
 #include "ccnl-logging.h"
+#include "ccnl-http-status.h"
 
 void append_to_log(char *line);
 
