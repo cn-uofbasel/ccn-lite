@@ -54,7 +54,8 @@ struct ccnl_relay_s {
                                                  void(*cts_done)(void*,void*)); /**< FuncPoint to the scheduler for faces*/
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
                                                  void(*cts_done)(void*,void*)); /**< FuncPoint to the scheduler for interfaces*/
-#ifdef USE_HTTP_STATUS
+#ifdef ls
+    v
     struct ccnl_http_s *http;  /**< http server for status information*/
 #endif
     void *aux;

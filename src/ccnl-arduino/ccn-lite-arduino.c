@@ -240,15 +240,6 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #include "ccnl-ext-hmac.c"
 #include "ccnl-ext-http.c"
 
-/*
-#include "ccnl-ext-localrpc.c"
-#include "ccnl-ext-mgmt.c"
-#include "ccnl-ext-nfn.c"
-#include "ccnl-ext-nfnmonitor.c"
-#include "ccnl-ext-sched.c"
-#include "ccnl-ext-crypto.c"
-*/
-//#include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
 
