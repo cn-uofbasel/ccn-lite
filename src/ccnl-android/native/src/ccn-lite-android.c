@@ -655,7 +655,7 @@ ccnl_android_init()
              ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
+// DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
 
     ccnl_relay_config(&theRelay, 8080, NULL, 0, NULL);
 
