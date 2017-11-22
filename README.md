@@ -211,27 +211,6 @@ cmake .
 make clean all
 ```
 
-### CCN-lite-minimalrelay
-
-As an exercise in writing the least C code possible in order to get a working
-NDN forwarder, CCN-lite includes `ccn-lite-minimalrelay.c`. It has all extra
-features disabled and only provides UDP connectivity. But hey, it works! And it
-really is lean, looking at the lines of C code:
-
-```
- 435 ccn-lite-minimalrelay.c
-1010 ccnl-core.c
- 701 ccnl-core-fwd.c    // only partially needed
-1090 ccnl-core-util.c
- 647 ccnl-pkt-ndntlv.c  // only partially needed
-
- 316 ccnl-core.h
- 197 ccnl-defs.h
- 104 ccnl-pkt-ndntlv.h
-```
-
-
-
 <a name="lof"></a>
 ## 5. Command line tools
 
@@ -241,21 +220,21 @@ with CCN-lite are the following:
 
 Tool                           | Description
 :----------------------------- | :---------------------------------------------
-`ccn-lite-relay.c`             | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>`ccn-lite-relay`</li><li>`ccn-nfn-relay`</li><li>`ccn-nfn-relay-nack`</li></ul>
-`ccn-lite-lnxkernel.c`         | CCN-lite forwarder: Linux kernel module
-`util/ccn-lite-ctrl.c`         | Command line program running the CCNx management protocol (over Unix sockets). Used for configuring a running relay either running in user space or as a kernel module.
-`util/ccn-lite-ccnb2xml.c`     | Simple CCNB packet parser
-`util/ccn-lite-cryptoserver.c` | Used by the kernel module to carry out compute intensive crypto operations in user instead of kernel space.
-`util/ccn-lite-fetch.c`        | Fetches both a single chunk content or a series of chunks for larger named data. Only the content is returned without any protocol bytes.
-`util/ccn-lite-mkC.c`          | Simple content composer, to stdout, without crypto.
-`util/ccn-lite-mkF.c`          | Simple tool to split a large file into a fragment series.
-`util/ccn-lite-mkI.c`          | Simple interest composer, to stdout.
-`util/ccn-lite-peek.c`         | Simple interest injector waiting for a content chunk, can also be used to request named-function results.
-`util/ccn-lite-pktdump.c`      | Powerful packet dumper for all known packet formats. Output is in hexdump style, XML or content only.
-`util/ccn-lite-produce.c`      | Creates a series of chunks for data that does not fit into a single PDU.
-`util/ccn-lite-rpc.c`          | Send an RPC request and return the reply.
-`util/ccn-lite-simplenfn.c`    | Simplified interface to request named-function results.
-`util/ccn-lite-valid.c`        | Demo application for validating a packet's signature.
+`ccn-lite-relay`               | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>`ccn-lite-relay`</li><li>`ccn-nfn-relay`</li><li>`ccn-nfn-relay-nack`</li></ul>
+`ccn-lite-lxkernel`            | CCN-lite forwarder: Linux kernel module
+`ccn-lite-ctrl`                | Command line program running the CCNx management protocol (over Unix sockets). Used for configuring a running relay either running in user space or as a kernel module.
+`ccn-lite-ccnb2xml`            | Simple CCNB packet parser
+`ccn-lite-cryptoserver`        | Used by the kernel module to carry out compute intensive crypto operations in user instead of kernel space.
+`ccn-lite-fetch  `             | Fetches both a single chunk content or a series of chunks for larger named data. Only the content is returned without any protocol bytes.
+`ccn-lite-mkC  `               | Simple content composer, to stdout, without crypto.
+`ccn-lite-mkF  `               | Simple tool to split a large file into a fragment series.
+`ccn-lite-mkI  `               | Simple interest composer, to stdout.
+`ccn-lite-peek`                | Simple interest injector waiting for a content chunk, can also be used to request named-function results.
+`ccn-lite-pktdump`             | Powerful packet dumper for all known packet formats. Output is in hexdump style, XML or content only.
+`ccn-lite-produce`             | Creates a series of chunks for data that does not fit into a single PDU.
+`ccn-lite-rpc`                 | Send an RPC request and return the reply.
+`ccn-lite-simplenfn`           | Simplified interface to request named-function results.
+`ccn-lite-valid`               | Demo application for validating a packet's signature.
 
 
 
