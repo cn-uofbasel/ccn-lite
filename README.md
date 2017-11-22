@@ -295,12 +295,12 @@ Tool                           | Description
 ### [Release 2.0.0 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.0) (Nov 2017)
 
 #### Code contributions:
-Christopher Scherb
-Balazs Faludi
-Claudio Marxer
-Cenk Gündogan
-Eric Sesterhenn
-Christian F. Tschudin
+Christopher Scherb 
+Balazs Faludi 
+Claudio Marxer 
+Cenk Gündogan 
+Eric Sesterhenn 
+Christian F. Tschudin 
 
 ### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
 
