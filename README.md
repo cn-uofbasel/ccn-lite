@@ -269,6 +269,9 @@ Tool                           | Description
  - change build system to cmake
  - add further RIOT support 
         - add compressed packet format in an early stage
+ - Fix a lot of Bugs
+ - Fix some CVEs (discovered by Eric Sesterhenn / X41- D-Sec):
+   CVE-2017-12412, CVE-2017-12464, CVE-2017-12465, CVE-2017-12466, CVE-2017-12467, CVE-2017-12468, CVE-2017-12469, CVE-2017-12471, CVE-2017-12472 
 
 ### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
 
@@ -296,6 +299,7 @@ Christopher Scherb
 Balazs Faludi
 Claudio Marxer
 Cenk Gündogan
+Eric Sesterhenn
 Christian F. Tschudin
 
 ### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
