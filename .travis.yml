@@ -19,10 +19,10 @@ branches:
         - dev-master
 
 env:
-    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/build/bin"
 
 before_install:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CCNL_HOME="/Users/travis/build/cn-uofbasel/ccn-lite"; export PATH=$PATH:"$CCNL_HOME/bin" ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CCNL_HOME="/Users/travis/build/cn-uofbasel/ccn-lite"; export PATH=$PATH:"$CCNL_HOME/build/bin" ; fi
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; brew install openssl ; fi
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/local/opt/openssl/include ; fi
 
@@ -37,6 +37,8 @@ script:
     # Run build-test.sh
     # Ideally, build-test should be run without specifying the targets.
     # However, bt-lnxkernel, bt-demo-cisco2015, bt-nfn-ccnx2015, bt-nfn-cisco2015 removed because they fail
-    - cd $CCNL_HOME/src
+    - cd $CCNL_HOME
+    - mkdir build && cd build
+    - cmake ../src
     - make clean
     - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-pkt bt-omnet bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
