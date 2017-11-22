@@ -5,14 +5,15 @@
 Follow the [UNIX installation instructions](README-unix.md) to set up the
 CCN-lite sources and relevant environment variables.
 
+The Linux Kernel Module was tested with Ubuntu 17.10, Nov, 22, 17 patches, with Kernel 4.13.
+
 ## Installation
 
-1.  Define the environment variable `$USE_KRNL` to compile CCN-lite in kernel mode:
+1.  Change to the directory CCNL_HOME/src/ccnl-lnxkernel
 
     ```bash
-    cd $CCNL_HOME/src
-    export USE_KRNL=1
-    make clean all
+    cmake .
+    make
     ```
 
     Use the target `ccn-lite-lnxkernel` to compile only the module.
