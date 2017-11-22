@@ -3,8 +3,8 @@
 ## Prerequisites
 
 CCN-lite requires OpenSSL. Use the following to install it:
-* Ubuntu: `sudo apt-get install libssl-dev`
-* OS X: `brew install openssl`
+* Ubuntu: `sudo apt-get install libssl-dev cmake`
+* OS X: `brew install openssl cmake`
 
 ## Installation
 
@@ -21,8 +21,10 @@ CCN-lite requires OpenSSL. Use the following to install it:
 
     To make these variables permanent, add them to your shell's `.rc` file, e.g. `~/.bashrc`.
 
-3.  Build CCN-lite using `make`:
+3.  Build CCN-lite using `cmake`:
     ```bash
-    cd $CCNL_HOME/src
-    make clean all
+    cd $CCNL_HOME
+    mkdir build && cd build
+    cmake ../src
+    make
     ```
