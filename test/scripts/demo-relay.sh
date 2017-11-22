@@ -124,57 +124,57 @@ echo "starting relay A, with a link to relay B"
 if [ "$USEKRNL" = true ]
 then
     rmmod ccn_lite_lnxkernel 2> /dev/null
-    insmod $CCNL_HOME/src/ccn-lite-lnxkernel.ko v=trace s=$SUITE $SOCKETA x=$UXA
+    insmod $CCNL_HOME/build/bin/ccn-lite-lnxkernel.ko v=trace s=$SUITE $SOCKETA x=$UXA
     RC=$?
     if [ $RC -ne "0" ]; then
         exit $RC
     fi
 else
-    $CCNL_HOME/src/ccn-lite-relay -v trace -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
+    $CCNL_HOME/build/bin/ccn-lite-relay -v trace -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 
 # ----------------------------------------------------------------------
 sleep 1
-FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 echo "faceid at A=$FACEID"
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep ACTION
 
 # if testing fragmentation:
-# $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA setfrag $FACEID seqd2015 800 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
+# $CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA setfrag $FACEID seqd2015 800 | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep ACTION
 
 # ----------------------------------------------------------------------
 echo "starting relay B, with content loading ..."
-$CCNL_HOME/src/ccn-lite-relay -v trace -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
+$CCNL_HOME/build/bin/ccn-lite-relay -v trace -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
 sleep 1
-FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB $FACETOA | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXB $FACETOA | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 echo "faceid at B=$FACEID"
 
 # if testing fragmentation:
-# $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB setfrag $FACEID seqd2015 800 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
+# $CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXB setfrag $FACEID seqd2015 800 | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep ACTION
 
 # ----------------------------------------------------------------------
 sleep 1
 echo
 echo "test case: ask relay A to deliver content that is hosted at relay B"
-$CCNL_HOME/src/util/ccn-lite-peek -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
+$CCNL_HOME/build/bin/ccn-lite-peek -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
 
 RESULT=$?
 
 # shutdown both relays
 echo ""
 echo "# Config of relay A:"
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml
 echo ""
 echo "# Config of relay B:"
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml
 
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
 
 if [ $RESULT = '0' ]
 then
     echo "=== PKTDUMP.start >>>"
-    $CCNL_HOME/src/util/ccn-lite-pktdump < /tmp/res
+    $CCNL_HOME/build/bin/ccn-lite-pktdump < /tmp/res
     echo "\n=== PKTDUMP.end <<<"
     # rm /tmp/res
 else
