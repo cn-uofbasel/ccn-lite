@@ -20,7 +20,8 @@ The Linux Kernel Module was tested with Ubuntu 17.10, Nov, 22, 17 patches, with 
 
 2.  Insert the module:
     ```bash
-    sudo insmod ./ccn-lite-lnxkernel.ko e=eth0 v=trace
+    cd ccnl_lxkernel
+    sudo insmod ./ccn-lite-lxkernel.ko e=eth0 v=trace
     ```
 
 3.  Verify that the module was succesfully inserted into the kernel with:
