@@ -15,8 +15,7 @@ CCN-lite supports multiple platforms, including:
 - Linux and OS X user space
 - Linux kernel
 - Android
-- Arduino and RFduino
-- OMNeT++
+- RIOT OS
 
 CCN-lite is meant as a code base for class room work, experimental
 extensions and simulation experiments. The ISC license makes it an
@@ -109,11 +108,14 @@ right.
 
 What you get with CCN-lite is:
 
-- a tiny CCNx core (1000-2000 lines of C suffice)
+- a tiny core and forwarder
 - multiple platform support
+- little memory usage, runs on IOT platforms with less than 10k ram
+- libraries for applications (e.g. packet encoding libraries)
 - partially interoperable management protocol implementation
 - a simple HTTP server to display the relay's internal configuration
 - plus some interesting extensions of our own, see the next section.
+- little dependencies: cmake and openssl
 
 
 
@@ -184,8 +186,6 @@ files:
  * [Unix](doc/README-unix.md)
  * [Linux kernel](doc/README-kernel.md)
  * [Android](doc/README-android.md)
- * [Arduino and RFduino](doc/README-arduino.md)
- * [OMNeT++](doc/README-omnetpp.md)
 
 Additionally, CCN-lite has a pre-built [Dockerfile](Dockerfile) to enable the usage of
 [Docker](https://www.docker.com/) with CCN-lite. See the
@@ -197,6 +197,7 @@ shell level before invoking make:
 
 ```bash
 export USE_NFN=1
+cmake .
 make clean all
 ```
 
@@ -206,6 +207,7 @@ before invoking make:
 ```bash
 export USE_NFN=1
 export USE_NACK=1
+cmake .
 make clean all
 ```
 
@@ -233,6 +235,7 @@ really is lean, looking at the lines of C code:
 <a name="lof"></a>
 ## 5. Command line tools
 
+The commandline tools can be found in the ccnl-utils folder
 The main command line tools and their corresponding source file that are shipped
 with CCN-lite are the following:
 
@@ -272,21 +275,21 @@ Tool                           | Description
 
 
 
-<a name="roadmap"></a>
-## 7. Tentative roadmap
-
-Work has started for the next release 0.4 (Dec 2015?), where the focus
-should be on the following areas:
- - Manifests
- - Security (key management, signed computations and trust schematas)
- - Data access control
- - Better selector support for NDN
- - RIOT re-integration
-
-
-
 <a name="changelog"></a>
 ## 8. Changelog
+
+### [Release 2.0.0 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.0) (Nov 2017)
+
+ - Restructuration of the Code to a library system
+   Code was split to following libraries:
+	- ccnl-core: basic data structures
+        - ccnl-fwd:  forwarding functionality of CCN-lite
+        - ccnl-nfn:  library for NFN support
+        - ccnl-pkt:  packet encoding library, can be used for end point application with no forwarding requirements
+        - ccnl-riot: RIOT integration library 
+ - change build system to cmake
+ - add further RIOT support 
+        - add compressed packet format in an early stage
 
 ### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
 
@@ -306,6 +309,15 @@ should be on the following areas:
 
 <a name="credits"></a>
 ## 9. Credits
+
+### [Release 2.0.0 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.0) (Nov 2017)
+
+#### Code contributions:
+Christopher Scherb
+Balazs Faludi
+Claudio Marxer
+Cenk Gündogan
+Christian F. Tschudin
 
 ### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
 
