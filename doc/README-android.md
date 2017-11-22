@@ -33,46 +33,24 @@ Currently known issues include:
 Follow the [UNIX installation instructions](README-unix.md) to set up
 the CCN-lite sources and relevant environment variables.
 
-To build CCN-lite for Android, the
-[Android SDK](https://developer.android.com/sdk) and
-[NDK](https://developer.android.com/tools/sdk/ndk) are both required. Do not
-forget to adapt/define your environment variables `$PATH` and `$ANDROID_HOME`.
+To build CCN-lite for Android, install Android Studio.
 
 
 ## Installation
 
-1.  Change to the Android directory of CCN-lite and start the Android GUI:
+1.  Open CMakeList.txt from CCNL_HOME/src/ccnl-android/native add replace ".." with absolut pathes
 
-    ```bash
-    cd $CCNL_HOME/src/android
-    android &
-    ```
+1.  Import CCNL_HOME/src/ccnl-android to Android Studio
+    From an open project, select Tools > Android > SDK Manager from the menu bar.
+    Click the SDK Tools tab.
+    Check the boxes next to LLDB, CMake, and NDK.
 
-    Select the three Android SDKs "Tools", "Platform-tools" and "Build-tools".
-    Optionally, you can include the ARM EABI v7a System image as well.
+2.  Right-click on the module you would like to link to your native library, such as the app module, and select Link C++ Project with Gradle from the menu. (Gradle Scropts/build.gradle (Module: app))
+    Add the CMakeList.txt from CCNL_HOME/src/ccnl-android/native.
 
-    See `AndroidManifest.xml` for the already defined Android project.
+3.  Build the APK using Android Studio
 
-2.  Build the native code of CCN-lite using the NDK:
-
-    ```bash
-    ndk-build
-    ```
-
-    Notice that you may have to specify which target. Use `android list targets`
-    for a list of possible targets.
-
-3.  Build the Android application:
-
-    ```bash
-    ant debug
-    ```
-
-4.  Install the build on your device or the emulator:
-
-    ```bash
-    adb install -r bin/ccn-lite-android-debug.apk
-    ```
+4.  Install the build on your device using Android Studio or use the Emulator
 
     Notice that your device must have USB debugging enabled and be connected to
     your development environment via USB.
