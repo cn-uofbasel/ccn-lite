@@ -17,7 +17,7 @@ then
     exit 1
 fi
 
-if [ ! -f "$CCNL_HOME/src/ccn-lite-relay" ]
+if [ ! -f "$CCNL_HOME/build/bin/ccn-lite-relay" ]
 then
     echo $COMPILE_CCNL
     exit 1
@@ -92,7 +92,7 @@ fi
 # producing content 
 # ----------------------------------------------------------------------
 
-echo "chunkedtestcontent" | $CCNL_HOME/src/util/ccn-lite-produce -s $SUITE -c 5 -o $CCNL_HOME/test/$DIR "$FWD/$FNAME"
+echo "chunkedtestcontent" | $CCNL_HOME/build/bin/ccn-lite-produce -s $SUITE -c 5 -o $CCNL_HOME/test/$DIR "$FWD/$FNAME"
 
 # ----------------------------------------------------------------------
 
@@ -116,34 +116,34 @@ killall ccn-lite-relay
 if [ "$USEKRNL" = true ]
 then
     rmmod ccn_lite_lnxkernel
-    insmod $CCNL_HOME/src/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA 
+    insmod $CCNL_HOME/build/bin/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA 
 else
-    $CCNL_HOME/src/ccn-lite-relay -v 100 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
+    $CCNL_HOME/build/bin/ccn-lite-relay -v 100 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 sleep 1
-FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 echo faceid=$FACEID
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml | grep ACTION
 
 # starting relay B, with content loading
-$CCNL_HOME/src/ccn-lite-relay -v 100 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
+$CCNL_HOME/build/bin/ccn-lite-relay -v 100 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/src/util/ccn-lite-fetch -v trace -s$SUITE $PEEKADDR "$FWD/$FNAME" 2>/tmp/c.log >/tmp/res
+$CCNL_HOME/build/bin/ccn-lite-fetch -v trace -s$SUITE $PEEKADDR "$FWD/$FNAME" 2>/tmp/c.log >/tmp/res
 
 RESULT=$?
 
 # shutdown both relays
 echo ""
 echo "# Config of relay A:"
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml
 echo ""
 echo "# Config of relay B:"
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/build/bin/ccn-lite-ccnb2xml
 
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
-$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
+$CCNL_HOME/build/bin/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
 
 sleep 1
 killall ccn-lite-relay > /dev/null
