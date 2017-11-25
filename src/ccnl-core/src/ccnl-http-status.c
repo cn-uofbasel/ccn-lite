@@ -20,7 +20,7 @@
  * 2013-04-11 created
  */
 
-void null_func();
+void null_func(void);
 
 #ifdef USE_HTTP_STATUS
 
