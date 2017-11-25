@@ -20,7 +20,7 @@
  * 2017-06-16 created
  */
 
-void null_func();
+void null_func(void);
 
 #ifndef CCNL_LINUXKERNEL
 
