@@ -49,27 +49,6 @@ extern "C" {
  * @}
  */
 
-
-
-/**
- * @brief Some macro definitions
- * @{
- */
-#define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
-#define free_3ptr_list(a,b,c)   ccnl_free(a), ccnl_free(b), ccnl_free(c)
-#define free_4ptr_list(a,b,c,d) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
-#define free_5ptr_list(a,b,c,d,e) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d), ccnl_free(e);
-/**
- * @}
- */
-
-/**
- * Frees all memory directly and indirectly allocated for prefix information
- */
-#define free_prefix(p)  do{ if(p) \
-                free_5ptr_list(p->bytes,p->comp,p->complen,p->chunknum,p); } while(0)
-
-
 /**
  * Constant string
  */
