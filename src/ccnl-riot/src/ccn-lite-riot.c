@@ -203,7 +203,7 @@ int
 ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
 {
     assert(pid_is_valid(if_pid));
-    if (gnrc_netif_get_by_pid(if_pid) != NULL) {
+    if (gnrc_netif_get_by_pid(if_pid) == NULL) {
         return -1;
     }
     if (ccnl_relay.ifcount >= CCNL_MAX_INTERFACES) {
