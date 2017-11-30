@@ -187,15 +187,40 @@ void
 ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
 
 #ifdef NEEDS_PREFIX_MATCHING
+/**
+ * @brief Add entry to the FIB
+ *
+ * @par[in] relay   Local relay struct
+ * @par[in] pfx     Prefix of the FIB entry
+ * @par[in] face    Face for the FIB entry
+ *
+ * @return 0    on success
+ * @return -1   on error
+ */
 int
 ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
                    struct ccnl_face_s *face);
 
+/**
+ * @brief Remove entry from the FIB
+ *
+ * @par[in] relay   Local relay struct
+ * @par[in] pfx     Prefix of the FIB entry, may be NULL
+ * @par[in] face    Face for the FIB entry, may be NULL
+ *
+ * @return 0    on success
+ * @return -1   on error
+ */
 int
 ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
                    struct ccnl_face_s *face);
 #endif //NEEDS_PREFIX_MATCHING
 
+/**
+ * @brief Prints the current FIB
+ *
+ * @par[in] relay   Local relay struct
+ */
 void
 ccnl_fib_show(struct ccnl_relay_s *relay);
 
