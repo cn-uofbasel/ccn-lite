@@ -168,38 +168,6 @@ int ccnl_send_interest(struct ccnl_prefix_s *prefix,
 int ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout);
 
 /**
- * @brief Add entry to the CCN-Lite FIB
- *
- * @par[in] relay   Local relay struct
- * @par[in] pfx     Prefix of the FIB entry
- * @par[in] face    Face for the FIB entry
- *
- * @return 0    on success
- * @return -1   on error
- */
-int ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
-                       struct ccnl_face_s *face);
-
-/**
- * @brief Remove entry from the CCN-Lite FIB
- *
- * @par[in] relay   Local relay struct
- * @par[in] pfx     Prefix of the FIB entry, may be NULL
- * @par[in] face    Face for the FIB entry, may be NULL
- *
- * @return 0    on success
- * @return -1   on error
- */
-int ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
-
-/**
- * @brief Prints the current CCN-Lite FIB
- *
- * @par[in] relay   Local relay struct
- */
-void ccnl_fib_show(struct ccnl_relay_s *relay);
-
-/**
  * @brief Set a local producer function
  *
  * Setting a local producer function allows to generate content on the fly or
