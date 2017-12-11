@@ -493,8 +493,8 @@ Follow the installation instructions of [nfn-scala](https://github.com/cn-uofbas
 To run the Scala compute server from source, call `sbt` with `runnables.production.ComputeServerStarter`:
 
 ```bash
-sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock \
-  --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA'
+sbt "runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock \
+  --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA"
 ```
 
 
