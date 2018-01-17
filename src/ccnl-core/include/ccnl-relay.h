@@ -72,7 +72,7 @@ struct ccnl_relay_s {
 };
 
 /**
- * @brief Breadcast an interest message to all available interfaces
+ * @brief Broadcast an interest message to all available interfaces
  *
  * @param[in] ccnl          The CCN-lite relay used to send the interest
  * @param[in] interest      The interest which should be sent
@@ -100,11 +100,8 @@ ccnl_face_dequeue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 void
 ccnl_face_CTS_done(void *ptr, int cnt, int len);
 
-void
-ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
-
 /**
- * @brief send a packet to the face @p to 
+ * @brief Send a packet to the face @p to
  * @note here it is possible to add compression for packets
  *
  * @param[in] ccnl  pointer to current ccnl relay
@@ -119,7 +116,7 @@ ccnl_send_pkt(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                 struct ccnl_pkt_s *pkt);
 
 /**
- * @brief send a buffer to the face @p to 
+ * @brief Send a buffer to the face @p to 
  *
  * @param[in] ccnl  pointer to current ccnl relay
  * @param[in] to    face to send to
@@ -140,7 +137,7 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 /**
- * @brief forwards interest message according to FIB rules 
+ * @brief Forwards interest message according to FIB rules 
  *
  * @param[in] ccnl  pointer to current ccnl relay
  * @param[in] i     interest message to be forwarded
@@ -148,14 +145,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
-/**
- * @brief broadcasts interest message to all faces
- *
- * @param[in] ccnl  pointer to current ccnl relay
- * @param[in] i     interest message to be forwarded
-*/
-void
-ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest);
 
 struct ccnl_content_s*
 ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
@@ -224,6 +213,11 @@ ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 void
 ccnl_fib_show(struct ccnl_relay_s *relay);
 
+/**
+ * @brief Prints the content of the content store
+ *
+ * @par[in] ccnl Local relay struct
+ */
 void
 ccnl_cs_dump(struct ccnl_relay_s *ccnl);
 
