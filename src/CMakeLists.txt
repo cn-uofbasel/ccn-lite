@@ -30,7 +30,7 @@ set(CCNL_BASIC_FLAGS
 add_definitions(${CCNL_BASIC_FLAGS})
 
 if (NOT DEFINED CCNL_RIOT)
-   set(CCNL_EXTRA_FLAGS 
+   set(CCNL_EXTRA_FLAGS
         -DUSE_CCNxDIGEST
         -DUSE_MGMT
         -DUSE_UNIXSOCKET
@@ -94,6 +94,13 @@ else()
 endif()
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
+
+if (NOT DEFINED CCNL_LINUXKERNEL AND NOT DEFINED CCNL_RIOT)
+    find_package(OpenSSL REQUIRED)
+    include_directories(${OPENSSL_INCLUDE_DIR})
+    message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+    message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
+endif()
 
 #add_subdirectory(ccnl-addons)
 #if (DEFINED CCNL_RIOT)

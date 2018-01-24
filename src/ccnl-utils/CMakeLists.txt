@@ -16,11 +16,7 @@ include_directories(
     ../ccnl-unix/include
     ../ccnl-nfn/include
     ../ccnl-pkt-compression/include
-    ${OPENSSL_INCLUDE_DIR}
-    
 )
-
-find_package(OpenSSL REQUIRED)
 
 add_executable(ccn-lite-peek ccn-lite-peek.c)
 #add_executable(ccn-lite-peekcomputation ccn-lite-peekcomputation.c) #todo work to do
@@ -56,7 +52,7 @@ if(OpenSSL_FOUND)
 
     target_link_libraries(ccn-lite-cryptoserver ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
     target_link_libraries(ccn-lite-cryptoserver ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression ${OPENSSL_LIBRARIES})
-    
+
     #target_link_libraries(ccn-lite-deF ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
     #target_link_libraries(ccn-lite-deF ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ${OPENSSL_LIBRARIES})
 
@@ -79,8 +75,8 @@ if(USE_FRAG)
     target_link_libraries(ccn-lite-mkF ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression)
 endif()
 
-target_link_libraries(ccn-lite-mkI ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS}) 
-target_link_libraries(ccn-lite-mkI ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression) 
+target_link_libraries(ccn-lite-mkI ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
+target_link_libraries(ccn-lite-mkI ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression)
 
 target_link_libraries(ccn-lite-pktdump ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-pktdump ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression)
@@ -90,7 +86,3 @@ target_link_libraries(ccn-lite-produce ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccn
 
 target_link_libraries(ccn-lite-simplenfn ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-simplenfn ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression)
-
-
-
-
