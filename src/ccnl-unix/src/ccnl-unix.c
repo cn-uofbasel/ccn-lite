@@ -36,6 +36,14 @@
 
 #include "ccnl-nfn.h"
 
+/**
+ * TODO: The variables are never updated within the context of
+ * ccnl_unix.c
+ */
+static int lasthour = -1;
+static int inter_ccn_interval = 0; // in usec
+static int inter_pkt_interval = 0; // in usec
+
 #ifdef USE_LINKLAYER
 int
 ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)

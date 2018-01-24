@@ -42,10 +42,6 @@ int
 local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
 
-static int lasthour = -1;
-static int inter_ccn_interval = 0; // in usec
-static int inter_pkt_interval = 0; // in usec
-
 #ifdef USE_LINKLAYER
 #if !(defined(__FreeBSD__) || defined(__APPLE__))
 int
