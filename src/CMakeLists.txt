@@ -5,6 +5,12 @@ set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(CMAKE_SYSTEM_NAME Generic)
 
+#opensll
+find_package(OpenSSL)
+if(OpenSSL_FOUND)
+    include_directories(${OPENSSL_INCLUDE_DIRS})
+endif()
+
 # CCNL flags
 set(CCNL_BASIC_FLAGS
     -DUSE_DEBUG
