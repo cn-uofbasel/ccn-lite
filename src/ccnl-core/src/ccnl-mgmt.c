@@ -2131,9 +2131,6 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     MGMT:
     ccnl_mgmt_handle(ccnl, orig, prefix, from, cmd, 1);
-    (void) lasthour; 
-    (void) inter_ccn_interval;
-    (void) inter_pkt_interval;
     return 0;
 }
 

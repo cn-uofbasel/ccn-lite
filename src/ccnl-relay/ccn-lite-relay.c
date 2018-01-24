@@ -73,6 +73,10 @@
 #include "ccn-lite-relay.h"
 #include "ccnl-unix.h"
 
+static int lasthour = -1;
+static int inter_ccn_interval = 0; // in usec
+static int inter_pkt_interval = 0; // in usec
+
 #ifdef CCNL_ARDUINO
 const char compile_string[] PROGMEM = ""
 #else
