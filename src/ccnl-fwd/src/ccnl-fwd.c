@@ -24,6 +24,7 @@
 #include "ccnl-fwd.h"
 
 #include "ccnl-core.h"
+#include "ccnl-producer.h"
 
 #include "ccnl-pkt-util.h"
 #ifdef USE_NFN
@@ -221,14 +222,6 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
 
     return -1;
 }
-
-#ifndef CCNL_ANDROID
-int
-local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                   struct ccnl_pkt_s *pkt);
-#else
-#define local_producer(...) 0
-#endif
 
 int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,

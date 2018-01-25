@@ -25,6 +25,7 @@
 #include "ccnl-os-includes.h"
 
 #include "ccnl-core.h"
+#include "ccnl-producer.h"
 
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
@@ -41,8 +42,10 @@
  * ccnl_unix.c
  */
 static int lasthour = -1;
+#ifdef USE_SCHEDULER
 static int inter_ccn_interval = 0; // in usec
 static int inter_pkt_interval = 0; // in usec
+#endif 
 
 #ifdef USE_LINKLAYER
 int
@@ -821,15 +824,3 @@ notacontent:
     closedir(dir);
 }
 
-int
-local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                   struct ccnl_pkt_s *pkt){
-                       //for unix not implemented yet
-    (void)relay;
-    (void)from;
-    (void)pkt;
-    (void)lasthour;
-    (void)inter_ccn_interval;
-    (void)inter_pkt_interval;
-    return 0;
-}
