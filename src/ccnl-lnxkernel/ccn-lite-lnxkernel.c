@@ -90,6 +90,7 @@
 #include <ccnl-logging.h>
 #include <ccnl-dispatch.h>
 #include <ccnl-malloc.h>
+#include <ccnl-producer.h>
 #include <ccnl-pkt-switch.h>
 
 #include "../../ccnl-pkt/src/ccnl-pkt-switch.c"
@@ -129,7 +130,6 @@
 #define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
-//#define local_producer(...)             0
 
 #define cache_strategy_remove(...)      0
 
@@ -141,12 +141,6 @@ static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
                       struct packet_type *pt, struct net_device *outdev);
 
 void ccnl_udp_data_ready(struct sock *sk);
-
-int
-local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-               struct ccnl_pkt_s *pkt){
-    return 0;
-}
 
 // ----------------------------------------------------------------------
 
