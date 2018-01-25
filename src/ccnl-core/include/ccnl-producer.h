@@ -18,7 +18,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2018-01-23 created
+ * 2018-01-23 created (based on ccn-lite-riot.h)
  */
 #ifndef CCNL_PRODUCER_H
 #define CCNL_PRODUCER_H
@@ -43,11 +43,17 @@ typedef int (*ccnl_producer_func)(struct ccnl_relay_s *relay,
 void ccnl_set_local_producer(ccnl_producer_func func);
 
 /**
- * @brief May be defined for ad-hoc content creation
+ * @brief Allows to generates content on the fly/or react to any kind of interest
  *
- * @param[in] relay
- * @param[in] from
- * @param[in] pkt
+ * A developer has to provide its own local_producer function which is set via 
+ * \ref ccnl_set_local_producer as a function pointer. If the function pointer 
+ * is not, set the function simply returns '0'. 
+ *
+ * @param[in] relay The active ccn-lite relay
+ * @param[in] from  The face the packet was received over
+ * @param[in] pkt   The actual received packet 
+ *
+ * @return 0 if no function has been set
  */
 #ifndef CCNL_ANDROID
 int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
