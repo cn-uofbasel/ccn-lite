@@ -153,7 +153,7 @@ Featue             | Description
 `USE_ECHO`         | Enable an echo prefix, returning the current time.
 `USE_LINKLAYER`    | Talk to Ethernet, W-LAN, 802.15.4 devices, raw frames.
 `USE_FRAG`         | Enable fragments, to run CCNx over Ethernet.
-`USE_HMAC256`      | Enables hash-based authentification codes.
+`USE_HMAC256`      | Enables hash-based message authentication codes.
 `USE_HTTP_STATUS`  | Provide status info for web browsers.
 `USE_IPV4`         | Enable IP support.
 `USE_LOGGING`      | Enable log messages.
@@ -166,7 +166,7 @@ Featue             | Description
 `USE_SCHEDULER`    | Rate control at CCNx msg and fragment level.
 `USE_SIGNATURES`   | Authenticate management messages.
 `USE_STATS`        | Enable statistics.
-`USE_SUITE_*`      | Enable a specific protocol: CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC or CISCO2015.
+`USE_SUITE_*`      | Enable a specific protocol: CCNB, NDNTLV (NDN 2014), CCNTLV (CCNx2014), IOTTLV, LOCALRPC or CISTLV (Cisco 2015) and COMPRESSED (for packet compression)
 `USE_UNIXSOCKET`   | Add UNIX IPC to the set of interfaces.
 
 The approach for these extensions is that one can tailor a CCN forwarder to
