@@ -1,5 +1,7 @@
 ![](doc/logo/ccn-lite-logo-712x184.png)
 
+[![Build Status](https://semaphoreci.com/api/v1/blacksheeep-36/ccn-lite/branches/master/badge.svg)](https://semaphoreci.com/blacksheeep-36/ccn-lite)
+
 *Jump to the [Table of Contents](#toc)*
 
 CCN-lite is a reduced and lightweight -- yet functionally
@@ -24,7 +26,6 @@ excellent starting point for commercial products.
 CCN-lite has been included in the RIOT operating system for the
 Internet of Things (IoT): http://www.riot-os.org/
 
-[![Build Status](https://semaphoreci.com/api/v1/blacksheeep-36/ccn-lite/branches/master/badge.svg)](https://semaphoreci.com/blacksheeep-36/ccn-lite)
 
 <a name="toc"></a>
 ### Table of Contents
