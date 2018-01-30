@@ -21,19 +21,23 @@ include_directories(
 add_executable(ccn-lite-peek ccn-lite-peek.c)
 #add_executable(ccn-lite-peekcomputation ccn-lite-peekcomputation.c) #todo work to do
 add_executable(ccn-lite-ctrl ccn-lite-ctrl.c)
-add_executable(ccn-lite-ccnb2xml ccn-lite-ccnb2xml.c)
-add_executable(ccn-lite-cryptoserver ccn-lite-cryptoserver.c)
-#add_executable(ccn-lite-deF ccn-lite-deF.c)
-add_executable(ccn-lite-fetch ccn-lite-fetch.c)
-add_executable(ccn-lite-mkC ccn-lite-mkC.c)
-add_executable(ccn-lite-valid ccn-lite-valid.c)
+if(OpenSSL_FOUND)
+    add_executable(ccn-lite-ccnb2xml ccn-lite-ccnb2xml.c)
+    add_executable(ccn-lite-cryptoserver ccn-lite-cryptoserver.c)
+    #add_executable(ccn-lite-deF ccn-lite-deF.c)
+    add_executable(ccn-lite-fetch ccn-lite-fetch.c)
+    add_executable(ccn-lite-mkC ccn-lite-mkC.c)
+    add_executable(ccn-lite-valid ccn-lite-valid.c)
+    add_executable(ccn-lite-rpc ccn-lite-rpc.c)
+endif()
+
 if(USE_FRAG)
     add_executable(ccn-lite-mkF ccn-lite-mkF.c)
 endif()
 add_executable(ccn-lite-mkI ccn-lite-mkI.c)
 add_executable(ccn-lite-pktdump ccn-lite-pktdump.c)
 add_executable(ccn-lite-produce ccn-lite-produce.c)
-add_executable(ccn-lite-rpc ccn-lite-rpc.c)
+
 add_executable(ccn-lite-simplenfn ccn-lite-simplenfn.c)
 
 
