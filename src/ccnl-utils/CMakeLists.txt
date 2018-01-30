@@ -18,11 +18,6 @@ include_directories(
     ../ccnl-pkt-compression/include
 )
 
-find_package(OpenSSL REQUIRED)
-include_directories(${OPENSSL_INCLUDE_DIR})
-message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
-message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
-
 add_executable(ccn-lite-peek ccn-lite-peek.c)
 #add_executable(ccn-lite-peekcomputation ccn-lite-peekcomputation.c) #todo work to do
 add_executable(ccn-lite-ctrl ccn-lite-ctrl.c)
