@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 2.8)
 project(ccn-lite NONE)
 
 set(CMAKE_C_COMPILER_WORKS 1)
