@@ -2,7 +2,7 @@
 
 # Status of Automatic Tests
 
-[![Build Status](https://semaphoreci.com/api/v1/blacksheeep-36/ccn-lite/branches/master/badge.svg)](https://semaphoreci.com/blacksheeep-36/ccn-lite)
+[![Build Status](https://semaphoreci.com/api/v1/cn-unibas/ccn-lite/branches/master/badge.svg)](https://semaphoreci.com/cn-unibas/ccn-lite)
 
 (Currently, CCN-lite V2 supports only automatic build testing, there are no functionality tests)
 
