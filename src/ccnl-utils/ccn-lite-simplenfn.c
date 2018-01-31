@@ -149,10 +149,11 @@ usage:
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
             "Examples:\n"
-            "%% simplenfn /ndn/edu/wustl/ping\n"
-            "%% simplenfn \"echo hello world\"\n"
-            "%% simplenfn \"translate 'ccnx2014 /ccnx/parc/info.txt\"\n"
-            "%% simplenfn \"add 1 1\"\n",
+            "%% ccn-lite-simplenfn /ndn/edu/wustl/ping\n"
+            "%% ccn-lite-simplenfn \"echo hello world\"\n"
+            "%% ccn-lite-simplenfn \"translate 'ccnx2014 /ccnx/parc/info.txt\"\n"
+            "%% ccn-lite-simplenfn \"add 1 1\"\n"
+            "%% ccn-lite-simplenfn -n \"/test/data\" \"@x (call 2 /func/f1 x)\"\n",
             argv[0]);
             exit(1);
         }
