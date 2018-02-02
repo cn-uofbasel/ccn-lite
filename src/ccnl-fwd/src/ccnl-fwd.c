@@ -359,12 +359,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     // CONFORM: Step 2: check whether interest is already known
-#ifdef USE_KITE
-    if ((*pkt)->tracing) { // is a tracing interest
-        for (i = relay->pit; i; i = i->next) {
-        }
-    }
-#endif
     for (i = relay->pit; i; i = i->next)
         if (ccnl_interest_isSame(i, *pkt))
             break;
@@ -401,52 +395,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_interest_propagate(relay, i);
         }
     }
-
-    /*
-    if (!i) { // this is a new/unknown I request: create and propagate
-#ifdef USE_NFN
-        if (ccnl_nfn_RX_request(relay, from, pkt))
-            return -1; // this means: everything is ok and pkt was consumed
-#endif
-<<<<<<< HEAD
-        if (!ccnl_pkt_fwdOK(*pkt))
-            return -1;
-        i = ccnl_interest_new(relay, from, pkt);
-        DEBUGMSG_CFWD(DEBUG,
-            "  created new interest entry %p\n", (void *) i);
-        ccnl_interest_propagate(relay, i);
-    } else {
-        if (ccnl_pkt_fwdOK(*pkt) && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n",
-                     (void *) i);
-            ccnl_interest_propagate(relay, i);
-=======
-        if (!i) {
-            i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
-                                  &buf, &p, minsfx, maxsfx);
-            if (ppkd)
-                i->details.ccnb.ppkd = ppkd, ppkd = NULL;
-            if (i) { // CONFORM: Step 3 (and 4)
-                DEBUGMSG_CFWD(DEBUG, "  created new interest entry %p\n", (void *)i);
-                if (scope > 2)
-                    ccnl_interest_propagate(ccnl, i);
-            }
-        } else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n",
-                     (void *) i);
-            ccnl_interest_propagate(ccnl, i);
-        }
-        if (i) { // store the I request, for the incoming face (Step 3)
-            DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
-            ccnl_interest_append_pending(i, from);
->>>>>>> origin/arduino
-        }
-    }
-    if (i) { // store the I request, for the incoming face (Step 3)
-        DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
-        ccnl_interest_append_pending(i, from);
-    }
-    */
     return 0;
 }
 
