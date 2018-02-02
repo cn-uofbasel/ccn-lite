@@ -18,4 +18,4 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
 add_executable(${PROJECT_NAME}_test "test/ccnl_core_unit_test.c")
 
-add_test(NAME ccnl_core COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_test)
+add_test(NAME ccnl_core COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_test 0)
