@@ -5,6 +5,8 @@ set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(CMAKE_SYSTEM_NAME Generic)
 
+enable_testing()
+
 # CCNL flags
 set(CCNL_BASIC_FLAGS
     -DUSE_DEBUG
@@ -34,7 +36,6 @@ if (NOT DEFINED CCNL_RIOT)
     )
     add_definitions(${CCNL_EXTRA_FLAGS})
 endif()
-
 
 
 # Platforms
@@ -139,6 +140,7 @@ if (DOXYGEN_FOUND)
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM )
 endif()
+
 
 # unused:
 set(CCNL_DISABLED_FLAGS "USE_LINKLAYER USE_DEBUG USE_DEBUG_MALLOC USE_FRAG
