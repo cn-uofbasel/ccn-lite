@@ -567,9 +567,11 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
     // to find length of SignatureInfo
     oldoffset2 = *offset;
 
-    // optional (empty for now) because ndn client lib also puts it in by default
-    if (ccnl_ndntlv_prependTL(NDN_TLV_KeyLocator, 0, offset, buf) < 0)
-        return -1;
+    // KeyLocator is not required for DIGESTSHA256
+    if (signatureType != NDN_VAL_SIGTYPE_DIGESTSHA256) {
+        if (ccnl_ndntlv_prependTL(NDN_TLV_KeyLocator, 0, offset, buf) < 0)
+            return -1;
+    }
 
     // use NDN_SigTypeVal_SignatureSha256WithRsa because this is default in ndn client libs
     if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, &signatureType, 1,
