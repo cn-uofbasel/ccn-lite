@@ -238,22 +238,18 @@ ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce)
 }
 
 struct ccnl_buf_s*
-ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
+ccnl_mkSimpleInterest_scratch(unsigned char *scratch, int scratch_len,
+                              struct ccnl_prefix_s *name, int *nonce)
 {
     struct ccnl_buf_s *buf = NULL;
-    unsigned char *tmp;
-    int len = 0, offs;
+    int len = 0, offs = scratch_len;
     struct ccnl_prefix_s *prefix;
     (void)prefix;
 
-    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    offs = CCNL_MAX_PACKET_SIZE;
-
-    ccnl_mkInterest(name, nonce, tmp, &len, &offs);
+    ccnl_mkInterest(name, nonce, scratch, &len, &offs);
 
     if (len > 0)
-        buf = ccnl_buf_new(tmp + offs, len);
-    ccnl_free(tmp);
+        buf = ccnl_buf_new(scratch + offs, len);
 
     return buf;
 }
@@ -326,12 +322,12 @@ ccnl_mkContentObject(struct ccnl_prefix_s *name,
 }
 
 struct ccnl_buf_s*
-ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
-                     unsigned char *payload, int paylen, int *payoffset)
+ccnl_mkSimpleContent_scratch(unsigned char *scratch, int scratch_len,
+                             struct ccnl_prefix_s *name,
+                             unsigned char *payload, int paylen, int *payoffset)
 {
     struct ccnl_buf_s *buf = NULL;
-    unsigned char *tmp;
-    int len = 0, contentpos = 0, offs;
+    int len = 0, contentpos = 0, offs = scratch_len;
     struct ccnl_prefix_s *prefix;
     (void)prefix;
 
@@ -340,17 +336,13 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                   (s = ccnl_prefix_to_path(name)), paylen);
     ccnl_free(s);
 
-    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    offs = CCNL_MAX_PACKET_SIZE;
-
-    ccnl_mkContent(name, payload, paylen, tmp, &len, &contentpos, &offs);
+    ccnl_mkContent(name, payload, paylen, scratch, &len, &contentpos, &offs);
 
     if (len) {
-        buf = ccnl_buf_new(tmp + offs, len);
+        buf = ccnl_buf_new(scratch + offs, len);
         if (payoffset)
             *payoffset = contentpos;
     }
-    ccnl_free(tmp);
 
     return buf;
 }
