@@ -72,8 +72,23 @@ ccnl_mkContentObject(struct ccnl_prefix_s *name,
                      unsigned char *payload, int paylen);
 
 struct ccnl_buf_s*
+ccnl_mkSimpleContent_scratch(unsigned char *scratch, int scratch_len,
+                             struct ccnl_prefix_s *name,
+                             unsigned char *payload, int paylen, int *payoffset);
+
+static inline struct ccnl_buf_s*
 ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
-                     unsigned char *payload, int paylen, int *payoffset);
+                     unsigned char *payload, int paylen, int *payoffset)
+{
+    struct ccnl_buf_s *buf = NULL;
+
+    unsigned char *tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    buf = ccnl_mkSimpleContent_scratch(tmp, CCNL_MAX_PACKET_SIZE, name,
+                                       payload, paylen, payoffset);
+    ccnl_free(tmp);
+
+    return buf;
+}
 
 void
 ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, unsigned char *tmp,
@@ -84,7 +99,20 @@ struct ccnl_interest_s *
 ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce);
 
 struct ccnl_buf_s*
-ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+ccnl_mkSimpleInterest_scratch(unsigned char *scratch, int scratch_len,
+                              struct ccnl_prefix_s *name, int *nonce);
+
+static inline struct ccnl_buf_s*
+ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
+{
+    struct ccnl_buf_s *buf = NULL;
+
+    unsigned char *tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    buf = ccnl_mkSimpleInterest_scratch(tmp, CCNL_MAX_PACKET_SIZE, name, nonce);
+    ccnl_free(tmp);
+
+    return buf;
+}
 
 void
 ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp,
