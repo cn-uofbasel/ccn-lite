@@ -43,6 +43,7 @@
 #include "ccnl-os-time.h"
 #include "ccnl-fwd.h"
 #include "ccnl-producer.h"
+#include "ccnl-pkt-builder.h"
 
 #ifdef USE_SUITE_COMPRESSED
 #include "ccnl-pkt-ndn-compression.h"
@@ -167,7 +168,6 @@ static gnrc_netreg_entry_t _ccnl_ne;
  * @{
  */
 
-extern struct ccnl_buf_s* ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 extern int ccnl_isContent(unsigned char *buf, int len, int suite);
 
 /**
@@ -545,15 +545,10 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
 /* generates and send out an interest */
 int
-ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_len)
+ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len)
 {
     int ret = -1;
     int len = 0;
-
-    /* we are not using these _for now_. Need to adjust ccnl_mkSimpleInterest
-       to work with static buffers first */
-    (void) buf;
-    (void) buf_len;
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
@@ -570,7 +565,14 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
     int nonce = random_uint32();
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
-    struct ccnl_buf_s *interest = ccnl_mkSimpleInterest(prefix, &nonce);
+    ccnl_mkInterest(prefix, &nonce, buf, &len, &buf_len);
+
+    struct ccnl_buf_s *interest = NULL;
+
+    if (len > 0) {
+        interest = ccnl_buf_new(buf + buf_len, len);
+    }
+
     if(!interest){
         return -1;
     }

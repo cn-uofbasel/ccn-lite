@@ -140,7 +140,7 @@ int ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type);
  * @return -1 on failure
  */
 int ccnl_send_interest(struct ccnl_prefix_s *prefix,
-                       unsigned char *buf, size_t buf_len);
+                       unsigned char *buf, int buf_len);
 
 /**
  * @brief Wait for incoming content chunk
