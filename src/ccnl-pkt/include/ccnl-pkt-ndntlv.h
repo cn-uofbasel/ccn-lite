@@ -23,7 +23,10 @@
 #ifndef CCNL_PKT_NDNTLV_H
 #define CCNL_PKT_NDNTLV_H
 
-#include "ccnl-core.h"
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "ccnl-content.h"
 
 #define NDN_UDP_PORT                    6363
 #define NDN_DEFAULT_MTU                 4096
@@ -108,6 +111,16 @@ Values          Designation
 #define NDN_Marker_Timestamp			0xFC
 #define NDN_Marker_SequenceNumber		0xFE
 
+/**
+ * @brief NDN Interest options
+ */
+struct ccnl_ndntlv_interest_opts_s {
+    int32_t nonce;              /**< Nonce value */
+    /* Selectors */
+    bool mustbefresh;           /**< MustBeFresh Selector */
+    /* Guiders */
+    uint32_t interestlifetime;  /**< Interest Lifetime Guider */
+};
 
 #ifdef USE_SUITE_NDNTLV
 int
@@ -129,7 +142,7 @@ int
 ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 int
-ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
+ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_ndntlv_interest_opts_s *opts,
                             int *offset, unsigned char *buf);
 
 int

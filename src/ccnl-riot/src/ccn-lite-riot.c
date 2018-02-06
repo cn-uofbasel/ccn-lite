@@ -444,7 +444,7 @@ void
                 }
                 else {
                     ccnl_interest_t *i = (ccnl_interest_t*) pkt->data;
-                    ccnl_send_interest(i->prefix, i->buf, i->buflen);
+                    ccnl_send_interest(i->prefix, i->buf, i->buflen, NULL);
                 }
                 gnrc_pktbuf_release(pkt);
                 break;
@@ -545,10 +545,12 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
 /* generates and send out an interest */
 int
-ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len)
+ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len,
+                   ccnl_interest_opts_u *int_opts)
 {
     int ret = -1;
     int len = 0;
+    ccnl_interest_opts_u default_opts;
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
@@ -562,10 +564,17 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
         return ret;
     }
 
-    int nonce = random_uint32();
-    DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
+    if (!int_opts) {
+        int_opts = &default_opts;
+    }
 
-    ccnl_mkInterest(prefix, &nonce, buf, &len, &buf_len);
+    if (!int_opts->ndntlv.nonce) {
+        int_opts->ndntlv.nonce = random_uint32();
+    }
+
+    DEBUGMSG(DEBUG, "nonce: %i\n", int_opts->ndntlv.nonce);
+
+    ccnl_mkInterest(prefix, int_opts, buf, &len, &buf_len);
 
     buf += buf_len;
 

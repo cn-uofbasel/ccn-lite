@@ -174,6 +174,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
     struct ccnl_relay_s *relay = char2relay(node);
+    ccnl_interets_opts_u opts;
 
     DEBUGMSG(TRACE, "ccnl_client_tx node=%c: request %s #%d\n",
              node, name, seqn);
@@ -185,8 +186,13 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
+
+    if (theSuite == CCNL_SUITE_NDNTLV) {
+        opts.ndntlv.nonce = nonce;
+    }
+
     DEBUGMSG(TRACE, "  create interest for %s\n", ccnl_prefix_to_path(p));
-    buf = ccnl_mkSimpleInterest(p, &nonce);
+    buf = ccnl_mkSimpleInterest(p, &opts);
     free_prefix(p);
 
     // inject it into the relay:

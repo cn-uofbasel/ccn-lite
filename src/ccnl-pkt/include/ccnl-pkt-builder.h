@@ -22,6 +22,7 @@
 
 #include "ccnl-core.h"
 
+#include "ccnl-pkt.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
@@ -81,13 +82,13 @@ ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, u
 
 
 struct ccnl_interest_s *
-ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce);
+ccnl_mkInterestObject(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts);
 
 struct ccnl_buf_s*
-ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts);
 
 void
-ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp,
+ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts, unsigned char *tmp,
                 int *len, int *offs);
 
 #endif
