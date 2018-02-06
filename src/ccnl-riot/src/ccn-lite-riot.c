@@ -567,21 +567,12 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
 
     ccnl_mkInterest(prefix, &nonce, buf, &len, &buf_len);
 
-    struct ccnl_buf_s *interest = NULL;
+    buf += buf_len;
 
-    if (len > 0) {
-        interest = ccnl_buf_new(buf + buf_len, len);
-    }
-
-    if(!interest){
-        return -1;
-    }
-
-    unsigned char *start = interest->data;
-    unsigned char *data = interest->data;
+    unsigned char *start = buf;
+    unsigned char *data = buf;
     struct ccnl_pkt_s *pkt, *pktc;
     (void) pktc;
-    len = interest->datalen;
 
     int typ;
     int int_len;
@@ -590,7 +581,6 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     /* TODO: support other suites */
     if (ccnl_ndntlv_dehead(&data, &len, (int*) &typ, &int_len) || (int) int_len > len) {
         DEBUGMSG(WARNING, "  invalid packet format\n");
-        ccnl_free(interest);
         return ret;
     }
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
@@ -606,7 +596,6 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     ret = ccnl_fwd_handleInterest(&ccnl_relay, loopback_face, &pkt, ccnl_ndntlv_cMatch);
 
     ccnl_pkt_free(pkt);
-    ccnl_free(interest);
 
     return ret;
 }
