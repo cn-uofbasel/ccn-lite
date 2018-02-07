@@ -520,7 +520,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_FRAG
         hp->pkttype == CCNX_PT_Fragment ||
 #endif
-                                        hp->pkttype == CCNX_PT_NACK) {
+        hp->pkttype == CCNX_PT_NACK) {
         hp->hoplimit--;
         if (hp->hoplimit <= 0) { // drop it
             DEBUGMSG_CFWD(DEBUG, "  pkt dropped because of hop limit\n");

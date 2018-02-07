@@ -5,7 +5,9 @@ set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(CMAKE_SYSTEM_NAME Generic)
 
+if (NOT DEFINED CCNL_RIOT)
 enable_testing()
+endif()
 
 # CCNL flags
 set(CCNL_BASIC_FLAGS
@@ -113,6 +115,7 @@ if (NOT DEFINED CCNL_LINUXKERNEL)
         add_subdirectory(ccnl-pkt-compression)
     endif()
 endif()
+
 if (DEFINED CCNL_RIOT)
     add_subdirectory(ccnl-riot)
 endif()
