@@ -4,29 +4,29 @@
 
 int prefix_cmp_suite;
 
-//exact match
-//-------------------------------------------------------------------------------------------
-int ccnl_test_prepare_prefix_cmp_exact_match(void **prefix1, void **prefix2){
+//exact mismatch
+//---------------------------------------------------------------------------------------------------
+int ccnl_test_prepare_prefix_cmp_exact_mismatch(void **prefix1, void **prefix2){
 
     char *c1 = ccnl_malloc(100);
     strcpy(c1, "/path/to/data");
     *prefix1 = ccnl_URItoPrefix(c1, prefix_cmp_suite, NULL, NULL);
 
     char *c2 = ccnl_malloc(100);
-    strcpy(c2, "/path/to/data");
+    strcpy(c2, "/path/to/data1");
     *prefix2 = ccnl_URItoPrefix(c2, prefix_cmp_suite, NULL, NULL);
 
     return 1;
 }
 
-int ccnl_test_run_prefix_cmp_exact_match(void *prefix1, void *prefix2){
+int ccnl_test_run_prefix_cmp_exact_mismatch(void *prefix1, void *prefix2){
 
     struct ccnl_prefix_s *p1 = prefix1;
     struct ccnl_prefix_s *p2 = prefix2;
 
     int res = ccnl_prefix_cmp(p1, 0, p2, CMP_EXACT);
     //NULL if match
-    return !res;
+    return res;
 }
 
 int ccnl_test_cleanup_prefix_cmp(void *prefix1, void *prefix2){
@@ -37,8 +37,8 @@ int ccnl_test_cleanup_prefix_cmp(void *prefix1, void *prefix2){
     ccnl_prefix_free(p1);
     ccnl_prefix_free(p2);
     return 1;
-    return 1;
 }
+
 
 //Run Tests
 int main(){
@@ -49,14 +49,15 @@ int main(){
     struct ccnl_prefix_s *p1 = NULL, *p2 = NULL;
     for(prefix_cmp_suite = 0; prefix_cmp_suite < 3; ++prefix_cmp_suite) {
 
-        //Test: PREFIX CMP EXACT MATCH
+        //Test: PREFIX CMP EXACT MISMATCH
         ++testnum;
-        sprintf(testdescription, "testing prefix cmp exact match with a match with suite %s",
+        sprintf(testdescription, "testing prefix cmp exact match with a mismatch with suite %s",
                 ccnl_suite2str(prefix_cmp_suite));
-        res = RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_exact_match,
-                 ccnl_test_run_prefix_cmp_exact_match, ccnl_test_cleanup_prefix_cmp, p1, p2);
+        res = RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_exact_mismatch,
+                 ccnl_test_run_prefix_cmp_exact_mismatch, ccnl_test_cleanup_prefix_cmp, p1, p2);
 
-        if(!res){
+
+        if (!res) {
             return -1;
         }
     }

@@ -15,11 +15,13 @@ file(GLOB HEADERS "include/*.h")
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
 if (BUILD_TESTING)
-    file(GLOB TEST "test/unit.c")
-    add_executable(ccnl_core_test_prefix_comp "test/ccnl_core_test_prefix_comp.c")
-    target_link_libraries(ccnl_core_test_prefix_comp ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_executable(ccnl_core_test_prefix_comp_exact "test/ccnl_core_test_prefix_comp_exact.c")
+    target_link_libraries(ccnl_core_test_prefix_comp_exact ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_test(NAME ccnl_core_test_prefix_comp_exact COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp_exact 0)
 
-    add_test(NAME ccnl_core_test_prefix_comp COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp 0)
+    add_executable(ccnl_core_test_prefix_comp_exact_no_match "test/ccnl_core_test_prefix_comp_exact_no_match.c")
+    target_link_libraries(ccnl_core_test_prefix_comp_exact_no_match ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_test(NAME ccnl_core_test_prefix_comp_exact_no_match COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp_exact_no_match 0)
 endif()
 
 
