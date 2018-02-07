@@ -199,6 +199,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     struct ccnl_forward_s *fwd;
     struct ccnl_interest_s *ipt;
     struct ccnl_buf_s *bpt;
+    char s[CCNL_MAX_PREFIX_SIZE];
 
     strcpy(txt, hdr);
     len += sprintf(txt+len,
@@ -243,7 +244,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
                 sprintf(fname, "?");
             len += sprintf(txt+len,
                            "<li>via %4s: <font face=courier>%s</font>\n",
-                           fname, ccnl_prefix_to_path(fwda[i]->prefix));
+                           fname, ccnl_prefix_to_str(fwda[i]->prefix,s,CCNL_MAX_PREFIX_SIZE));
         }
         ccnl_free(fwda);
     }

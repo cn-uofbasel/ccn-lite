@@ -34,8 +34,10 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     unsigned char *ucp;
     int len, enc;
     struct ccnl_prefix_s *pfx2 = NULL;
+    char s[CCNL_MAX_PREFIX_SIZE];
+    (void) s;
 
-    DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_path(pfx));
+    DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_str(pfx,s,CCNL_MAX_PREFIX_SIZE));
 
 //    if (pfx->chunknum) {
         // mkSimpleContent adds the chunk number, so remove it here
@@ -55,7 +57,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 #endif
 
     t = time(NULL);
-    s = ccnl_prefix_to_path(pfx);
+    ccnl_prefix_to_str(pfx,s,CCNL_MAX_PREFIX_SIZE);
 
     cp = ccnl_malloc(strlen(s) + 60);
     sprintf(cp, "%s\n%suptime %s\n", s, ctime(&t), timestamp());

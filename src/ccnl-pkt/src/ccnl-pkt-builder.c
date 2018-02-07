@@ -345,11 +345,12 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     int len = 0, contentpos = 0, offs;
     struct ccnl_prefix_s *prefix;
     (void)prefix;
+    char s[CCNL_MAX_PREFIX_SIZE];
+    (void) s;
 
-    char *s = NULL;
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-                  (s = ccnl_prefix_to_path(name)), paylen);
-    ccnl_free(s);
+                  ccnl_prefix_to_str(name, s, CCNL_MAX_PREFIX_SIZE),
+                  paylen);
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;

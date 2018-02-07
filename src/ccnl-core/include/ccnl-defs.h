@@ -39,9 +39,12 @@
 #if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
 # define CCNL_MAX_INTERFACES             1
 # define CCNL_MAX_IF_QLEN                14
-# ifndef CCNL_MAX_PACKET_SIZE
+#ifndef CCNL_MAX_PACKET_SIZE
 # define CCNL_MAX_PACKET_SIZE            120
-# endif
+#endif
+#ifndef CCNL_MAX_PREFIX_SIZE
+# define CCNL_MAX_PREFIX_SIZE            50
+#endif
 # define CCNL_MAX_ADDRESS_LEN            8
 # define CCNL_MAX_NAME_COMP              8
 # define CCNL_DEFAULT_MAX_PIT_ENTRIES    20
@@ -52,12 +55,14 @@
 # define CCNL_MAX_ADDRESS_LEN            6
 # define CCNL_MAX_NAME_COMP              16
 # define CCNL_DEFAULT_MAX_PIT_ENTRIES    100
+# define CCNL_MAX_PREFIX_SIZE            2048
 #else
 # define CCNL_MAX_INTERFACES             10
 # define CCNL_MAX_IF_QLEN                64
 # define CCNL_MAX_PACKET_SIZE            8096
 # define CCNL_MAX_ADDRESS_LEN            6
 # define CCNL_MAX_NAME_COMP              64
+# define CCNL_MAX_PREFIX_SIZE            2048
 # define CCNL_DEFAULT_MAX_PIT_ENTRIES    (-1)
 #endif
 

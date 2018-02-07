@@ -405,14 +405,13 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 {
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
+    char s[CCNL_MAX_PREFIX_SIZE];
 
-    char *s1 = NULL, *s2 = NULL;
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s>(%p) of? name=<%s>(%p) digest=%p\n",
-             ccnl_matchMode2str(mode),
-             (s1 = ccnl_prefix_to_path(pfx)), (void *)pfx,
-             (s2 = ccnl_prefix_to_path(nam)), (void *)nam, (void *) md);
-    ccnl_free(s1);
-    ccnl_free(s2);
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) ", ccnl_matchMode2str(mode));
+    DEBUGMSG(VERBOSE, "prefix=<%s>(%p) of? ",
+             ccnl_prefix_to_str(pfx, s, CCNL_MAX_PREFIX_SIZE), (void *) pfx);
+    DEBUGMSG(VERBOSE, "name=<%s>(%p) digest=%p\n",
+             ccnl_prefix_to_str(nam, s, CCNL_MAX_PREFIX_SIZE), (void *) nam, (void *) md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt) {
@@ -524,14 +523,13 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     unsigned char *md;
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
-    char *s1 = NULL, *s2 = NULL;
-    DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             (s1 = ccnl_prefix_to_path(prefix)), (s2 = ccnl_prefix_to_path(p)),
-             // ccnl_prefix_to_path_detailed(prefix,1,0,0),
-             // ccnl_prefix_to_path_detailed(p,1,0,0),
-             minsuffix, maxsuffix);
-    ccnl_free(s1);
-    ccnl_free(s2);
+    char s[CCNL_MAX_PREFIX_SIZE];
+
+    DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> ",
+             ccnl_prefix_to_str(prefix, s, CCNL_MAX_PREFIX_SIZE));
+    DEBUGMSG(VERBOSE, "content=<%s> min=%d max=%d\n",
+             ccnl_prefix_to_str(p, s, CCNL_MAX_PREFIX_SIZE), minsuffix, maxsuffix);
+    //
     // CONFORM: we do prefix match, honour min. and maxsuffix,
 
     // NON-CONFORM: "Note that to match a ContentObject must satisfy
@@ -563,12 +561,6 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     static char *prefix_buf2;
     static char *buf;*/
 
-#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
-# define PREFIX_BUFSIZE 50
-#else
-# define PREFIX_BUFSIZE 2048
-#endif
-
     if (!pr)
         return NULL;
 
@@ -586,20 +578,18 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     else
         buf = prefix_buf2;
     */
-    char *buf = (char*) ccnl_malloc(PREFIX_BUFSIZE);
+    char *buf = (char*) ccnl_malloc(CCNL_MAX_PREFIX_SIZE);
     if (buf == NULL) {
         DEBUGMSG_CUTL(ERROR, "ccnl_prefix_to_path_detailed: malloc failed, exiting\n");
         return NULL;
     }
 
-    ccnl_prefix_to_str_detailed(pr, ccntlv_skip, escape_components, call_slash, buf, PREFIX_BUFSIZE);
-
-    return buf;
+    return ccnl_prefix_to_str_detailed(pr, ccntlv_skip, escape_components, call_slash, buf, CCNL_MAX_PREFIX_SIZE);
 }
 
-void
+char*
 ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash,
-                                char *buf, int buflen) {
+                            char *buf, int buflen) {
     int len = 0, i, j;
     (void)i;
     (void)j;
@@ -687,7 +677,7 @@ One possibility is to not have a '/' before any nfn expression.
                   (char *) "%%%02x" : (char *) "%c";
             len += sprintf(buf + len, fmt, c);
 #endif
-            if(len > PREFIX_BUFSIZE) {
+            if(len > CCNL_MAX_PREFIX_SIZE) {
                 DEBUGMSG(ERROR, "BUFSIZE SMALLER THAN OUTPUT LEN");
                 break;
             }
@@ -700,6 +690,8 @@ One possibility is to not have a '/' before any nfn expression.
 #endif
 
     buf[len] = '\0';
+
+    return buf;
 }
 
 #else // CCNL_LINUXKERNEL
