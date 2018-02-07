@@ -11,11 +11,12 @@ endif()
 
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
-file(GLOB TEST "test/unit.c")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
+if (BUILD_TESTING)
+    file(GLOB TEST "test/unit.c")
+    add_executable(${PROJECT_NAME}_test "test/ccnl_core_unit_test.c")
+    add_test(NAME ccnl_core COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_test 0)
+endif()
 
-add_executable(${PROJECT_NAME}_test "test/ccnl_core_unit_test.c")
-
-add_test(NAME ccnl_core COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_test 0)
