@@ -148,12 +148,16 @@ usage:
         int nonce = random();
         int rc;
         struct ccnl_face_s dummyFace;
+        ccnl_interest_opts_u int_opts;
+#ifdef USE_SUITE_NDNTLV
+        int_opts.ndntlv.nonce = nonce;
+#endif
 
         DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
 
         memset(&dummyFace, 0, sizeof(dummyFace));
 
-        buf = ccnl_mkSimpleInterest(prefix, &nonce);
+        buf = ccnl_mkSimpleInterest(prefix, &int_opts);
 
         DEBUGMSG(DEBUG, "interest has %zd bytes\n", buf->datalen);
 /*

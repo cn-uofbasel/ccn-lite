@@ -511,12 +511,10 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
+ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_ndntlv_interest_opts_s *opts,
                             int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
-    unsigned char lifetime[2] = { 0x0f, 0xa0 };
-    //unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
 
     if (scope >= 0) {
         if (scope > 2)
@@ -525,20 +523,30 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
             return -1;
     }
 
-    if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
+    /* only include InterestLifetime TLV Guider, if life time > 0 milli seconds */
+    if (opts->interestlifetime) {
+        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_InterestLifetime,
+                                         opts->interestlifetime, offset, buf) < 0)
+            return -1;
+    }
+
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &opts->nonce, 4,
                                 offset, buf) < 0)
         return -1;
 
-    if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) nonce, 4,
-                                offset, buf) < 0)
-        return -1;
+    /* MustBeFresh is the only supported Selector for now */
+    if (opts->mustbefresh) {
+        int sel_offset = *offset;
+        if (ccnl_ndntlv_prependTL(NDN_TLV_MustBeFresh, 0, offset, buf) < 0)
+            return -1;
 
-    /*if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
-                                offset, buf) < 0)
-        return -1;*/
+        if (ccnl_ndntlv_prependTL(NDN_TLV_Selectors, sel_offset - *offset, offset, buf) < 0)
+            return -1;
+    }
 
     if (ccnl_ndntlv_prependName(name, offset, buf))
         return -1;
+
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
                               offset, buf) < 0)
         return -1;

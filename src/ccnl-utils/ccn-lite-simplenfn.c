@@ -188,9 +188,13 @@ usage:
         goto done;
     for (;;) {
         int nonce = random();
+        ccnl_interest_opts_u int_opts;
+#ifdef USE_SUITE_NDNTLV
+        int_opts.ndntlv.nonce = nonce;
+#endif
 
         buf = ccnl_mkSimpleInterest(prefix,
-                         &nonce);
+                         &int_opts);
 
         DEBUGMSG(TRACE,
                  "sending interest(prefix=%s, suite=%s)\n",

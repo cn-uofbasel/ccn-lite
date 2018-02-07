@@ -198,6 +198,10 @@ nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pf
 #else
     int nonce = rand();
 #endif
+    ccnl_interest_opts_u int_opts;
+#ifdef USE_SUITE_NDNTLV
+    int_opts.ndntlv.nonce = nonce;
+#endif
     struct ccnl_pkt_s *pkt;
     (void)ccnl;
 
@@ -224,7 +228,7 @@ nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pf
         break;
     }
     pkt->pfx = ccnl_prefix_dup(pfx);
-    pkt->buf = ccnl_mkSimpleInterest(pkt->pfx, &nonce);
+    pkt->buf = ccnl_mkSimpleInterest(pkt->pfx, &int_opts);
     pkt->val.final_block_id = -1;
 
     return pkt;

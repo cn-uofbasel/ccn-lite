@@ -29,12 +29,25 @@
 #include "ccnl-buf.h"
 #include "ccnl-prefix.h"
 
+#ifdef USE_SUITE_NDNTLV
+#include "ccnl-pkt-ndntlv.h"
+#endif
+
 // packet flags:  0000ebtt
 #define CCNL_PKT_REQUEST    0x01 // "Interest"
 #define CCNL_PKT_REPLY      0x02 // "Object", "Data"
 #define CCNL_PKT_FRAGMENT   0x03 // "Fragment"
 #define CCNL_PKT_FRAG_BEGIN 0x04 // see also CCNL_DATA_FRAG_FLAG_FIRST etc
 #define CCNL_PKT_FRAG_END   0x08
+
+/**
+ * @brief Options for Interests of all TLV formats
+ */
+typedef union {
+#ifdef USE_SUITE_NDNTLV
+    struct ccnl_ndntlv_interest_opts_s ndntlv;      /**< options for NDN Interests */
+#endif
+} ccnl_interest_opts_u;
 
 struct ccnl_pktdetail_ccnb_s {
     int minsuffix, maxsuffix, aok, scope;

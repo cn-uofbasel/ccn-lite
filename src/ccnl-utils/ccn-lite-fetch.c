@@ -46,7 +46,11 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
 #endif
 
     int nonce = random();
-    struct ccnl_buf_s * buf = ccnl_mkSimpleInterest(prefix, &nonce);
+    ccnl_interest_opts_u int_opts;
+#ifdef USE_SUITE_NDNTLV
+    int_opts.ndntlv.nonce = nonce;
+#endif
+    struct ccnl_buf_s * buf = ccnl_mkSimpleInterest(prefix, &int_opts);
 
     if(buf->datalen <= 0){
         fprintf(stderr, "Could not create interest message\n");

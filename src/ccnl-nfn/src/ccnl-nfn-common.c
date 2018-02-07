@@ -77,6 +77,10 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
                         struct configuration_s *config)
 {
     int nonce = rand();
+    ccnl_interest_opts_u int_opts;
+#ifdef USE_SUITE_NDNTLV
+    int_opts.ndntlv.nonce = nonce;
+#endif
     struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
     struct ccnl_interest_s *i;
@@ -109,7 +113,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     default:
         break;
     }
-    pkt->buf = ccnl_mkSimpleInterest(*prefix, &nonce);
+    pkt->buf = ccnl_mkSimpleInterest(*prefix, &int_opts);
     pkt->pfx = *prefix;
     *prefix = NULL;
     pkt->val.final_block_id = -1;
@@ -549,6 +553,10 @@ ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
 #else
     int nonce = rand();
 #endif
+    ccnl_interest_opts_u int_opts;
+#ifdef USE_SUITE_NDNTLV
+    int_opts.ndntlv.nonce = nonce;
+#endif
     struct ccnl_prefix_s *pfx;
     struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
@@ -598,7 +606,7 @@ ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
         default:
             break;
         }
-        pkt->buf = ccnl_mkSimpleInterest(pfx, &nonce);
+        pkt->buf = ccnl_mkSimpleInterest(pfx, &int_opts);
         pkt->pfx = pfx;
         //*prefix = NULL;
         pkt->val.final_block_id = -1;
