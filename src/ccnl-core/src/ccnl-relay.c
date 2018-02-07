@@ -25,11 +25,6 @@
 #include "ccnl-nfn-common.h"
 #endif
 #include "ccnl-core.h"
-#ifdef USE_SUITE_COMPRESSED
-#ifdef USE_SUITE_NDNTLV
-#include "ccnl-pkt-ndn-compression.h"
-#endif //USE_SUITE_NDNTLV
-#endif //USE_SUITE_COMPRESSED
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -268,19 +263,7 @@ int
 ccnl_send_pkt(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                 struct ccnl_pkt_s *pkt)
 {
-#ifdef USE_SUITE_COMPRESSED
-#ifdef USE_SUITE_NDNTLV
-     struct ccnl_pkt_s *pkt_compressed = ccnl_pkt_ndn_compress(pkt);
-     if(!pkt_compressed) return 0;
-
-     int ret = ccnl_face_enqueue(ccnl, to, buf_dup(pkt_compressed->buf));
-     ccnl_free(pkt_compressed->pfx->comp[0]);
-     ccnl_pkt_free(pkt_compressed);
-     return ret;
-#endif //USE_SUITE_NDNTLV
-#else
     return ccnl_face_enqueue(ccnl, to, buf_dup(pkt->buf));
-#endif //USE_SUITE_COMPRESSED
 }
 
 int

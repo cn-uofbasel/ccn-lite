@@ -45,10 +45,6 @@
 #include "ccnl-producer.h"
 #include "ccnl-pkt-builder.h"
 
-#ifdef USE_SUITE_COMPRESSED
-#include "ccnl-pkt-ndn-compression.h"
-#endif
-
 /**
  * @brief May be defined for a particular caching strategy
  */
@@ -581,21 +577,13 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     int typ;
     int int_len;
 
-#ifndef USE_SUITE_COMPRESSED
     /* TODO: support other suites */
     if (ccnl_ndntlv_dehead(&data, &len, (int*) &typ, &int_len) || (int) int_len > len) {
         DEBUGMSG(WARNING, "  invalid packet format\n");
         return ret;
     }
+
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
-#else //USE_SUITE_COMPRESSED
-    (void) start;
-    (void) int_len;
-    (void) typ;
-    pktc = ccnl_ndntlvCompressed_bytes2pkt(&data, &len);
-    pkt = ccnl_pkt_ndn_decompress(pktc);
-    ccnl_pkt_free(pktc);
-#endif //USE_SUITE_COMPRESSED
 
     ret = ccnl_fwd_handleInterest(&ccnl_relay, loopback_face, &pkt, ccnl_ndntlv_cMatch);
 
