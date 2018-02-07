@@ -14,13 +14,8 @@ file(GLOB HEADERS "include/*.h")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
-
-
-
 if (BUILD_TESTING)
     file(GLOB TEST_SRC "test/*.c")
-
-
     foreach (TESTFILE ${TEST_SRC})
         get_filename_component(TEST_NAME ${TESTFILE} NAME_WE)
 
