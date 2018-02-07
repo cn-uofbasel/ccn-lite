@@ -106,11 +106,6 @@ static int _ccnl_suite = CCNL_SUITE_NDNTLV;
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
-#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
-
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 const char* ccnl_suite2str(int suite);
