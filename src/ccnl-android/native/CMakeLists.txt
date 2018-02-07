@@ -43,7 +43,6 @@ set(CCNL_PACKETFORMAT_FLAGS
         -DUSE_SUITE_CISTLV
         -DUSE_SUITE_IOTTLV
         -DUSE_SUITE_LOCALRPC
-        #    -DUSE_SUITE_COMPRESSED
         CACHE PATH
         "packet format flags for CCN-lite"
         )
@@ -51,7 +50,7 @@ add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 
 find_package(OpenSSL)
 
-include_directories(include ../../ccnl-core/include ../../ccnl-pkt/include ../../ccnl-fwd/include ../../ccnl-unix/include ../../ccnl-nfn/include ../../ccnl-pkt-compression/include)
+include_directories(include ../../ccnl-core/include ../../ccnl-pkt/include ../../ccnl-fwd/include ../../ccnl-unix/include ../../ccnl-nfn/include)
 
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")

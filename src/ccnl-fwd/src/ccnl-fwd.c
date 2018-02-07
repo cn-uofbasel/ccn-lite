@@ -330,11 +330,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (from->ifndx >= 0) {
 #ifdef USE_NFN_REQUESTS
             struct ccnl_pkt_s *cpkt = c->pkt;
-#ifdef USE_SUITE_COMPRESSED
-            if(cpkt->pfx->suite == CCNL_SUITE_NDNTLV){
-                cpkt->type = NDN_TLV_Data;
-            }
-#endif //USE_SUITE_COMPRESSED
             int matching_start_request = ccnl_nfnprefix_isRequest((*pkt)->pfx)
                                          && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START;
             if (matching_start_request) {

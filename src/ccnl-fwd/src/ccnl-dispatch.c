@@ -43,12 +43,6 @@
 
 #include "ccnl-logging.h"
 
-#ifdef USE_SUITE_COMPRESSED
-#include "ccnl-fwd-decompress.h"
-#include "ccnl-pkt-ndn-compression.h"
-#endif
-
-
 struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
 void
@@ -82,11 +76,9 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 
     // loop through all packets in the received frame (UDP, Ethernet etc)
     while (datalen > 0) {
-#ifndef USE_SUITE_COMPRESSED
         // work through explicit code switching
         while (!ccnl_switch_dehead(&data, &datalen, &enc))
             suite = ccnl_enc2suite(enc);
-#endif // USE_SUITE_COMPRESSED
         if (suite == -1)
             suite = ccnl_pkt2suite(data, datalen, &skip);
 
@@ -138,10 +130,6 @@ ccnl_core_init(void)
 #ifdef USE_SUITE_NDNTLV
     ccnl_core_suites[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder;
     ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
-
-    #ifdef USE_SUITE_COMPRESSED
-    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX = ccnl_ndntlv_forwarder_decompress;
-    #endif
 #endif
 
 #ifdef USE_NFN

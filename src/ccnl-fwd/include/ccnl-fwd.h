@@ -44,9 +44,6 @@ typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 struct ccnl_suite_s {
     dispatchFct RX; /**< Forwarder Function for a specific packet format */
     cMatchFct cMatch; /**< CS-Matching Function for a speific packet format */
-#ifdef USE_SUITE_COMPRESSED
-    dispatchFct RX_decompress; /**< Forwarder Function for a compressed packet format */
-#endif
 };
 
 #ifdef USE_SUITE_CCNB
