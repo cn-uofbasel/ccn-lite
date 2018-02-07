@@ -27,10 +27,6 @@
 #define assert(...) do {} while(0)
 #endif
 
-#ifdef USE_SUITE_COMPRESSED
-#include "ccnl-pkt-namecompression.h"
-#endif //USE_SUITE_COMPRESSED
-
 // ----------------------------------------------------------------------
 
 unsigned char out[8*CCNL_MAX_PACKET_SIZE];

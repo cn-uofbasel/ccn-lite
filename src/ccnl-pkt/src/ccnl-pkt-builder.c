@@ -21,11 +21,6 @@
 
 #include "ccnl-pkt-builder.h"
 
-#ifdef USE_SUITE_COMPRESSED
-#include "ccnl-pkt-ndn-compression.h"
-#include "ccnl-pkt-namecompression.h"
-#endif //USE_SUITE_COMPRESSED
-
 #ifdef USE_SUITE_CCNB
 
 int ccnb_isContent(unsigned char *buf, int len)
@@ -300,21 +295,7 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
                 opts->ndntlv.nonce = rand();
             }
 
-#ifndef USE_SUITE_COMPRESSED
             (*len) = ccnl_ndntlv_prependInterest(name, -1, &(opts->ndntlv), offs, tmp);
-#else //USE_SUITE_COMPRESSED
-            {
-            struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(name);
-            if(!prefix){
-                return;
-            }
-            (*len) = ccnl_ndntlv_prependInterestCompressed(prefix, &(opts->ndntlv.nonce), offs, tmp);
-            if(prefix->comp[0]){
-                ccnl_free(prefix->comp[0]); //only required in this special case
-            }
-            ccnl_prefix_free(prefix);
-            }
-#endif //USE_SUITE_COMPRESSED
             break;
 #endif
         default:
@@ -405,18 +386,10 @@ int *len, int *contentpos, int *offs) {
         }
 #endif
 #ifdef USE_SUITE_NDNTLV
-case CCNL_SUITE_NDNTLV:
-#ifndef USE_SUITE_COMPRESSED
-        (*len) = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                            contentpos, NULL, offs, tmp);
-#else //USE_SUITE_COMPRESSED
-        {
-        struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(name);
-        (*len) = ccnl_ndntlv_prependContentCompressed(prefix, payload, paylen,
-                                      contentpos, NULL, offs, tmp);
-        }
-#endif //USE_SUITE_COMPRESSED
-        break;
+        case CCNL_SUITE_NDNTLV:
+            (*len) = ccnl_ndntlv_prependContent(name, payload, paylen,
+                                                contentpos, NULL, offs, tmp);
+            break;
 #endif
         default:
         break;

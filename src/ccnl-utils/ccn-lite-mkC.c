@@ -145,7 +145,6 @@ Usage:
     name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
                             chunknum == UINT_MAX ? NULL : &chunknum);
 
-#ifndef USE_SUITE_COMPRESSED
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
@@ -211,11 +210,6 @@ Usage:
     default:
         break;
     }
-#else // USE_SUITE_COMPRESSED
-    buf = ccnl_mkSimpleContent(name, body, len, &contentpos);
-    memcpy(out, buf->data, buf->datalen);
-    len = buf->datalen;
-#endif // USE_SUITE_COMPRESSED
 
     if (outfname) {
         f = creat(outfname, 0666);
