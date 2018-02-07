@@ -14,24 +14,21 @@ file(GLOB HEADERS "include/*.h")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
+
+
+
 if (BUILD_TESTING)
-    #test exact prefix matching
-    set(TEST_NAME ccnl_core_test_prefix_comp_exact_match)
-    add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
-    target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
-    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
+    file(GLOB TEST_SRC "test/*.c")
 
-    #test exact prefix no match
-    set(TEST_NAME ccnl_core_test_prefix_comp_exact_no_match)
-    add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
-    target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
-    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
 
-    #test longest  prefix matching
-    set(TEST_NAME ccnl_core_test_prefix_comp_longest_match)
-    add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
-    target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
-    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
+    foreach (TESTFILE ${TEST_SRC})
+        get_filename_component(TEST_NAME ${TESTFILE} NAME_WE)
+
+        add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
+        target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+        add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
+    endforeach ()
+
 endif()
 
 
