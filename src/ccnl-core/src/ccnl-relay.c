@@ -341,6 +341,8 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     if (!i)
         return NULL;
     i->pkt = *pkt;
+    /* currently, the aging function relies on seconds rather than on milli seconds */
+    i->lifetime = (*pkt)->s.ndntlv.interestlifetime / 1000;
     *pkt = NULL;
     i->flags |= CCNL_PIT_COREPROPAGATES;
     i->from = from;
@@ -799,7 +801,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     }
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
                 // than being held indefinitely."
-        if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
+        if ((i->last_used + i->lifetime) <= (uint32_t) t ||
                                 i->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
 #ifdef USE_NFN_REQUESTS
                 if (!ccnl_nfnprefix_isNFN(i->pkt->pfx)) {

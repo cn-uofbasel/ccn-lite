@@ -133,6 +133,9 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     pkt->s.ndntlv.scope = 3;
     pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
 
+    /* set default lifetime, in case InterestLifetime guider is absent */
+    pkt->s.ndntlv.interestlifetime = CCNL_INTEREST_TIMEOUT;
+
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) == 0) {
         unsigned char *cp = *data;
@@ -252,6 +255,9 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 cp += i;
                 len2 -= i;
             }
+            break;
+        case NDN_TLV_InterestLifetime:
+            pkt->s.ndntlv.interestlifetime = ccnl_ndntlv_nonNegInt(*data, len);
             break;
         case NDN_TLV_Frag_BeginEndFields:
             pkt->val.seqno = ccnl_ndntlv_nonNegInt(*data, len);
