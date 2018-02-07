@@ -15,13 +15,23 @@ file(GLOB HEADERS "include/*.h")
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
 if (BUILD_TESTING)
-    add_executable(ccnl_core_test_prefix_comp_exact "test/ccnl_core_test_prefix_comp_exact.c")
-    target_link_libraries(ccnl_core_test_prefix_comp_exact ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
-    add_test(NAME ccnl_core_test_prefix_comp_exact COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp_exact 0)
+    #test exact prefix matching
+    set(TEST_NAME ccnl_core_test_prefix_comp_exact_match)
+    add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
+    target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
 
-    add_executable(ccnl_core_test_prefix_comp_exact_no_match "test/ccnl_core_test_prefix_comp_exact_no_match.c")
-    target_link_libraries(ccnl_core_test_prefix_comp_exact_no_match ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
-    add_test(NAME ccnl_core_test_prefix_comp_exact_no_match COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp_exact_no_match 0)
+    #test exact prefix no match
+    set(TEST_NAME ccnl_core_test_prefix_comp_exact_no_match)
+    add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
+    target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
+
+    #test longest  prefix matching
+    set(TEST_NAME ccnl_core_test_prefix_comp_longest_match)
+    add_executable(${TEST_NAME} "test/${TEST_NAME}.c")
+    target_link_libraries(${TEST_NAME} ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} 0)
 endif()
 
 
