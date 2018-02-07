@@ -135,12 +135,14 @@ int ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type);
  * @param[in] prefix    The name that is requested
  * @param[out] buf      Buffer to write the content chunk to
  * @param[in] buf_len   Size of @p buf
+ * @param[in] int_opts  Interest options (@ref ccnl_interest_opts_u)
  *
  * @return 0 on success
  * @return -1 on failure
  */
 int ccnl_send_interest(struct ccnl_prefix_s *prefix,
-                       unsigned char *buf, size_t buf_len);
+                       unsigned char *buf, int buf_len,
+                       ccnl_interest_opts_u *int_opts);
 
 /**
  * @brief Wait for incoming content chunk

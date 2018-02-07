@@ -1560,6 +1560,7 @@ ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *action, *suite=0, h[10];
     char *cp = "echoserver cmd failed";
     int rc = -1;
+    char s[CCNL_MAX_PREFIX_SIZE];
 
     int len = 0, len3;
 
@@ -1619,7 +1620,7 @@ ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (suite && *suite >= 0 && *suite < CCNL_SUITE_LAST && p->compcnt > 0) {
         p->suite = *suite;
         DEBUGMSG(TRACE, "mgmt: activating echo server for %s, suite=%s\n",
-                 ccnl_prefix_to_path(p), ccnl_suite2str(*suite));
+                 ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str(*suite));
         ccnl_echo_add(ccnl, ccnl_prefix_clone(p));
         cp = "echoserver cmd worked";
     } else {
@@ -1643,7 +1644,7 @@ Bail:
     // prepare FWDENTRY
     len3 = ccnl_ccnb_mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE)); // prefix
 
     //    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
@@ -1678,6 +1679,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *action, *faceid, *suite=0, h[10];
     char *cp = "prefixreg cmd failed";
     int rc = -1;
+    char s[CCNL_MAX_PREFIX_SIZE];
 
     int len = 0, len3;
 //    unsigned char contentobj[2000];
@@ -1745,7 +1747,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         p->suite = suite[0];
 
         DEBUGMSG(TRACE, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
-                 ccnl_prefix_to_path(p), faceid, ccnl_suite2str(suite[0]));
+                 ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE), faceid, ccnl_suite2str(suite[0]));
 
         for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
         if (!f) goto Bail;
@@ -1784,7 +1786,7 @@ Bail:
     // prepare FWDENTRY
     len3 = ccnl_ccnb_mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE)); // prefix
 
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
@@ -1819,6 +1821,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned int chunknum = 0, chunkflag = 0;
     int num, typ, num_of_components = -1, suite = 2;
     struct ccnl_prefix_s *prefix_new;
+    char s[CCNL_MAX_PREFIX_SIZE];
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -1879,14 +1882,16 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     prefix_new->suite = suite;
 
     DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
-             ccnl_prefix_to_path(ccnl_prefix_dup(prefix_new)), ccnl_suite2str(suite));
+             ccnl_prefix_to_str(ccnl_prefix_dup(prefix_new),s,CCNL_MAX_PREFIX_SIZE),
+             ccnl_suite2str(suite));
 
     //Reply MSG
     if (h)
         ccnl_free(h);
     h = ccnl_malloc(300);
 
-    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
+    sprintf((char *)h, "received add to cache request, inizializing callback for %s",
+            ccnl_prefix_to_str(prefix_new,s,CCNL_MAX_PREFIX_SIZE));
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from,
                              "addcacheobject", (char *)h);
     if (h)

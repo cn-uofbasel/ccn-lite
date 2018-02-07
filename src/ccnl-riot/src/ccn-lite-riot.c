@@ -43,6 +43,7 @@
 #include "ccnl-os-time.h"
 #include "ccnl-fwd.h"
 #include "ccnl-producer.h"
+#include "ccnl-pkt-builder.h"
 
 #ifdef USE_SUITE_COMPRESSED
 #include "ccnl-pkt-ndn-compression.h"
@@ -105,11 +106,6 @@ static int _ccnl_suite = CCNL_SUITE_NDNTLV;
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
-#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
-
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 const char* ccnl_suite2str(int suite);
@@ -167,7 +163,6 @@ static gnrc_netreg_entry_t _ccnl_ne;
  * @{
  */
 
-extern struct ccnl_buf_s* ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 extern int ccnl_isContent(unsigned char *buf, int len, int suite);
 
 /**
@@ -444,7 +439,7 @@ void
                 }
                 else {
                     ccnl_interest_t *i = (ccnl_interest_t*) pkt->data;
-                    ccnl_send_interest(i->prefix, i->buf, i->buflen);
+                    ccnl_send_interest(i->prefix, i->buf, i->buflen, NULL);
                 }
                 gnrc_pktbuf_release(pkt);
                 break;
@@ -545,15 +540,12 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
 /* generates and send out an interest */
 int
-ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_len)
+ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len,
+                   ccnl_interest_opts_u *int_opts)
 {
     int ret = -1;
     int len = 0;
-
-    /* we are not using these _for now_. Need to adjust ccnl_mkSimpleInterest
-       to work with static buffers first */
-    (void) buf;
-    (void) buf_len;
+    ccnl_interest_opts_u default_opts;
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
@@ -567,19 +559,24 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
         return ret;
     }
 
-    int nonce = random_uint32();
-    DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
-
-    struct ccnl_buf_s *interest = ccnl_mkSimpleInterest(prefix, &nonce);
-    if(!interest){
-        return -1;
+    if (!int_opts) {
+        int_opts = &default_opts;
     }
 
-    unsigned char *start = interest->data;
-    unsigned char *data = interest->data;
+    if (!int_opts->ndntlv.nonce) {
+        int_opts->ndntlv.nonce = random_uint32();
+    }
+
+    DEBUGMSG(DEBUG, "nonce: %i\n", int_opts->ndntlv.nonce);
+
+    ccnl_mkInterest(prefix, int_opts, buf, &len, &buf_len);
+
+    buf += buf_len;
+
+    unsigned char *start = buf;
+    unsigned char *data = buf;
     struct ccnl_pkt_s *pkt, *pktc;
     (void) pktc;
-    len = interest->datalen;
 
     int typ;
     int int_len;
@@ -588,7 +585,6 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
     /* TODO: support other suites */
     if (ccnl_ndntlv_dehead(&data, &len, (int*) &typ, &int_len) || (int) int_len > len) {
         DEBUGMSG(WARNING, "  invalid packet format\n");
-        ccnl_free(interest);
         return ret;
     }
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
@@ -604,7 +600,6 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
     ret = ccnl_fwd_handleInterest(&ccnl_relay, loopback_face, &pkt, ccnl_ndntlv_cMatch);
 
     ccnl_pkt_free(pkt);
-    ccnl_free(interest);
 
     return ret;
 }

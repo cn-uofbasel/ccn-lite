@@ -11,12 +11,17 @@ endif()
 
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
-file(GLOB TEST "test/unit.c")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
+if (BUILD_TESTING)
+    file(GLOB TEST "test/unit.c")
+    add_executable(ccnl_core_test_prefix_comp "test/ccnl_core_test_prefix_comp.c")
+    target_link_libraries(ccnl_core_test_prefix_comp ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
 
-add_executable(ccnl_core_test_prefix_comp "test/ccnl_core_test_prefix_comp.c")
-target_link_libraries(ccnl_core_test_prefix_comp ccnl-core ccnl-pkt ccnl-fwd ccnl-nfn ccnl-unix ${OPENSSL_LIBRARIES})
+    add_test(NAME ccnl_core_test_prefix_comp COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp 0)
+endif()
 
-add_test(NAME ccnl_core_test_prefix_comp COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ccnl_core_test_prefix_comp 0)
+
+
+

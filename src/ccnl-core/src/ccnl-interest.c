@@ -101,7 +101,7 @@ int
 ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *from)
 {
     struct ccnl_pendint_s *pi, *last = NULL;
-    char *s = NULL;
+    char s[CCNL_MAX_PREFIX_SIZE];
     DEBUGMSG_CORE(TRACE, "ccnl_append_pending\n");
 
     for (pi = i->pending; pi; pi = pi->next) { // check whether already listed
@@ -119,8 +119,8 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *fro
     }
 
     DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n",
-                  (void *) pi, (s = ccnl_prefix_to_path(i->pkt->pfx)), (void*)i->pkt->pfx);
-    ccnl_free(s);
+                  (void *) pi, ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
+                  (void *) i->pkt->pfx);
     pi->face = from;
     pi->last_used = CCNL_NOW();
     if (last)
@@ -134,7 +134,7 @@ int
 ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face)
 {
     int found = 0;
-    char *s = NULL;
+    char s[CCNL_MAX_PREFIX_SIZE];
     struct ccnl_pendint_s *prev = NULL;
     struct ccnl_pendint_s *pend = i->pending;
     DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
@@ -142,7 +142,7 @@ ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face
         if (face->faceid == pend->face->faceid) {
             DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
                           ccnl_addr2ascii(&pend->face->peer),
-                          (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                          ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE));
             found++;
             if (prev) {
                 prev->next = pend->next;
@@ -158,7 +158,5 @@ ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face
             pend = pend->next;
         }
     }
-    if (s)
-        ccnl_free(s);
     return found;
 }

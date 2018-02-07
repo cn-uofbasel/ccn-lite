@@ -225,12 +225,12 @@ ccnl_isFragment(unsigned char *buf, int len, int suite)
 #ifdef NEEDS_PACKET_CRAFTING
 
 struct ccnl_interest_s *
-ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce)
+ccnl_mkInterestObject(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                                                        sizeof(struct ccnl_interest_s));
     i->pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
-    i->pkt->buf = ccnl_mkSimpleInterest(name, nonce);
+    i->pkt->buf = ccnl_mkSimpleInterest(name, opts);
     i->pkt->pfx = ccnl_prefix_dup(name);
     i->flags |= CCNL_PIT_COREPROPAGATES;
     i->from = NULL;
@@ -238,7 +238,7 @@ ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce)
 }
 
 struct ccnl_buf_s*
-ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
+ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 {
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
@@ -249,7 +249,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
-    ccnl_mkInterest(name, nonce, tmp, &len, &offs);
+    ccnl_mkInterest(name, opts, tmp, &len, &offs);
 
     if (len > 0)
         buf = ccnl_buf_new(tmp + offs, len);
@@ -258,7 +258,10 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     return buf;
 }
 
-void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp, int *len, int *offs) {
+void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
+                     unsigned char *tmp, int *len, int *offs) {
+    ccnl_interest_opts_u default_opts;
+
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
@@ -289,15 +292,23 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp,
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
+            if (!opts) {
+                opts = &default_opts;
+            }
+
+            if (!opts->ndntlv.nonce) {
+                opts->ndntlv.nonce = rand();
+            }
+
 #ifndef USE_SUITE_COMPRESSED
-            (*len) = ccnl_ndntlv_prependInterest(name, -1, nonce, offs, tmp);
+            (*len) = ccnl_ndntlv_prependInterest(name, -1, &(opts->ndntlv), offs, tmp);
 #else //USE_SUITE_COMPRESSED
             {
             struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(name);
             if(!prefix){
                 return;
             }
-            (*len) = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, offs, tmp);
+            (*len) = ccnl_ndntlv_prependInterestCompressed(prefix, &(opts->ndntlv.nonce), offs, tmp);
             if(prefix->comp[0]){
                 ccnl_free(prefix->comp[0]); //only required in this special case
             }
@@ -334,11 +345,12 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     int len = 0, contentpos = 0, offs;
     struct ccnl_prefix_s *prefix;
     (void)prefix;
+    char s[CCNL_MAX_PREFIX_SIZE];
+    (void) s;
 
-    char *s = NULL;
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-                  (s = ccnl_prefix_to_path(name)), paylen);
-    ccnl_free(s);
+                  ccnl_prefix_to_str(name, s, CCNL_MAX_PREFIX_SIZE),
+                  paylen);
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;

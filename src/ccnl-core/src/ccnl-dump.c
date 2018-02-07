@@ -67,6 +67,9 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_content_s *con = (struct ccnl_content_s *) p;
     int i, k;
 
+    char s[CCNL_MAX_PREFIX_SIZE];
+    (void) s;
+
     #define INDENT(lev)   for (i = 0; i < (lev); i++) CONSOLE("  ")
 
     switch (typ) {
@@ -81,7 +84,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_PREFIX:
             INDENT(lev);
             CONSOLE("%p PREFIX len=%d val=%s\n",
-                    (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
+                    (void *) pre, pre->compcnt, ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
             break;
         case CCNL_RELAY:
             INDENT(lev);
@@ -317,13 +320,14 @@ int
 get_prefix_dump(int lev, void *p, int *len, char** val)
 {
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
+    char s[CCNL_MAX_PREFIX_SIZE];
 //    int i;
 //    INDENT(lev);
     //*prefix =  (void *) pre;
     (void)lev;
     *len = pre->compcnt;
     //*val = ccnl_prefix_to_path(pre);
-    sprintf(*val, "%s", ccnl_prefix_to_path(pre));
+    sprintf(*val, "%s", ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
     return 1;
 }
 
