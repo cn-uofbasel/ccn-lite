@@ -63,7 +63,6 @@ int ccnl_test_run_AppendCmpToPrefix(void *cmpstr, void *prefix) {
     return res;
 }
 
-
 //Run Tests
 int main(){
     int res = 0;
