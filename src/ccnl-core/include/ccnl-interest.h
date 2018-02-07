@@ -30,7 +30,7 @@
 struct ccnl_pendint_s { // pending interest
     struct ccnl_pendint_s *next; // , *prev;
     struct ccnl_face_s *face;
-    int last_used;
+    uint32_t last_used;
 };
 
 struct ccnl_interest_s {
@@ -39,9 +39,10 @@ struct ccnl_interest_s {
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
     unsigned short flags;
+    uint32_t lifetime;
 #define CCNL_PIT_COREPROPAGATES    0x01
 #define CCNL_PIT_TRACED            0x02
-    int last_used;
+    uint32_t last_used;
     int retries;
 #ifdef USE_NFN_REQUESTS
     struct ccnl_interest_s *keepalive; // the keepalive interest dispatched for this interest

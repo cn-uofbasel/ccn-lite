@@ -67,6 +67,7 @@ struct ccnl_pktdetail_ndntlv_s {
     int minsuffix, maxsuffix, mbf, scope;
     struct ccnl_buf_s *nonce;      /**< nonce */
     struct ccnl_buf_s *ppkl;       /**< publisher public key locator */
+    uint32_t interestlifetime;     /**< interest lifetime */
 };
 
 struct ccnl_pkt_s {
