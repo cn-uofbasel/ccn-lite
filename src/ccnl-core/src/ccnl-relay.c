@@ -562,7 +562,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     if (ccnl->max_cache_entries > 0 &&
         ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
         struct ccnl_content_s *c2, *oldest = NULL;
-        int age = 0;
+        uint32_t age = 0;
         for (c2 = ccnl->contents; c2; c2 = c2->next) {
              if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC)) {
                  if ((age == 0) || c2->last_used < age) {
@@ -774,13 +774,21 @@ ccnl_do_ageing(void *ptr, void *dummy)
     (void) s;
 
     while (c) {
-        if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
+        if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= (uint32_t) t &&
                                 !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
             DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
             c = ccnl_content_remove(relay, c);
         }
-        else
+        else {
+#ifdef USE_SUITE_NDNTLV
+            if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
+                if ((c->last_used + (c->pkt->s.ndntlv.freshnessperiod / 1000)) <= (uint32_t) t) {
+                    c->stale = true;
+                }
+            }
+#endif
             c = c->next;
+        }
     }
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
                 // than being held indefinitely."

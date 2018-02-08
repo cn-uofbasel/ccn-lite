@@ -144,7 +144,7 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     if (!pkt)
         return NULL;
 
-    pkt->buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
+    pkt->buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos, NULL);
     if (!pkt->buf) {
         ccnl_free(pkt);
         return NULL;

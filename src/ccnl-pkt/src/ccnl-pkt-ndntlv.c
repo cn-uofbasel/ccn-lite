@@ -240,9 +240,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     DEBUGMSG(WARNING, "'ContentType' field ignored\n");
                 }
                 if (typ == NDN_TLV_FreshnessPeriod) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
+                    pkt->s.ndntlv.freshnessperiod = ccnl_ndntlv_nonNegInt(cp, i);
                 }
                 if (typ == NDN_TLV_FinalBlockId) {
                     if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
@@ -334,8 +332,12 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
         return -1;
-    // FIXME: should check freshness (mbf) here
-    // if (mbf) // honor "answer-from-existing-content-store" flag
+
+    if (p->s.ndntlv.mbf && c->stale) {
+        DEBUGMSG(DEBUG, "ignore stale content\n");
+        return -1;
+    }
+
     DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
                      (void *) c);
     return 0;
@@ -563,7 +565,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_n
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
-                           int *contentpos, unsigned int *final_block_id,
+                           int *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
@@ -603,17 +605,25 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
 
     // to find length of optional (?) MetaInfo fields
     oldoffset2 = *offset;
-    if(final_block_id) {
-        if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *final_block_id,
-                                                 NDN_Marker_SegmentNumber,
-                                                 offset, buf) < 0)
-            return -1;
+    if(opts) {
+        if (opts->finalblockid != UINT32_MAX) {
+            if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
+                                                     opts->finalblockid,
+                                                     NDN_Marker_SegmentNumber,
+                                                     offset, buf) < 0)
+                return -1;
 
-        // optional
-        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset,
-                                  offset, buf) < 0)
-            return -1;
+            // optional
+            if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset,
+                                      offset, buf) < 0)
+                return -1;
+        }
+
+        if (opts->freshnessperiod) {
+            if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_FreshnessPeriod,
+                                             opts->freshnessperiod, offset, buf) < 0)
+                return -1;
+        }
     }
 
     // mandatory (empty for now)
