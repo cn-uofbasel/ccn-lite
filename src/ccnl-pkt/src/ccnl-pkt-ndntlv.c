@@ -51,11 +51,14 @@ ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
         *buf += 1;
         *len -= 1;
     } else if (**buf == 253 && *len >= 3) { // 2 bytes
-        *val = ntohs(*(uint16_t*)(*buf + 1));
+        /* ORing bytes does not provoke alignment issues */
+        *val = ((*buf)[1] << 8) | ((*buf)[2] << 0);
         *buf += 3;
         *len -= 3;
     } else if (**buf == 254 && *len >= 5) { // 4 bytes
-        *val = ntohl(*(uint32_t*)(*buf + 1));
+        /* ORing bytes does not provoke alignment issues */
+        *val = ((*buf)[1] << 24) | ((*buf)[2] << 16) |
+               ((*buf)[3] <<  8) | ((*buf)[4] <<  0);
         *buf += 5;
         *len -= 5;
     } else {
@@ -77,14 +80,24 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
     return val;
 }
 
+/**
+ * Opens a TLV and reads the Type and the Length Value
+ * @param buf allocated buffer in which the tlv should be opened
+ * @param len length of the buffer
+ * @param typ return value via pointer: type value of the tlv
+ * @param vallen return value via pointer: length value of the tlv
+ * @return 0 on success, -1 on failure.
+ */
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
                    int *typ, int *vallen)
 {
-  if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
+    if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
         return -1;
-  if (ccnl_ndntlv_varlenint(buf, len, (int*) vallen))
+    if (ccnl_ndntlv_varlenint(buf, len, (int*) vallen))
         return -1;
+    if(*vallen > *len)
+        return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 }
 
@@ -103,7 +116,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 
     DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%d\n", *datalen);
 
-    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
     if (!pkt)
         return NULL;
     pkt->type = pkttype;
@@ -167,7 +180,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                         *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
                     }
                     p->comp[p->compcnt] = cp;
-                    p->complen[p->compcnt] = i;
+                    p->complen[p->compcnt] = i; //FIXME, what if the len value inside the TLV is wrong -> can this lead to overruns inside
                     p->compcnt++;
                 }  // else unknown type: skip
                 cp += i;
@@ -240,9 +253,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     DEBUGMSG(WARNING, "'ContentType' field ignored\n");
                 }
                 if (typ == NDN_TLV_FreshnessPeriod) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
+                    pkt->s.ndntlv.freshnessperiod = ccnl_ndntlv_nonNegInt(cp, i);
                 }
                 if (typ == NDN_TLV_FinalBlockId) {
                     if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
@@ -334,8 +345,12 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
         return -1;
-    // FIXME: should check freshness (mbf) here
-    // if (mbf) // honor "answer-from-existing-content-store" flag
+
+    if (p->s.ndntlv.mbf && c->stale) {
+        DEBUGMSG(DEBUG, "ignore stale content\n");
+        return -1;
+    }
+
     DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
                      (void *) c);
     return 0;
@@ -563,7 +578,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_n
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
-                           int *contentpos, unsigned int *final_block_id,
+                           int *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
@@ -603,17 +618,25 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
 
     // to find length of optional (?) MetaInfo fields
     oldoffset2 = *offset;
-    if(final_block_id) {
-        if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *final_block_id,
-                                                 NDN_Marker_SegmentNumber,
-                                                 offset, buf) < 0)
-            return -1;
+    if(opts) {
+        if (opts->finalblockid != UINT32_MAX) {
+            if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
+                                                     opts->finalblockid,
+                                                     NDN_Marker_SegmentNumber,
+                                                     offset, buf) < 0)
+                return -1;
 
-        // optional
-        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset,
-                                  offset, buf) < 0)
-            return -1;
+            // optional
+            if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset,
+                                      offset, buf) < 0)
+                return -1;
+        }
+
+        if (opts->freshnessperiod) {
+            if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_FreshnessPeriod,
+                                             opts->freshnessperiod, offset, buf) < 0)
+                return -1;
+        }
     }
 
     // mandatory (empty for now)

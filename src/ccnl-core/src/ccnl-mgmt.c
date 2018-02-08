@@ -189,7 +189,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 sprintf(uri, "/mgmt/seqnum-%d", it);
                 pkt = ccnl_calloc(1, sizeof(*pkt));
                 pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
-                pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos);
+                pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos, NULL);
                 pkt->content = pkt->buf->data + contentpos;
                 pkt->contlen = len5;
                 c = ccnl_content_new(&pkt);

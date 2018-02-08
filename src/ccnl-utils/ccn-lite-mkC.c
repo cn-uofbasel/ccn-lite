@@ -51,12 +51,14 @@ main(int argc, char *argv[])
     struct key_s *keys = NULL;
     struct ccnl_prefix_s *prefix;
     struct ccnl_buf_s *buf;
+    ccnl_data_opts_u data_opts;
     (void)prefix;
     (void)buf;
     (void) contentpos;
     (void)keys;
     (void)lastchunknum;
     (void)chunknum;
+    (void) data_opts;
 
     while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
@@ -201,8 +203,9 @@ Usage:
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                   NULL, keyval, keyid, &offs, out);
         } else {
+            data_opts.ndntlv.finalblockid = lastchunknum;
             len = ccnl_ndntlv_prependContent(name, body, len,
-                  NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  NULL, lastchunknum == UINT_MAX ? NULL : &(data_opts.ndntlv),
                   &offs, out);
         }
         break;

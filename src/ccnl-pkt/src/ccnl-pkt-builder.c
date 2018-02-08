@@ -305,11 +305,12 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
 
 struct ccnl_content_s *
 ccnl_mkContentObject(struct ccnl_prefix_s *name,
-                     unsigned char *payload, int paylen)
+                     unsigned char *payload, int paylen,
+                     ccnl_data_opts_u *opts)
 {
     int dataoffset;
     struct ccnl_pkt_s *c_p = ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
-    c_p->buf = ccnl_mkSimpleContent(name, payload, paylen, &dataoffset);
+    c_p->buf = ccnl_mkSimpleContent(name, payload, paylen, &dataoffset, opts);
     c_p->pfx = ccnl_prefix_dup(name);
     c_p->content = c_p->buf->data + dataoffset;
     c_p->contlen = paylen;
@@ -319,7 +320,8 @@ ccnl_mkContentObject(struct ccnl_prefix_s *name,
 
 struct ccnl_buf_s*
 ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
-                     unsigned char *payload, int paylen, int *payoffset)
+                     unsigned char *payload, int paylen, int *payoffset,
+                     ccnl_data_opts_u *opts)
 {
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
@@ -336,7 +338,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
-    ccnl_mkContent(name, payload, paylen, tmp, &len, &contentpos, &offs);
+    ccnl_mkContent(name, payload, paylen, tmp, &len, &contentpos, &offs, opts);
 
     if (len) {
         buf = ccnl_buf_new(tmp + offs, len);
@@ -350,7 +352,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
 void
 ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, unsigned char *tmp,
-int *len, int *contentpos, int *offs) {
+               int *len, int *contentpos, int *offs, ccnl_data_opts_u *opts) {
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
@@ -388,7 +390,7 @@ int *len, int *contentpos, int *offs) {
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             (*len) = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                                contentpos, NULL, offs, tmp);
+                                                contentpos, &(opts->ndntlv), offs, tmp);
             break;
 #endif
         default:

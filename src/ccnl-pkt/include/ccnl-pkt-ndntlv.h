@@ -122,6 +122,17 @@ struct ccnl_ndntlv_interest_opts_s {
     uint32_t interestlifetime;  /**< Interest Lifetime Guider */
 };
 
+/**
+ * @brief NDN Data options
+ */
+struct ccnl_ndntlv_data_opts_s {
+    /* MetaInfo */
+    uint32_t freshnessperiod;       /**< freshness period */
+    /* FinalBlockID is actually from type NameComponent.
+     * Use integer for simplicity for now */
+    uint32_t finalblockid;          /**< final block ID */
+};
+
 #ifdef USE_SUITE_NDNTLV
 int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val);
@@ -148,7 +159,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_n
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
-                           int *contentpos, unsigned int *final_block_id,
+                           int *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
                            int *offset, unsigned char *buf);
 
 int

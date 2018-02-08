@@ -290,7 +290,7 @@ nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, i
         break;
     }
     pkt->pfx = ccnl_prefix_dup(pfx);
-    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, payload, paylen, &dataoffset);
+    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, payload, paylen, &dataoffset, NULL);
     pkt->content = pkt->buf->data + dataoffset;
     pkt->contlen = paylen;
 
@@ -466,7 +466,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
             DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
             if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
                 DEBUGMSG_CFWD(DEBUG, "  running computation found");
-                struct ccnl_buf_s *buf = ccnl_mkSimpleContent((*pkt)->pfx, NULL, 0, NULL);
+                struct ccnl_buf_s *buf = ccnl_mkSimpleContent((*pkt)->pfx, NULL, 0, NULL, NULL);
                 ccnl_face_enqueue(relay, from, buf);
                 return 0;
             }
@@ -482,7 +482,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
                 char reply[16];
                 snprintf(reply, 16, "%d", internum);
                 int size = internum >= 0 ? strlen(reply) : 0;
-                struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
+                struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset, NULL);
                 ccnl_face_enqueue(relay, from, buf);
                 return 0;
             }
@@ -595,7 +595,7 @@ nfn_request_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from
     struct ccnl_pkt_s *packet;
     packet = ccnl_calloc(1, sizeof(*packet));
     packet->pfx = interm_pfx;
-    packet->buf = ccnl_mkSimpleContent(packet->pfx, (*pkt)->content, (*pkt)->contlen, &dataoffset);
+    packet->buf = ccnl_mkSimpleContent(packet->pfx, (*pkt)->content, (*pkt)->contlen, &dataoffset, NULL);
     packet->content = packet->buf->data + dataoffset;
     packet->contlen = (*pkt)->contlen;
 
@@ -638,7 +638,7 @@ nfn_request_RX_cancel(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_pkt_s *packet;
     packet = ccnl_calloc(1, sizeof(*packet));
     packet->pfx = cancel_pfx;
-    packet->buf = ccnl_mkSimpleContent(packet->pfx, c->pkt->content, c->pkt->contlen, &dataoffset);
+    packet->buf = ccnl_mkSimpleContent(packet->pfx, c->pkt->content, c->pkt->contlen, &dataoffset, NULL);
     packet->content = packet->buf->data + dataoffset;
     packet->contlen = c->pkt->contlen;
 

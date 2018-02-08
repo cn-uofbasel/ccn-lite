@@ -24,6 +24,8 @@
 
 //#ifdef USE_DEBUG
 
+#include <inttypes.h>
+
 #include "ccnl-logging.h"
 #include "ccnl-prefix.h"
 #include "ccnl-sockunion.h"
@@ -191,7 +193,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_INTEREST:
             while (itr) {
                 INDENT(lev);
-                CONSOLE("%p INTEREST next=%p prev=%p last=%d retries=%d\n",
+                CONSOLE("%p INTEREST next=%p prev=%p last=%" PRIu32 " retries=%d\n",
                         (void *) itr, (void *) itr->next, (void *) itr->prev,
                         itr->last_used, itr->retries);
                 ccnl_dump(lev + 1, CCNL_PACKET, itr->pkt);
@@ -207,7 +209,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_PENDINT:
             while (pir) {
                 INDENT(lev);
-                CONSOLE("%p PENDINT next=%p face=%p last=%d\n",
+                CONSOLE("%p PENDINT next=%p face=%p last=%" PRIu32 "\n",
                         (void *) pir, (void *) pir->next,
                         (void *) pir->face, pir->last_used);
                 pir = pir->next;
@@ -284,7 +286,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_CONTENT:
             while (con) {
                 INDENT(lev);
-                CONSOLE("%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
+                CONSOLE("%p CONTENT  next=%p prev=%p last_used=%" PRIu32 " served_cnt=%d\n",
                         (void *) con, (void *) con->next, (void *) con->prev,
                         con->last_used, con->served_cnt);
                 //            ccnl_dump(lev+1, CCNL_PREFIX, con->pkt->pfx);
