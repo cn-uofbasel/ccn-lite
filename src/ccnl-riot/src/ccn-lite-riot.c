@@ -563,7 +563,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
         int_opts->ndntlv.nonce = random_uint32();
     }
 
-    DEBUGMSG(DEBUG, "nonce: %i\n", int_opts->ndntlv.nonce);
+    DEBUGMSG(DEBUG, "nonce: %" PRIi32 "\n", int_opts->ndntlv.nonce);
 
     ccnl_mkInterest(prefix, int_opts, buf, &len, &buf_len);
 
