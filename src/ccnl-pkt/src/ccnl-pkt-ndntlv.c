@@ -51,11 +51,14 @@ ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
         *buf += 1;
         *len -= 1;
     } else if (**buf == 253 && *len >= 3) { // 2 bytes
-        *val = ntohs(*(uint16_t*)(*buf + 1));
+        /* ORing bytes does not provoke alignment issues */
+        *val = ((*buf)[1] << 8) | ((*buf)[2] << 0);
         *buf += 3;
         *len -= 3;
     } else if (**buf == 254 && *len >= 5) { // 4 bytes
-        *val = ntohl(*(uint32_t*)(*buf + 1));
+        /* ORing bytes does not provoke alignment issues */
+        *val = ((*buf)[1] << 24) | ((*buf)[2] << 16) |
+               ((*buf)[3] <<  8) | ((*buf)[4] <<  0);
         *buf += 5;
         *len -= 5;
     } else {
@@ -77,14 +80,24 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
     return val;
 }
 
+/**
+ * Opens a TLV and reads the Type and the Length Value
+ * @param buf allocated buffer in which the tlv should be opened
+ * @param len length of the buffer
+ * @param typ return value via pointer: type value of the tlv
+ * @param vallen return value via pointer: length value of the tlv
+ * @return 0 on success, -1 on failure.
+ */
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
                    int *typ, int *vallen)
 {
-  if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
+    if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
         return -1;
-  if (ccnl_ndntlv_varlenint(buf, len, (int*) vallen))
+    if (ccnl_ndntlv_varlenint(buf, len, (int*) vallen))
         return -1;
+    if(*vallen > *len)
+        return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 }
 
@@ -103,7 +116,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 
     DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%d\n", *datalen);
 
-    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
     if (!pkt)
         return NULL;
     pkt->type = pkttype;
@@ -167,7 +180,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                         *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
                     }
                     p->comp[p->compcnt] = cp;
-                    p->complen[p->compcnt] = i;
+                    p->complen[p->compcnt] = i; //FIXME, what if the len value inside the TLV is wrong -> can this lead to overruns inside
                     p->compcnt++;
                 }  // else unknown type: skip
                 cp += i;
