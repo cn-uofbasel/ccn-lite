@@ -39,6 +39,7 @@ main(int argc, char *argv[])
     int suite = CCNL_SUITE_CCNTLV;
     int chunk_size = CCNL_MAX_CHUNK_SIZE;
     struct ccnl_prefix_s *name;
+    ccnl_data_opts_u data_opts;
 
     while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:v:")) != -1) {
         switch (opt) {
@@ -240,10 +241,11 @@ Usage:
             contentlen = CCNL_MAX_PACKET_SIZE - offs;
             break;
         case CCNL_SUITE_NDNTLV:
+            data_opts.ndntlv.finalblockid = lastchunknum;
             contentlen = ccnl_ndntlv_prependContent(name,
                                  (unsigned char *) chunk_buf, chunk_len,
                                  NULL,
-                                 &lastchunknum,// is_last ? &chunknum : NULL,
+                                 &(data_opts.ndntlv),// is_last ? &chunknum : NULL,
                                  &offs, out);
             break;
         default:

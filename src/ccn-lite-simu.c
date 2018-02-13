@@ -156,7 +156,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     pkt = ccnl_calloc(1, sizeof(*pkt));
     pkt->pfx = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
     DEBUGMSG(VERBOSE, "  %s\n", ccnl_prefix_to_path(pkt->pfx));
-    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset);
+    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset, NULL);
     pkt->content = pkt->buf->data + dataoffset;
     pkt->contlen = len;
     c = ccnl_content_new(relay, &pkt);

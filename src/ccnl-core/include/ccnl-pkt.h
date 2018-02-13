@@ -41,13 +41,22 @@
 #define CCNL_PKT_FRAG_END   0x08
 
 /**
- * @brief Options for Interests of all TLV formats
+ * @brief Options for Interest messages of all TLV formats
  */
 typedef union {
 #ifdef USE_SUITE_NDNTLV
-    struct ccnl_ndntlv_interest_opts_s ndntlv;      /**< options for NDN Interests */
+    struct ccnl_ndntlv_interest_opts_s ndntlv;      /**< options for NDN Interest messages */
 #endif
 } ccnl_interest_opts_u;
+
+/**
+ * @brief Options for Data messages of all TLV formats
+ */
+typedef union {
+#ifdef USE_SUITE_NDNTLV
+    struct ccnl_ndntlv_data_opts_s ndntlv;      /**< options for NDN Data messages */
+#endif
+} ccnl_data_opts_u;
 
 struct ccnl_pktdetail_ccnb_s {
     int minsuffix, maxsuffix, aok, scope;
@@ -63,11 +72,17 @@ struct ccnl_pktdetail_iottlv_s {
     int ttl;
 };
 
+/**
+ * @brief Packet details for the NDN TLV format
+ */
 struct ccnl_pktdetail_ndntlv_s {
+    /* Interest */
     int minsuffix, maxsuffix, mbf, scope;
     struct ccnl_buf_s *nonce;      /**< nonce */
     struct ccnl_buf_s *ppkl;       /**< publisher public key locator */
     uint32_t interestlifetime;     /**< interest lifetime */
+    /* Data */
+    uint32_t freshnessperiod;      /**< content freshness period */
 };
 
 struct ccnl_pkt_s {

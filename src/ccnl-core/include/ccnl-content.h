@@ -23,6 +23,9 @@
 #ifndef CCNL_CONTENT_H
 #define CCNL_CONTENT_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 struct ccnl_pkt_s;
 struct ccnl_prefix_s;
 
@@ -34,7 +37,13 @@ struct ccnl_content_s {
 #define CCNL_CONTENT_FLAGS_STALE   0x02
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
-    int last_used;
+    uint32_t last_used;
+
+#ifdef USE_SUITE_NDNTLV
+    uint32_t freshnessperiod;
+    bool stale;
+#endif
+
     int served_cnt;
 };
 
