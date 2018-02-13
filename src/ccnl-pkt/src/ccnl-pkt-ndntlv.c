@@ -51,11 +51,14 @@ ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
         *buf += 1;
         *len -= 1;
     } else if (**buf == 253 && *len >= 3) { // 2 bytes
-        *val = ntohs(*(uint16_t*)(*buf + 1));
+        /* ORing bytes does not provoke alignment issues */
+        *val = ((*buf)[1] << 8) | ((*buf)[2] << 0);
         *buf += 3;
         *len -= 3;
     } else if (**buf == 254 && *len >= 5) { // 4 bytes
-        *val = ntohl(*(uint32_t*)(*buf + 1));
+        /* ORing bytes does not provoke alignment issues */
+        *val = ((*buf)[1] << 24) | ((*buf)[2] << 16) |
+               ((*buf)[3] <<  8) | ((*buf)[4] <<  0);
         *buf += 5;
         *len -= 5;
     } else {
