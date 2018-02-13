@@ -578,12 +578,12 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     else
         buf = prefix_buf2;
     */
-    char *buf = (char*) ccnl_malloc(CCNL_MAX_PREFIX_SIZE);
+    char *buf = (char*) ccnl_malloc(CCNL_MAX_PREFIX_SIZE+1);
     if (buf == NULL) {
         DEBUGMSG_CUTL(ERROR, "ccnl_prefix_to_path_detailed: malloc failed, exiting\n");
         return NULL;
     }
-
+    memset(buf, 0, CCNL_MAX_PREFIX_SIZE+1);
     return ccnl_prefix_to_str_detailed(pr, ccntlv_skip, escape_components, call_slash, buf, CCNL_MAX_PREFIX_SIZE);
 }
 
@@ -597,27 +597,27 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
     (void) call_slash;
     (void)buflen; //fixme, prevent bufferoverrun here!
 #ifdef USE_NFN
-    // len += sprintf(buf + len, "cmpcnt: %i|", pr->compcnt);
+    // len += snprintf(buf + len, buflen, "cmpcnt: %i|", pr->compcnt);
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
-        len += sprintf(buf + len, "nfn");
+        len += snprintf(buf + len, buflen, "nfn");
     }
 #ifdef USE_NFN_REQUESTS
-    // len += sprintf(buf + len, ":test");
+    // len += snprintf(buf + len, buflen, ":test");
     if (pr->nfnflags & CCNL_PREFIX_REQUEST) {
         char *desc = nfn_request_description_new(pr->request);
-        len += sprintf(buf + len, ":%s", desc);
+        len += snprintf(buf + len, buflen, ":%s", desc);
         ccnl_free(desc);
         // if (pr->request == NULL) {
-        //     len += sprintf(buf + len, ":request(?)");
+        //     len += snprintf(buf + len, buflen, ":request(?)");
         // } else {
-        //     len += sprintf(buf + len, ":request(%d)", pr->request->complen);
+        //     len += snprintf(buf + len, buflen, ":request(%d)", pr->request->complen);
         // }
-        // len += sprintf(buf + len, ":request(%c)", *(pr->request->comp));
-        // len += sprintf(buf + len, ":request(%.*s)", pr->request->complen, pr->request->comp);
+        // len += snprintf(buf + len, ":request(%c)", *(pr->request->comp));
+        // len += snprintf(buf + len, ":request(%.*s)", pr->request->complen, pr->request->comp);
     }
 #endif // USE_NFN_REQUESTS
     if (pr->nfnflags) {
-        len += sprintf(buf + len, "[");
+        len += snprintf(buf + len, buflen, "[");
     }
 #endif // USE_NFN
 
@@ -629,7 +629,7 @@ One possibility is to not have a '/' before any nfn expression.
 #ifdef USE_NFN
         if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
             !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
-            len += sprintf(buf + len, "%.*s",
+            len += snprintf(buf + len, buflen, "%.*s",
                            pr->complen[i]-skip, pr->comp[i]+skip);
         } else
 #endif
@@ -658,10 +658,10 @@ One possibility is to not have a '/' before any nfn expression.
         if((strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5)) || call_slash)
         {
 #endif
-            len += sprintf(buf + len, "/");
+            len += snprintf(buf + len, buflen, "/");
 #ifdef USE_NFN
         }else{
-            len += sprintf(buf + len, " ");
+            len += snprintf(buf + len, buflen, " ");
         }
 #endif
 
@@ -675,7 +675,7 @@ One possibility is to not have a '/' before any nfn expression.
             len += sprintf_P(buf + len, fmt, c);
 #else
                   (char *) "%%%02x" : (char *) "%c";
-            len += sprintf(buf + len, fmt, c);
+            len += snprintf(buf + len, buflen, fmt, c);
 #endif
             if(len > CCNL_MAX_PREFIX_SIZE) {
                 DEBUGMSG(ERROR, "BUFSIZE SMALLER THAN OUTPUT LEN");
@@ -686,7 +686,7 @@ One possibility is to not have a '/' before any nfn expression.
 
 #ifdef USE_NFN
     if (pr->nfnflags)
-        len += sprintf(buf + len, "]");
+        len += snprintf(buf + len, buflen, "]");
 #endif
 
     buf[len] = '\0';
@@ -706,9 +706,9 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
         return NULL;
     for (i = 0; i < pr->compcnt; i++) {
         if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+            len += snprintf(prefix_buf + len, buflen, "%.*s", pr->complen[i], pr->comp[i]);
         else
-            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+            len += snprintf(prefix_buf + len, buflen, "/%.*s", pr->complen[i], pr->comp[i]);
     }
     prefix_buf[len] = '\0';
     return prefix_buf;
@@ -721,55 +721,55 @@ char*
 ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     int len = 0;
     int i = 0;
-    char *buf = (char*) ccnl_malloc(2048);
+    char *buf = (char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     if (buf == NULL) {
         DEBUGMSG_CUTL(ERROR, "ccnl_prefix_debug_info: malloc failed, exiting\n");
         return NULL;
     }
 
-    len += sprintf(buf + len, "<");
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "<");
 
-    len += sprintf(buf + len, "suite:%i, ", p->suite);
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "suite:%i, ", p->suite);
 
 #ifdef USE_NFN
-    len += sprintf(buf + len, "nfnflags:%i (", p->nfnflags);
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "nfnflags:%i (", p->nfnflags);
     int flagcount = 6;
     char *flagnames[6]  = {"NFN", "?", "COMPUTE", "KEEPALIVE", "INTERMEDIATE", "REQUEST"};
     int needscomma = 0;
     for (i = 0; i < flagcount; i++) {
         if ((p->nfnflags & (1<<i)) != 0) {
             if (needscomma) {
-                len += sprintf(buf + len, ",");
+                len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, ",");
             }
-            len += sprintf(buf + len, "%s", flagnames[i]);
+            len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "%s", flagnames[i]);
             needscomma = 1;
         }
     }
-    len += sprintf(buf + len, "), ");
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "), ");
 
 #endif
 
-    len += sprintf(buf + len, "compcnt:%i ", p->compcnt);
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "compcnt:%i ", p->compcnt);
 
-    len += sprintf(buf + len, "complen:(");
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "complen:(");
     for (i = 0; i < p->compcnt; i++) {
-        len += sprintf(buf + len, "%i", p->complen[i]);
+        len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "%i", p->complen[i]);
         if (i < p->compcnt - 1) {
-            len += sprintf(buf + len, ",");
+            len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, ",");
         }
     }
-    len += sprintf(buf + len, "), ");
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "), ");
 
-    len += sprintf(buf + len, "comp:(");
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "comp:(");
     for (i = 0; i < p->compcnt; i++) {
-        len += sprintf(buf + len, "%.*s", p->complen[i], p->comp[i]);
+        len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, "%.*s", p->complen[i], p->comp[i]);
         if (i < p->compcnt - 1) {
-            len += sprintf(buf + len, ",");
+            len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, ",");
         }
     }
-    len += sprintf(buf + len, ")");
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, ")");
 
-    len += sprintf(buf + len, ">%c", '\0');
+    len += snprintf(buf + len, CCNL_MAX_PACKET_SIZE, ">%c", '\0');
     return buf;
 }
 
