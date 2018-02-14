@@ -92,11 +92,12 @@ int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
                    int *typ, int *vallen)
 {
+    size_t maxlen = *len;
     if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
         return -1;
     if (ccnl_ndntlv_varlenint(buf, len, (int*) vallen))
         return -1;
-    if(*vallen > *len)
+    if((size_t)*vallen > maxlen)
         return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 }

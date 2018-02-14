@@ -84,7 +84,15 @@ ccnl_ccntlv_getHdrLen(unsigned char *data, int len)
     return -1;
 }
 
-// parse TL (returned in typ and vallen) and adjust buf and len
+
+/**
+ * parse TL (returned in typ and vallen) and adjust buf and len
+ * @param buf allocated buffer in which the tlv should be opened
+ * @param len length of the buffer
+ * @param typ return value via pointer: type value of the tlv
+ * @param vallen return value via pointer: length value of the tlv
+ * @return 0 on success, -1 on failure.
+ */
 int
 ccnl_ccntlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
@@ -92,6 +100,7 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 // Avoiding casting pointers to uint16t -- issue with the RFduino compiler?
 // Workaround:
     uint16_t tmp;
+    size_t maxlen = *len;
 
     if (*len < 4)
         return -1;
@@ -101,6 +110,8 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
     *vallen = ntohs(tmp);
     *len -= 4;
     *buf += 4;
+    if(*vallen > maxlen)
+        return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 /*
     unsigned short *ip;

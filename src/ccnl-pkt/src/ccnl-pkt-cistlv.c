@@ -69,12 +69,20 @@ ccnl_cistlv_getHdrLen(unsigned char *data, int len)
     return -1;
 }
 
-// parse TL (returned in typ and vallen) and adjust buf and len
+/**
+ * Opens a TLV and reads the Type and the Length Value
+ * @param buf allocated buffer in which the tlv should be opened
+ * @param len length of the buffer
+ * @param typ return value via pointer: type value of the tlv
+ * @param vallen return value via pointer: length value of the tlv
+ * @return 0 on success, -1 on failure.
+ */
 int
 ccnl_cistlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
 {
     unsigned short *ip;
+    size_t maxlen = *len;
 
     if (*len < 4)
         return -1;
@@ -84,6 +92,8 @@ ccnl_cistlv_dehead(unsigned char **buf, int *len,
     *vallen = ntohs(*ip);
     *len -= 4;
     *buf += 4;
+    if(*vallen > maxlen)
+        return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 }
 
