@@ -184,7 +184,7 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
  * @param[in]  pr                   The prefix that should be transformed
  * @param[in]  ccntlv_skip          Flag to enable skipping of CCNL_TLV fields
  * @param[in]  escape_components    Flag to enable escaping components
- * @param[in]  call_slash Flag to   enable call_slash
+ * @param[in]  call_slash           Flag to enable call_slash
  * @param[out] buf                  buffer to write the URI to
  * @param[in]  buf_len              length of buffer @p buf
  *
@@ -192,7 +192,7 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
 */
 char *
 ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash,
-                            char *buf, int buflen);
+                            char *buf, size_t buflen);
 
 /**
  * @brief Transforms a Prefix into a URI, separated by '/'
