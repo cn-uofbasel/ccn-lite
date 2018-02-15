@@ -47,7 +47,7 @@
 
 
 /**
- * creates a new prefix an allocates the memory
+ * @brief creates a new prefix an allocates the memory
  * @param suite suite to be used for the prefix
  * @param cnt the number components, for which the memory should be allocated
  */
@@ -74,7 +74,7 @@ ccnl_prefix_new(int suite, int cnt)
 }
 
 /**
- * frees the memory of a prefix
+ * @brief frees the memory of a prefix
  * @param p the prefix to be freed
  */
 void
@@ -88,7 +88,7 @@ ccnl_prefix_free(struct ccnl_prefix_s *p)
 }
 
 /**
- * duplicate a prefix
+ * @brief duplicate a prefix
  * @param prefix the original prefix
  * @return the duplicated prefix
  */
@@ -136,7 +136,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 }
 
 /**
- * append a component on a prefix
+ * @brief append a component on a prefix
  * @param prefix prefix on which the component (pointer return)
  * @param cmp component to be added
  * @param cmplen length of the component
@@ -186,7 +186,7 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
 // TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
 // and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level.
 /**
- * Add a chunk number to a prefix
+ * @brief Add a chunk number to a prefix
  * @param prefix prefix on which the chunknum should be added to (return pointer)
  * @param chunknum chunknum to be added
  * @return 0 on success, -1 on failure
@@ -267,7 +267,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 
 // TODO: move to a util file?
 /**
- * transform a char into a hex
+ * @brief transform a char into a hex
  * @param c character to be transformed
  * @return hex number
  */
@@ -283,7 +283,7 @@ hex2int(unsigned char c)
 }
 
 /**
- * unescape components, inplace
+ * @brief unescape components, inplace
  * @param comp components to be unescaped
  * @return len after shrinking
  */
@@ -305,7 +305,7 @@ unescape_component(char *comp) //
 }
 
 /**
- * fill in the compVector (watch out: this modifies the uri string)
+ * @brief fill in the compVector (watch out: this modifies the uri string)
  * @param compVector string-array,  one component per line, must be allocated (pointer return value)
  * @param compLens array, len of component per line, must be allocated (pointer return value)
  * @param uri string that contains a ICN uri, that will be parsed
@@ -341,7 +341,7 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
 }
 
 /**
- * turn an URI into an internal prefix (watch out: this modifies the uri string)
+ * @brief turn an URI into an internal prefix (watch out: this modifies the uri string)
  * @param uri URI to be parsed
  * @param suite suite (NDNTLV, CCNTLV) to be used
  * @param nfnexpr NFN expression if available else NULL
@@ -431,7 +431,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 #ifdef NEEDS_PREFIX_MATCHING
 
 /**
- * Transforms compare mode into string
+ * @brief Transforms compare mode into string
  * @param mode (CMP_EXACT, CMP_MATCH, CMP_LONGEST)
  * @return string of (CMP_EXACT, CMP_MATCH, CMP_LONGEST)
  */
@@ -452,7 +452,7 @@ ccnl_matchMode2str(int mode)
 
 
 /**
- * Compares two prefixes
+ * @brief Compares two prefixes
  * @param pfx prefix 1
  * @param md
  * @param nam
@@ -580,7 +580,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 }
 
 /**
- * Checks if a prefix of an interest is longest prefix of the name of a content
+ * @brief Checks if a prefix of an interest is longest prefix of the name of a content
  * @param prefix prefix of the interest
  * @param minsuffix
  * @param maxsuffix
@@ -623,7 +623,7 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 #ifndef CCNL_LINUXKERNEL
 
 /**
- * Transforms a prefix into a string, allocates the memory
+ * @brief Transforms a prefix into a string, allocates the memory
  * @param pr prefix to be transformed
  * @param ccntlv_skip determines if ccntlv bits should be printed
  * @param escape_components determines if components should be escaped
@@ -667,7 +667,7 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
 }
 
 /**
- * Transforms a prefix into a string
+ * @brief Transforms a prefix into a string
  * @param pr prefix to be transformed
  * @param ccntlv_skip determines if ccntlv bits should be printed
  * @param escape_components determines if components should be escaped
@@ -836,7 +836,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #endif // CCNL_LINUXKERNEL
 
 /**
- * Creates a string with debug information about a prefix
+ * @brief Creates a string with debug information about a prefix
  * @param p the prefix from which the debug info should be received
  * @return string with debug information about the prefix
  */
