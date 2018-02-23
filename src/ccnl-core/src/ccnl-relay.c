@@ -865,7 +865,6 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
     int i;
     DEBUGMSG_CORE(TRACE, "ccnl_nonce_find_or_append\n");
 
-
     for (n = ccnl->nonces, i = 0; n; n = n->next, i++) {
         if (buf_equal(n, nonce))
             return -1;

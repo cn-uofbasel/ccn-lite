@@ -93,7 +93,7 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
     uint16_t tmp;
     size_t maxlen = *len;
 
-    if (*len < 4)
+    if (*len < 4) //ensure that len is not negative!
         return -1;
     memcpy(&tmp, *buf, 2);
     *typ = ntohs(tmp);

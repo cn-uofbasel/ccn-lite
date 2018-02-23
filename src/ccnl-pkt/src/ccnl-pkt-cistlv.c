@@ -76,7 +76,7 @@ ccnl_cistlv_dehead(unsigned char **buf, int *len,
     unsigned short *ip;
     size_t maxlen = *len;
 
-    if (*len < 4)
+    if (*len < 4) //ensure len is not negative
         return -1;
     ip = (unsigned short*) *buf;
     *typ = ntohs(*ip);

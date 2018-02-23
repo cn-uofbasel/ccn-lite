@@ -85,7 +85,7 @@ ccnl_iottlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, int *vallen)
 {
     size_t maxlen = *len;
-    if (*len < 1)
+    if (*len < 1) // ensure len is not negative
         return -1;
     if (**buf) {
         *typ = **buf >> 6;
