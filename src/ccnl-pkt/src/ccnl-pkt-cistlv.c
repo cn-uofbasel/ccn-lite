@@ -69,14 +69,6 @@ ccnl_cistlv_getHdrLen(unsigned char *data, int len)
     return -1;
 }
 
-/**
- * Opens a TLV and reads the Type and the Length Value
- * @param buf allocated buffer in which the tlv should be opened
- * @param len length of the buffer
- * @param typ return value via pointer: type value of the tlv
- * @param vallen return value via pointer: length value of the tlv
- * @return 0 on success, -1 on failure.
- */
 int
 ccnl_cistlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
