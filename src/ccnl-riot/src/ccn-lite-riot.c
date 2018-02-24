@@ -203,11 +203,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->addr.sa.sa_family = AF_PACKET;
 
     int res;
-    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    uint16_t mtu;
+    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(mtu), sizeof(mtu));
     if (res < 0) {
         DEBUGMSG(ERROR, "error: unable to determine MTU for if=<%u>\n", (unsigned) i->if_pid);
         return -ECANCELED;
     }
+    i->mtu = (int)mtu;
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
 
     res = gnrc_netapi_get(if_pid, NETOPT_ADDR_LEN, 0, &(i->addr_len), sizeof(i->addr_len));
