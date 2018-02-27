@@ -231,10 +231,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
 
     /* configure the interface to use the specified nettype protocol */
     gnrc_netapi_set(if_pid, NETOPT_PROTO, 0, &netreg_type, sizeof(gnrc_nettype_t));
-    /* register for this nettype */
-    gnrc_netreg_entry_init_pid(&_ccnl_ne, GNRC_NETREG_DEMUX_CTX_ALL,
-                               _ccnl_event_loop_pid);
-    return gnrc_netreg_register(netreg_type, &_ccnl_ne);
+    /* register for this nettype if not already done */
+    if (_ccnl_ne.demux_ctx == 0) {
+        gnrc_netreg_entry_init_pid(&_ccnl_ne, GNRC_NETREG_DEMUX_CTX_ALL,
+                                   _ccnl_event_loop_pid);
+        return gnrc_netreg_register(netreg_type, &_ccnl_ne);
+    }
+    return 0;
 }
 
 static msg_t _ageing_reset = { .type = CCNL_MSG_AGEING };
