@@ -55,7 +55,8 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
                 return f;
             continue;
         }
-        if (ifndx != -1 && !ccnl_addr_cmp(&f->peer, (sockunion*)sa)) {
+        if (ifndx != -1 && (f->ifndx == ifndx) &&
+            !ccnl_addr_cmp(&f->peer, (sockunion*)sa)) {
             f->last_used = CCNL_NOW();
             return f;
         }
