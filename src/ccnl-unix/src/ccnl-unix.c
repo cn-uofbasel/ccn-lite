@@ -428,6 +428,10 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
 
     DEBUGMSG(INFO, "configuring relay\n");
 
+    relay->contents = NULL;
+    relay->pit = NULL;
+    relay->faces = NULL;
+    relay->nonces = NULL;
     relay->max_cache_entries = max_cache_entries;
     relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     relay->ccnl_ll_TX_ptr = &ccnl_ll_TX;

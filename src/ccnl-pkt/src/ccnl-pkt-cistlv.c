@@ -69,14 +69,14 @@ ccnl_cistlv_getHdrLen(unsigned char *data, int len)
     return -1;
 }
 
-// parse TL (returned in typ and vallen) and adjust buf and len
 int
 ccnl_cistlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
 {
     unsigned short *ip;
+    size_t maxlen = *len;
 
-    if (*len < 4)
+    if (*len < 4) //ensure len is not negative
         return -1;
     ip = (unsigned short*) *buf;
     *typ = ntohs(*ip);
@@ -84,6 +84,8 @@ ccnl_cistlv_dehead(unsigned char **buf, int *len,
     *vallen = ntohs(*ip);
     *len -= 4;
     *buf += 4;
+    if(*vallen > maxlen)
+        return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 }
 

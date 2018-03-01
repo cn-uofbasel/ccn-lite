@@ -671,11 +671,12 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
                             || (escape_components && c == '/' )) ?
 #ifdef CCNL_ARDUINO
                   (char*)PSTR("%%%02x") : (char*)PSTR("%c");
-            len += snprintf_P(buf + len, buflen - len, fmt, c);
-            if (buflen < len){
+            result = snprintf_P(buf + len, buflen - len, fmt, c);
+            if (!(result > -1 && (size_t)result < (buflen - len))) {
                 DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
                 return NULL;
             }
+            len += result;
 #else
                   (char *) "%%%02x" : (char *) "%c";
             result = snprintf(buf + len, buflen - len, fmt, c);

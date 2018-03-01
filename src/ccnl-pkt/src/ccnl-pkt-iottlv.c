@@ -80,18 +80,20 @@ ccnl_iottlv_peekType(unsigned char *buf, int len)
     return typ;
 }
 
-// parse TL (returned in typ and vallen) and adjust buf and len
 int
 ccnl_iottlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, int *vallen)
 {
-    if (*len < 1)
+    size_t maxlen = *len;
+    if (*len < 1) // ensure len is not negative
         return -1;
     if (**buf) {
         *typ = **buf >> 6;
         *vallen = **buf & 0x3f;
         *buf += 1;
         *len -= 1;
+        if((size_t)*vallen > maxlen)
+            return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
         return 0;
     }
     *buf += 1;
@@ -100,6 +102,8 @@ ccnl_iottlv_dehead(unsigned char **buf, int *len,
         return -1;
     if (ccnl_iottlv_varlenint(buf, len, (int*) vallen) < 0)
         return -1;
+    if((size_t)*vallen > maxlen)
+        return -1; //Return failure (-1) if length value in the tlv is longer than the buffer
     return 0;
 }
 
