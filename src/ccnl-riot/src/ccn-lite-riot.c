@@ -203,11 +203,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->addr.sa.sa_family = AF_PACKET;
 
     int res;
-    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    uint16_t mtu;
+    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(mtu), sizeof(mtu));
     if (res < 0) {
         DEBUGMSG(ERROR, "error: unable to determine MTU for if=<%u>\n", (unsigned) i->if_pid);
         return -ECANCELED;
     }
+    i->mtu = (int)mtu;
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
 
     res = gnrc_netapi_get(if_pid, NETOPT_ADDR_LEN, 0, &(i->addr_len), sizeof(i->addr_len));
@@ -229,10 +231,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
 
     /* configure the interface to use the specified nettype protocol */
     gnrc_netapi_set(if_pid, NETOPT_PROTO, 0, &netreg_type, sizeof(gnrc_nettype_t));
-    /* register for this nettype */
-    gnrc_netreg_entry_init_pid(&_ccnl_ne, GNRC_NETREG_DEMUX_CTX_ALL,
-                               _ccnl_event_loop_pid);
-    return gnrc_netreg_register(netreg_type, &_ccnl_ne);
+    /* register for this nettype if not already done */
+    if (_ccnl_ne.demux_ctx == 0) {
+        gnrc_netreg_entry_init_pid(&_ccnl_ne, GNRC_NETREG_DEMUX_CTX_ALL,
+                                   _ccnl_event_loop_pid);
+        return gnrc_netreg_register(netreg_type, &_ccnl_ne);
+    }
+    return 0;
 }
 
 static msg_t _ageing_reset = { .type = CCNL_MSG_AGEING };
