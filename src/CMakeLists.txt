@@ -86,7 +86,7 @@ endif()
 
 if (NOT DEFINED CCNL_RIOT)
     add_definitions(${CCNL_NFN_FLAGS})
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g -pedantic")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g -pedantic") #TODO: add -fsanitize=address
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g")
 endif()

@@ -125,6 +125,14 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 #define IOT_TLV_V_AlgoType      0x0
 #define IOT_TLV_V_Bits          0x1
 
+/**
+ * Opens a TLV and reads the Type and the Length Value
+ * @param buf allocated buffer in which the tlv should be opened
+ * @param len length of the buffer
+ * @param typ return value via pointer: type value of the tlv
+ * @param vallen return value via pointer: length value of the tlv
+ * @return 0 on success, -1 on failure.
+ */
 int
 ccnl_iottlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, int *vallen);
