@@ -28,6 +28,14 @@
 
 #include "ccnl-content.h"
 
+/**
+ * Default interest lifetime in milliseconds. If the element is omitted by a user, a default
+ * value of 4 seconds is used.
+ */
+#ifndef NDN_DEFAULT_INTEREST_LIFETIME
+#define NDN_DEFAULT_INTEREST_LIFETIME (4000u)
+#endif
+
 #define NDN_UDP_PORT                    6363
 #define NDN_DEFAULT_MTU                 4096
 
