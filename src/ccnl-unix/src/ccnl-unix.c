@@ -430,6 +430,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
 
     relay->contents = NULL;
     relay->pit = NULL;
+    relay->fib = NULL;
     relay->faces = NULL;
     relay->nonces = NULL;
     relay->max_cache_entries = max_cache_entries;
