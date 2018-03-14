@@ -649,15 +649,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             }
             break;
 #endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV:
-          if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->pkt->pfx, CMP_EXACT)) {
-                // XX must also check keyid
-                i = i->next;
-                continue;
-            }
-            break;
-#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             if (!ccnl_i_prefixof_c(i->pkt->pfx, i->pkt->s.ndntlv.minsuffix,

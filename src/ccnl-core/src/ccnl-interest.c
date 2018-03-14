@@ -87,9 +87,6 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
         #ifdef USE_SUITE_CISTLV
             case CCNL_SUITE_CISTLV:
         #endif
-        #ifdef USE_SUITE_IOTTLV
-            case CCNL_SUITE_IOTTLV:
-        #endif
             default:
                 break;
     }

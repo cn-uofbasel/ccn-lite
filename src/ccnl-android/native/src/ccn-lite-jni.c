@@ -151,10 +151,6 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayRX(JNIEnv* env,
         add_route("/TinF", theRelay.faces, CCNL_SUITE_CCNTLV, 20);
 #endif
 #ifdef USE_SUITE_NDNTLV
-        add_route("/TinC", theRelay.faces, CCNL_SUITE_IOTTLV, 20);
-        add_route("/TinF", theRelay.faces, CCNL_SUITE_IOTTLV, 20);
-#endif
-#ifdef USE_SUITE_NDNTLV
         add_route("/TinC", theRelay.faces, CCNL_SUITE_NDNTLV, 20);
         add_route("/TinF", theRelay.faces, CCNL_SUITE_NDNTLV, 20);
 #endif

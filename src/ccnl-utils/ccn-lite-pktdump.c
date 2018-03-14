@@ -970,221 +970,6 @@ cistlv_201501(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     }
 }
 
-// ----------------------------------------------------------------------
-// IOTTLV
-
-enum {
-    IOT_CTX_TOPLEVEL = 1,
-    IOT_CTX_FRAG,
-    IOT_CTX_MSG,
-    IOT_CTX_HEADER,
-    IOT_CTX_EXCLUSION,
-    IOT_CTX_FWDTARGET,
-    IOT_CTX_NAME,
-    IOT_CTX_PAYLOAD,
-    IOT_CTX_VALIDATION,
-    IOT_CTX_PATHNAME
-};
-
-static char iottlv_recurse[][3] = {
-    {IOT_CTX_TOPLEVEL, IOT_TLV_Fragment,     IOT_CTX_FRAG},
-    {IOT_CTX_TOPLEVEL, IOT_TLV_Request,      IOT_CTX_MSG},
-    {IOT_CTX_TOPLEVEL, IOT_TLV_Reply,        IOT_CTX_MSG},
-    {IOT_CTX_FRAG,     IOT_TLV_F_OptFragHdr, IOT_CTX_HEADER},
-    {IOT_CTX_MSG,      IOT_TLV_R_OptHeader,  IOT_CTX_HEADER},
-    {IOT_CTX_MSG,      IOT_TLV_R_Name,       IOT_CTX_NAME},
-    {IOT_CTX_MSG,      IOT_TLV_R_Payload,    IOT_CTX_PAYLOAD},
-    {IOT_CTX_MSG,      IOT_TLV_R_Validation, IOT_CTX_VALIDATION},
-    {IOT_CTX_HEADER,   IOT_TLV_H_Exclusion,  IOT_CTX_EXCLUSION},
-    {IOT_CTX_HEADER,   IOT_TLV_H_FwdTarget,  IOT_CTX_FWDTARGET},
-    {IOT_CTX_NAME,     IOT_TLV_N_PathName,   IOT_CTX_PATHNAME},
-    {0,0,0}
-};
-
-static char*
-ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
-{
-    char *cn = "?ctx?", *tn = NULL;
-    static char tmp[50];
-
-    switch (ctx) {
-    case IOT_CTX_TOPLEVEL:
-        cn = "toplevelCtx";
-        switch (type) {
-        case IOT_TLV_Fragment:         tn = "Fragment"; break;
-        case IOT_TLV_Request:          tn = "Request"; break;
-        case IOT_TLV_Reply:            tn = "Reply"; break;
-        default: break;
-        }
-        break;
-    case IOT_CTX_FRAG:
-        cn = "FragCtx";
-        switch (type) {
-        case IOT_TLV_F_OptFragHdr:     tn = "OptFragHeader"; break;
-        case IOT_TLV_F_FlagsAndSeq:    tn = "FlagsAndSeq"; break;
-        case IOT_TLV_F_Data:           tn = "Data"; break;
-        default: break;
-        }
-        break;
-    case IOT_CTX_MSG:
-        cn = "ReqRepCtx";
-        switch (type) {
-        case IOT_TLV_R_OptHeader:      tn = "OptHeader"; break;
-        case IOT_TLV_R_Name:           tn = "Name"; break;
-        case IOT_TLV_R_Payload:        tn = "Payload"; break;
-        case IOT_TLV_R_Validation:     tn = "Validation"; break;
-        default: break;
-        }
-        break;
-    case IOT_CTX_HEADER:
-        cn = "HeaderCtx";
-        switch (type) {
-        case IOT_TLV_H_HopLim:         tn = "HopLimit"; break;
-        case IOT_TLV_H_Exclusion:      tn = "Exclusion"; break;
-        case IOT_TLV_H_FwdTarget:      tn = "FwdTarget"; break;
-        default: break;
-        }
-        break;
-    case IOT_CTX_NAME:
-        cn = "NameCtx";
-        switch (type) {
-        case IOT_TLV_N_PathName:       tn = "PathName"; break;
-        case IOT_TLV_N_FlatLabel:      tn = "FlatLabel"; break;
-        case IOT_TLV_N_NamedFunction:  tn = "NamedFunction"; break;
-        default: break;
-        }
-        break;
-    case IOT_CTX_PATHNAME:
-        cn = "PathNameCtx";
-        switch (type) {
-        case IOT_TLV_PN_Component:     tn = "Component"; break;
-        default: break;
-        }
-        break;
-    case IOT_CTX_PAYLOAD:
-        cn = "PayloadCtx";
-        switch (type) {
-        case IOT_TLV_PL_Data:          tn = "Data"; break;
-        case IOT_TLV_PL_Metadata:      tn = "Metadata"; break;
-        default: break;
-        }
-        break;
-     default:
-        cn = NULL;
-        break;
-    }
-    if (tn) {
-        sprintf(tmp, "%s-%s", tn, cn);
-    } else if (cn) {
-        sprintf(tmp, "type=0x%04x-%s", type, cn);
-    } else {
-        sprintf(tmp, "type=0x%04x-ctx=%d", type, ctx);
-    }
-    return tmp;
-}
-
-static char
-iottlv_must_recurse(char ctx, char typ)
-{
-    int i;
-    for (i = 0; iottlv_recurse[i][0]; i++) {
-        if (iottlv_recurse[i][0] == ctx && iottlv_recurse[i][1] == typ) {
-            return iottlv_recurse[i][2];
-        }
-    }
-    return 0;
-}
-
-static int
-iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
-                      unsigned char **buf, int *len, char *cur_tag,
-                      int rawxml, FILE* out)
-{
-    unsigned int i, vallen;
-    unsigned int typ;
-    unsigned char ctx2, *cp;
-    char *n, n_old[100], tmp[100];
-    (void)cur_tag;
-
-    while (*len > 0) {
-        cp = *buf;
-        if (ccnl_iottlv_dehead(buf, len, &typ, (int*)&vallen) < 0) {
-            return -1;
-        }
-
-        if (vallen > (unsigned int)*len) {
-            fprintf(stderr, "\n%04zx ** IOTTLV length problem:\n"
-              "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
-              *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
-            exit(-1);
-        }
-
-        n = ccnl_iottlv_type2name(ctx, typ);
-        if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
-            n = tmp;
-        }
-
-        if(!rawxml)
-            fprintf(out, "%04zx  ", cp - base);
-        for (i = 0; i < (unsigned int)lev; i++) {
-            fprintf(out, "  ");
-        }
-        for (; cp < *buf; cp++) {
-            if(!rawxml)
-                fprintf(out, "%02x ", *cp);
-        }
-        if(!rawxml)
-            fprintf(out, "-- <%s, len=%d>\n", n, vallen);
-
-        ctx2 = iottlv_must_recurse(ctx, typ);
-        if (ctx2) {
-            if (rawxml)
-                fprintf(out, "<%s>\n", n);
-            *len -= vallen;
-            i = vallen;
-            strcpy(n_old, n);
-            if (iottlv_parse_sequence(lev+1, ctx2, base, buf, (int*)&i,
-                                                        n, rawxml, out) < 0)
-                return -1;
-
-            if(rawxml) {
-                for (i = 0; i < (unsigned int)lev; i++) {
-                        fprintf(out, "  ");
-                }
-                fprintf(out, "</%s>\n", n_old);
-            }
-        } else {
-            if (rawxml && vallen > 0) {
-                fprintf(out, "<%s size=\"%i\" dt=\"binary.base64\">\n", n, vallen);
-                base64dump(lev, base, *buf, vallen, rawxml, out);
-                for (i = 0; i < (unsigned int)lev; i++) {
-                        fprintf(out, "  ");
-                }
-                fprintf(out, "</%s>\n", n);
-            } else
-                hexdump(lev, base, *buf, vallen, rawxml, out);
-           *buf += vallen;
-           *len -= vallen;
-
-       }
-    }
-
-    return 0;
-}
-
-void
-iottlv_201411(int lev, unsigned char *base, unsigned char *data,
-              int len, int rawxml, FILE* out)
-{
-    // dump the sequence of TLV fields
-    iottlv_parse_sequence(lev, IOT_CTX_TOPLEVEL, base, &data, &len,
-                          "payload", rawxml, out);
-    if (!rawxml)
-        fprintf(out, "%04x  pkt.end\n", (int)(data - base));
-}
-
-// ----------------------------------------------------------------------
 // NDNTLV
 
 #define NDN_TLV_MAX_TYPE 256
@@ -1511,15 +1296,6 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         pkt = ccnl_ccntlv_bytes2pkt(start, &data, &len);
         break;
     }
-    case CCNL_SUITE_IOTTLV: {
-        unsigned int pkttype;
-        int vallen;
-        data = start;
-        if (ccnl_iottlv_dehead(&data, &len, &pkttype, &vallen) < 0)
-            return -1;
-        pkt = ccnl_iottlv_bytes2pkt(pkttype, start, &data, &len);
-        break;
-    }
     case CCNL_SUITE_NDNTLV: {
         int pkttype;
         int vallen;
@@ -1619,13 +1395,6 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
         }
         cistlv_201501(lev, data, len, format == 1, out);
         break;
-    case CCNL_SUITE_IOTTLV:
-        if (format == 0) {
-            indent("#   ", lev);
-            printf("%s IOT TLV format (as of Nov 2014)\n#\n", forced);
-        }
-        iottlv_201411(lev, base, data, len, format == 1, out);
-        break;
     case CCNL_SUITE_LOCALRPC:
         if (format == 0) {
             indent("#   ", lev);
@@ -1697,7 +1466,7 @@ help:
                     "usage: %s [options] <encoded_data\n"
                     "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
                     "  -h           this help\n"
-                    "  -s SUITE     (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+                    "  -s SUITE     (ccnb, ccnx2015, cisco2015, ndn2013)\n"
 #ifdef USE_LOGGING
                     "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif

@@ -39,7 +39,6 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
-#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PREFIX_MATCHING
@@ -613,7 +612,7 @@ main(int argc, char **argv)
                     "  [-g MIN_INTER_PACKET_INTERVAL]\n"
                     "  [-i MIN_INTER_CCNMSG_INTERVAL]\n"
                     "  [-m MTU]\n"
-                    "  [-s SUITE (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)]\n"
+                    "  [-s SUITE (ccnb, ccnx2015, cisco2015, ndn2013)]\n"
                     "  [-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);

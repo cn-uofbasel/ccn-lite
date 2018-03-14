@@ -675,16 +675,6 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         }
         break;
     }
-    case CCNL_SUITE_IOTTLV: {
-        unsigned char *start = data - skip;
-        unsigned int typ;
-        int len;
-
-        if (!ccnl_iottlv_dehead(&data, &datalen, &typ, &len) &&
-                                                        typ == IOT_TLV_Reply)
-            pkt = ccnl_iottlv_bytes2pkt(typ, start, &data, &datalen);
-        break;
-    }
     case CCNL_SUITE_NDNTLV: {
         int typ;
         int len;
@@ -1134,7 +1124,7 @@ help:
        "  addContentToCache             ccn-file\n"
        "  removeContentFromCache        ccn-path\n"
        "where FRAG in one of (none, seqd2012, ccnx2013)\n"
-       "      SUITE is one of (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+       "      SUITE is one of (ccnb, ccnx2015, cisco2015, ndn2013)\n"
        "-m is a special mode which only prints the interest message of the corresponding command\n",
                     argv[0]);
 

@@ -118,7 +118,7 @@ Usage:
             "  -b LIMIT    MTU limit (default is 1500)\n"
             "  -f PREFIX   use PREFIX for fragment file names (default: frag)\n"
             "  -n          no-clobber\n"
-            "  -s SUITE    (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+            "  -s SUITE    (ccnb, ccnx2015, cisco2015, ndn2013)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif

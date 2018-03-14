@@ -15,7 +15,7 @@ potentially confronted with packets encoded in different schemas like
 ccnb, CCNx2014 or NDN2013. In the past it was possible to discriminate
 among these packets because luckily enough the "type values" were
 sparsely populated and the programmers had chosen code points that do
-not overlap. But with the compact IOT2014 format, there is no sparsity
+not overlap. But with new packet formats, there might be no sparsity
 anymore. Instead of letting the relay do clever guess and check work
 for deducing a packet's format, we suggest an explicit way of
 announcing a packet's encoding.
@@ -76,14 +76,8 @@ Enc(fmt) :== | 0x80 | VARINT(fmt) |
 
 ```
 
-The following format numbers have been assigned so far:
-```
-  0  CCNL_ENC_CCNB
-  1  CCNL_ENC_NDN2013
-  2  CCNL_ENC_CCNX2014
-  3  CCNL_ENC_IOT2014
-  4  CCNL_ENC_LOCALRPC
-```
+The format numbers are defined in the ``ccnl_enc`` enum in file 
+``ccnl_defs.h``.
 
 ## 4) Backwards compatibility
 

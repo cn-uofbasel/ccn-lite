@@ -141,7 +141,7 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] NFNexpr\n"
             "  -n NFNPATH       default prefix towards some NFN node(s)\n"
-            "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2015, cisco2015, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"

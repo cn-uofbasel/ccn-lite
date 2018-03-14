@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # demo-relay.sh -- test/demo for ccn-lite: CCNx relaying
-SUITES=("ccnb" "ccnx2015" "cisco2015" "iot2014" "ndn2013")
+SUITES=("ccnb" "ccnx2015" "cisco2015" "ndn2013")
 CHANNELS=("udp" "ux")
 KERNELMODULES=("true" "false")
 USAGE="usage: sh demo-relay.sh SUITE CHANNEL KERNELMODULE\nwhere\n  SUITE =        ${SUITES[@]}\n CHANNEL =      ${CHANNELS[@]}\n KERNELMODULE = ${KERNELMODULES[@]}"
@@ -67,11 +67,6 @@ elif [ $SUITE = "cisco2015" ]
 then
     DIR="cistlv"
     FWD="/ccn-lite/20150106/src"
-    FNAME="ccnl-ext-debug.h"
-elif [ $SUITE = "iot2014" ]
-then
-    DIR="iottlv"
-    FWD="/ccn-lite/20141204/src"
     FNAME="ccnl-ext-debug.h"
 elif [ $SUITE = "ndn2013" ]
 then

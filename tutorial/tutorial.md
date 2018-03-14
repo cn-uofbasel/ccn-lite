@@ -69,8 +69,8 @@ Install CCN-lite by following the [Unix readme](../doc/README-unix.md).
 
 `ccn-lite-mkC` creates an (unsigned) content object in a specified wire format,
 subject to the maximum packet size of 4 KiB. `ccn-lite-mkC` currently supports
-five wire formats. We use `ndn2013` in the following, `ccnb`, `ccnx2015`,
-`cisco2015` and `iot2014` are also available. `ccn-lite-mkC` converts input from
+five wire formats. We use `ndn2013` in the following, `ccnb`, `ccnx2015`, and
+`cisco2015` are also available. `ccn-lite-mkC` converts input from
 stdin, so type something and press `Enter` after executing the following line:
 
 ```bash
@@ -97,7 +97,7 @@ $CCNL_HOME/build/bin/ccn-lite-relay -v trace -s ndn2013 -u 9998 -x /tmp/mgmt-rel
 We start the relay for `B` similarly to relay `A` but on a different port.
 Additional, with `-d` we add all content objects from a directory to the cache
 of the relay. Currently the relay expects all files to have the file extension
-`.ndntlv`, `.ccnb`, `.ccntlv`, `.cistlv` or `.iottlv` respectively.
+`.ndntlv`, `.ccnb`, `.ccntlv` or `.cistlv` respectively.
 Open a new terminal window for relay `B`:
 
 ```bash

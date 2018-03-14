@@ -58,9 +58,6 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt)
 #ifdef USE_SUITE_CISTLV
             case CCNL_SUITE_CISTLV:
 #endif
-#ifdef USE_SUITE_IOTTLV
-            case CCNL_SUITE_IOTTLV:
-#endif
 #ifdef USE_SUITE_LOCALRPC
             case CCNL_SUITE_LOCALRPC:
 #endif
@@ -108,9 +105,6 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
 #endif
 #ifdef USE_SUITE_CISTLV
         case CCNL_SUITE_CISTLV:
-#endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV:
 #endif
 #ifdef USE_SUITE_LOCALRPC
         case CCNL_SUITE_LOCALRPC:
