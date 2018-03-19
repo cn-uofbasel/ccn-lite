@@ -34,6 +34,9 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-dispatch.h"
+#ifdef USE_HTTP_STATUS
+#include "ccnl-http-status.h"
+#endif
 
 #include "ccnl-nfn.h"
 

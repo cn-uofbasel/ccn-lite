@@ -28,6 +28,9 @@
 #include <sys/types.h>
 #include <inttypes.h>
 
+#ifdef USE_HTTP_STATUS
+#include "ccnl-http-status.h"
+#endif
 #include "ccnl-os-includes.h"
 
 #include "ccnl-core.h"
