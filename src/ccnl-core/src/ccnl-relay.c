@@ -1033,10 +1033,10 @@ ccnl_cs_dump(struct ccnl_relay_s *ccnl)
     (void) s;
 
     while (c) {
-        printf("CS[%u]: %s [%d]: %s\n", i++,
+        printf("CS[%u]: %s [%d]: %.*s\n", i++,
                ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
                (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1,
-               c->pkt->content);
+               c->pkt->contlen, c->pkt->content);
         c = c->next;
     }
 #endif
