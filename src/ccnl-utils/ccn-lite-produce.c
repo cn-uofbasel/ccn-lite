@@ -99,7 +99,7 @@ Usage:
         "  -i FNAME         input file (instead of stdin)\n"
         "  -o DIR           output dir (instead of stdout), filename default is cN, otherwise specify -f\n"
         "  -p DIGEST        publisher fingerprint\n"
-        "  -s SUITE         (ccnb, ccnx2015, cisco2015, ndn2013)\n"
+        "  -s SUITE         (ccnb, ccnx2015, ndn2013)\n"
 #ifdef USE_LOGGING
         "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
@@ -182,9 +182,6 @@ Usage:
         case CCNL_SUITE_CCNTLV:
             strcpy(fileext, "ccntlv");
             break;
-        case CCNL_SUITE_CISTLV:
-            strcpy(fileext, "cistlv");
-            break;
         case CCNL_SUITE_NDNTLV:
             strcpy(fileext, "ndntlv");
             break;
@@ -221,14 +218,6 @@ Usage:
                             &lastchunknum, //is_last ? &chunknum : NULL, 
                             NULL, // int *contentpos
                             &offs, out);
-            break;
-        case CCNL_SUITE_CISTLV:
-            contentlen = ccnl_cistlv_prependContentWithHdr(name,
-                                                           (unsigned char *)chunk_buf, chunk_len,
-                                                           is_last ? &chunknum : NULL,
-                                                           &offs,
-                                                           NULL, // int *contentpos
-                                                           out);
             break;
         case CCNL_SUITE_NDNTLV:
             data_opts.ndntlv.finalblockid = lastchunknum;

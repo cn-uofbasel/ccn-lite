@@ -274,25 +274,10 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
             cmplen += 4;
         }
 #endif
-#ifdef USE_SUITE_CISTLV
-        if (suite == CCNL_SUITE_CISTLV) {
-            char* oldcp = cp;
-            cp = malloc( (cmplen + 4) * (sizeof(char)) );
-            cp[0] = CISCO_TLV_NameComponent >> 8;
-            cp[1] = CISCO_TLV_NameComponent;
-            cp[2] = cmplen >> 8;
-            cp[3] = cmplen;
-            memcpy(cp + 4, oldcp, cmplen);
-            cmplen += 4;
-        }
-#endif
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
                        cp, cmplen);
 #ifdef USE_SUITE_CCNTLV
         if (suite == CCNL_SUITE_CCNTLV) free(cp);
-#endif
-#ifdef USE_SUITE_CISTLV
-        if (suite == CCNL_SUITE_CISTLV) free(cp);
 #endif
         cp = strtok(NULL, "/");
     }
@@ -581,19 +566,9 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
         }
-        if (suite == CCNL_SUITE_CISTLV) {
-            char* oldcp = cp;
-            cp = malloc( (cmplen + 4) * (sizeof(char)) );
-            cp[0] = CISCO_TLV_NameComponent >> 8;
-            cp[1] = CISCO_TLV_NameComponent;
-            cp[2] = cmplen >> 8;
-            cp[3] = cmplen;
-            memcpy(cp + 4, oldcp, cmplen);
-            cmplen += 4;
-        }
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
                        cp, cmplen);
-        if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV)
+        if (suite == CCNL_SUITE_CCNTLV)
             free(cp);
         cp = strtok(NULL, "/");
     }
@@ -661,17 +636,6 @@ getPrefix(unsigned char *data, int datalen, int *suite)
             data += hdrlen;
             datalen -= hdrlen;
             pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
-        }
-        break;
-    }
-    case CCNL_SUITE_CISTLV: {
-        unsigned char *start = data;
-        int hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
-
-        if (hdrlen > 0) {
-            data += hdrlen;
-            datalen -= hdrlen;
-            pkt = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
         }
         break;
     }
@@ -1124,7 +1088,7 @@ help:
        "  addContentToCache             ccn-file\n"
        "  removeContentFromCache        ccn-path\n"
        "where FRAG in one of (none, seqd2012, ccnx2013)\n"
-       "      SUITE is one of (ccnb, ccnx2015, cisco2015, ndn2013)\n"
+       "      SUITE is one of (ccnb, ccnx2015, ndn2013)\n"
        "-m is a special mode which only prints the interest message of the corresponding command\n",
                     argv[0]);
 

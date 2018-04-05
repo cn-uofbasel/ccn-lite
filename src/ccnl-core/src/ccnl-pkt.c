@@ -24,7 +24,6 @@
 
 #include "ccnl-os-time.h"
 #include "ccnl-defs.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ccntlv.h"
 
 #include "ccnl-prefix.h"
@@ -54,9 +53,6 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt)
                 ccnl_free(pkt->s.ndntlv.nonce);
                 ccnl_free(pkt->s.ndntlv.ppkl);
                 break;
-#endif
-#ifdef USE_SUITE_CISTLV
-            case CCNL_SUITE_CISTLV:
 #endif
 #ifdef USE_SUITE_LOCALRPC
             case CCNL_SUITE_LOCALRPC:
@@ -103,9 +99,6 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
             ret->s.ndntlv.ppkl = buf_dup(pkt->s.ndntlv.ppkl);
             break;
 #endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV:
-#endif
 #ifdef USE_SUITE_LOCALRPC
         case CCNL_SUITE_LOCALRPC:
 #endif
@@ -137,17 +130,6 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
     case CCNL_SUITE_CCNTLV: {
         unsigned short *sp = (unsigned short*) dst;
         *sp++ = htons(CCNX_TLV_N_NameSegment);
-        len = srclen;
-        *sp++ = htons(len);
-        memcpy(sp, src, len);
-        len += 2*sizeof(unsigned short);
-        break;
-    }
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV: {
-        unsigned short *sp = (unsigned short*) dst;
-        *sp++ = htons(CISCO_TLV_NameComponent);
         len = srclen;
         *sp++ = htons(len);
         memcpy(sp, src, len);
@@ -187,18 +169,6 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
         *offset -= 2*sizeof(unsigned short);
     }
 #endif
-#ifdef USE_SUITE_CISTLV
-    if (suite == CCNL_SUITE_CISTLV) {
-        unsigned short *sp = (unsigned short*) (buf + *offset) - 1;
-        if (*offset < 4)
-            return -1;
-        *sp-- = htons(len);
-        *sp = htons(CISCO_TLV_NameComponent);
-        len += 2*sizeof(unsigned short);
-        *offset -= 2*sizeof(unsigned short);
-    }
-#endif
-
     return len;
 }
 

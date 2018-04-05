@@ -91,7 +91,7 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
-            "  -s SUITE         (ccnb, ccnx2015, cisco2015, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2015, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"

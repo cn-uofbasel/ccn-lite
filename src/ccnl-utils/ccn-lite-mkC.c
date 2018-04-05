@@ -116,7 +116,7 @@ Usage:
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
-        "  -s SUITE    (ccnb, ccnx2015, cisco2015, ndn2013)\n"
+        "  -s SUITE    (ccnb, ccnx2015, ndn2013)\n"
 #ifdef USE_LOGGING
         "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
@@ -170,14 +170,6 @@ Usage:
             len = ccnl_ccntlv_prependContentWithHdr(name, body, len,
                           lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                           NULL /* Int *contentpos */, &offs, out);
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_cistlv_prependContentWithHdr(name, body, len,
-                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  NULL, &offs, out);
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV

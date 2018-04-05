@@ -25,7 +25,6 @@
 #include "ccnl-pkt.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-pkt-localrpc.h"
@@ -43,11 +42,6 @@ int ccntlv_isData(unsigned char *buf, int len);
 
 int ccntlv_isFragment(unsigned char *buf, int len);
 #endif // USE_SUITE_CCNTLV
-
-#ifdef USE_SUITE_CISTLV
-
-int cistlv_isData(unsigned char *buf, int len);
-#endif // USE_SUITE_CISTLV
 
 #ifdef  USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len);

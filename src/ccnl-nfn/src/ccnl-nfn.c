@@ -182,9 +182,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     }
 
     //put packet together
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-    if (prefix->suite == CCNL_SUITE_CCNTLV ||
-                                        prefix->suite == CCNL_SUITE_CISTLV) {
+#if defined(USE_SUITE_CCNTLV) 
+    if (prefix->suite == CCNL_SUITE_CCNTLV) {
         len = prefix->complen[prefix->compcnt-1] - 4;
         memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
         str[len] = '\0';
@@ -198,9 +197,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (prefix->compcnt > 1)
         len += sprintf(str + len, " ");
     for (i = 0; i < prefix->compcnt-1; i++) {
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-        if (prefix->suite == CCNL_SUITE_CCNTLV ||
-                                      prefix->suite == CCNL_SUITE_CISTLV)
+#if defined(USE_SUITE_CCNTLV) 
+        if (prefix->suite == CCNL_SUITE_CCNTLV)
             len += sprintf(str+len,"/%.*s",prefix->complen[i]-4,prefix->comp[i]+4);
         else
 #endif

@@ -24,7 +24,6 @@
 #ifndef CCNL_LINUXKERNEL
 #include "ccnl-prefix.h"
 #include "ccnl-pkt-ndntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ccntlv.h"
 #ifdef USE_NFN
 #include "ccnl-nfn-requests.h"
@@ -39,7 +38,6 @@
 #else //CCNL_LINUXKERNEL
 #include <ccnl-prefix.h>
 #include <ccnl-pkt-ndntlv.h>
-#include <ccnl-pkt-cistlv.h>
 #include <ccnl-pkt-ccntlv.h>
 #endif //CCNL_LINUXKERNEL
 
@@ -207,25 +205,6 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
         break;
 #endif
 
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV: {
-            unsigned char cmp[5];
-            // TODO: this only works for chunknums smaller than 255
-            cmp[0] = 0;
-            cmp[1] = CISCO_TLV_NameSegment;
-            cmp[2] = 0;
-            cmp[3] = 1;
-            cmp[4] = chunknum;
-            if (ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
-                return -1;
-            if (prefix->chunknum)
-                ccnl_free(prefix->chunknum);
-            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
-            *prefix->chunknum = chunknum;
-        }
-        break;
-#endif
-
         default:
             DEBUGMSG_CUTL(WARNING,
                      "add chunk number not implemented for suite %d\n",
@@ -325,10 +304,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     }
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        len += cnt * 4; // add TL size
-#endif
-#ifdef USE_SUITE_CISTLV
-    if (suite == CCNL_SUITE_CISTLV)
         len += cnt * 4; // add TL size
 #endif
 
@@ -626,7 +601,7 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
 
     int skip = 0;
 
-#if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
+#if defined(USE_SUITE_CCNTLV) // && defined(USE_NFN)
     // In the future it is possibly helpful to see the type information
     // in the logging output. However, this does not work with NFN because
     // it uses this function to create the names in NFN expressions
@@ -634,9 +609,6 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
     if (ccntlv_skip && (0
 #ifdef USE_SUITE_CCNTLV
        || pr->suite == CCNL_SUITE_CCNTLV
-#endif
-#ifdef USE_SUITE_CISTLV
-       || pr->suite == CCNL_SUITE_CISTLV
 #endif
                          ))
         skip = 4;

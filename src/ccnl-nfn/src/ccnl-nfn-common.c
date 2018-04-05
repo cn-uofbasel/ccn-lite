@@ -31,7 +31,6 @@
 
 #include "ccnl-pkt-builder.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-switch.h"
 
 #include "ccnl-malloc.h"
@@ -364,9 +363,8 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     if (!name)
         return NULL;
 
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-    if (config->suite == CCNL_SUITE_CCNTLV ||
-                                         config->suite == CCNL_SUITE_CISTLV)
+#if defined(USE_SUITE_CCNTLV) 
+    if (config->suite == CCNL_SUITE_CCNTLV) 
         offset = 4;
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
@@ -402,13 +400,6 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 #ifdef USE_SUITE_CCNTLV
     if (config->suite == CCNL_SUITE_CCNTLV) {
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, len, &offset,
-                              name->bytes + name->complen[1]);
-        len += 4;
-    }
-#endif
-#ifdef USE_SUITE_CISTLV
-    if (config->suite == CCNL_SUITE_CISTLV) {
-        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, len, &offset,
                               name->bytes + name->complen[1]);
         len += 4;
     }
@@ -772,9 +763,8 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name,
     }
 
     switch (p->suite) {
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+#if defined(USE_SUITE_CCNTLV) 
     case CCNL_SUITE_CCNTLV:
-    case CCNL_SUITE_CISTLV:
         offset = 4;
         break;
 #endif
@@ -789,13 +779,6 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
-                              &offset, p->comp[i]);
-        p->complen[i] += 4;
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, p->complen[i],
                               &offset, p->comp[i]);
         p->complen[i] += 4;
         break;
@@ -836,9 +819,8 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     p->complen[0] = len;
 
     switch (p->suite) {
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+#if defined(USE_SUITE_CCNTLV) 
     case CCNL_SUITE_CCNTLV:
-    case CCNL_SUITE_CISTLV:
         offset = 4;
         break;
 #endif
@@ -852,13 +834,6 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[1],
-                              &offset, p->comp[1]);
-        p->complen[1] += 4;
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, p->complen[1],
                               &offset, p->comp[1]);
         p->complen[1] += 4;
         break;

@@ -93,22 +93,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
 #endif // USE_SUITE_CCNTLV
 
-#ifdef USE_SUITE_CISTLV
-/**
- * @brief       process one CISTLV packet (CISTLV forwarding pipeline)
- * 
- * @param[in] relay     pointer to current ccnl relay
- * @param[in] from      face on which the message was received
- * @param[in] data      data which were received
- * @param[in] datalen   length of the received data
- *
- * @return      < 0 if no bytes consumed or error
- */
-int
-ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen);
-#endif // USE_SUITE_CISTLV
-
 #ifdef USE_SUITE_NDNTLV
 /**
  * @brief       process one NDNTLV packet (NDN forwarding pipeline)

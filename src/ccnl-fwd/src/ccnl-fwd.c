@@ -34,14 +34,12 @@
 #ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include <inttypes.h>
 #else
 #include <ccnl-pkt-ccnb.h>
 #include <ccnl-pkt-ccntlv.h>
-#include <ccnl-pkt-cistlv.h>
 #include <ccnl-pkt-ndntlv.h>
 #include <ccnl-pkt-switch.h>
 #endif
@@ -597,88 +595,6 @@ Done:
 }
 
 #endif // USE_SUITE_CCNTLV
-
-// ----------------------------------------------------------------------
-
-#ifdef USE_SUITE_CISTLV
-
-// process one CISTLV packet, return <0 if no bytes consumed or error
-int
-ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen)
-{
-    int payloadlen, hoplimit, rc = -1;
-    unsigned short hdrlen;
-    struct cisco_tlvhdr_201501_s *hp;
-    unsigned char *start = *data;
-    struct ccnl_pkt_s *pkt;
-
-    DEBUGMSG_CFWD(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
-             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
-
-    if (**data != CISCO_TLV_V1 ||
-                        *datalen < (int) sizeof(struct cisco_tlvhdr_201501_s))
-        return -1;
-
-    hp = (struct cisco_tlvhdr_201501_s*) *data;
-    hdrlen = hp->hlen;
-    if (hdrlen > *datalen) // not enough bytes for a full header
-        return -1;
-
-    payloadlen = ntohs(hp->pktlen);
-    if (payloadlen < hdrlen ||
-              payloadlen > *datalen) // not enough data to reconstruct message
-            return -1;
-    payloadlen -= hdrlen;
-
-    *data += hdrlen;
-    *datalen -= hdrlen;
-
-    hoplimit = hp->hoplim - 1;
-    if (hp->pkttype == CISCO_PT_Interest && hoplimit <= 0) { // drop it
-        *data += payloadlen;
-        *datalen -= payloadlen;
-        return 0;
-    } else
-        hp->hoplim = hoplimit;
-
-    DEBUGMSG_CFWD(DEBUG, "ccnl_cistlv_forwarder (%d bytes left, hdrlen=%d)\n",
-             *datalen, hdrlen);
-
-    pkt = ccnl_cistlv_bytes2pkt(start, data, datalen);
-    if (!pkt) {
-        DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
-        goto Done;
-    }
-
-    if (hp->pkttype == CISCO_PT_Interest) {
-        if (pkt->type == CISCO_TLV_Interest) {
-            pkt->flags |= CCNL_PKT_REQUEST;
-            //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
-            if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_cistlv_cMatch))
-                goto Done;
-        } else {
-            DEBUGMSG_CFWD(WARNING, "  cistlv: interest pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt->type);
-        }
-
-    } else if (hp->pkttype == CISCO_PT_Content) {
-        if (pkt->type == CISCO_TLV_Content) {
-            pkt->flags |= CCNL_PKT_REPLY;
-            ccnl_fwd_handleContent(relay, from, &pkt);
-        } else {
-            DEBUGMSG_CFWD(WARNING, "  cistlv: data pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt->type);
-        }
-    } // else ignore (Nack...)
-    rc = 0;
-Done:
-    ccnl_pkt_free(pkt);
-
-    return rc;
-}
-
-#endif // USE_SUITE_CISTLV
 
 // ----------------------------------------------------------------------
 
