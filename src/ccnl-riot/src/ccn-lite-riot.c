@@ -415,10 +415,6 @@ void
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
-
-    /* XXX: https://xkcd.com/221/ */
-    random_init(0x4);
-
     while(!ccnl->halt_flag) {
         msg_t m, reply;
         /* start periodic timer */
