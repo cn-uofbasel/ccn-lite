@@ -4,7 +4,6 @@
 Document                                                    | Description
 :---------------------------------------------------------- | :----------------
 [README-chunking.md](internal/README-chunking.md)           | use of segment numbers
-[README-iottlv.md](internal/README-iottlv.md)               | an experimental compact packet encoding, Nov 2014
 [README-localrpc.md](internal/README-localrpc.md)           | an experimental RPC data representation
 [README-multiprotocol.md](internal/README-multiprotocol.md) | a demux method supporting multiple protocols on the same wire
 [README-nfn.md](internal/README-nfn.md)                     | description of the Lambda Calculus and its application in NFN

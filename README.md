@@ -172,7 +172,7 @@ Featue             | Description
 `USE_SCHEDULER`    | Rate control at CCNx msg and fragment level.
 `USE_SIGNATURES`   | Authenticate management messages.
 `USE_STATS`        | Enable statistics.
-`USE_SUITE_*`      | Enable a specific protocol: CCNB, NDNTLV (NDN 2014), CCNTLV (CCNx2014), IOTTLV, LOCALRPC or CISTLV (Cisco 2015) and COMPRESSED (for packet compression)
+`USE_SUITE_*`      | Enable a specific protocol: CCNB, NDNTLV (NDN 2014), CCNTLV (CCNx2014), LOCALRPC or CISTLV (Cisco 2015) and COMPRESSED (for packet compression)
 `USE_UNIXSOCKET`   | Add UNIX IPC to the set of interfaces.
 
 The approach for these extensions is that one can tailor a CCN forwarder to

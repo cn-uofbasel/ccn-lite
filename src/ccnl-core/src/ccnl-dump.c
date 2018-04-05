@@ -252,12 +252,6 @@ ccnl_dump(int lev, int typ, void *p)
                     }
                     break;
 #endif
-#ifdef USE_SUITE_IOTTLV
-                case CCNL_SUITE_IOTTLV:
-                    INDENT(lev + 1);
-                    CONSOLE("ttl=%d\n", pkt->s.iottlv.ttl);
-                    break;
-#endif
 #ifdef USE_SUITE_NDNTLV
                 case CCNL_SUITE_NDNTLV:
                     INDENT(lev + 1);

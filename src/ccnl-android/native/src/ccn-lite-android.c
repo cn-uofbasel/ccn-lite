@@ -415,19 +415,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             break;
         }
 #endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            unsigned char *olddata;
-
-            data = olddata = buf->data + skip;
-            datalen -= skip;
-            if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
-                                                       typ != IOT_TLV_Reply)
-                goto notacontent;
-            pk = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
-            break;
-        }
-#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
             unsigned char *olddata;
@@ -693,11 +680,6 @@ ccnl_android_init()
 #ifdef USE_SUITE_CCNTLV
     strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
-    ccnl_echo_add(&theRelay, echoprefix);
-#endif
-#ifdef USE_SUITE_IOTTLV
-    strcpy(hello, echopath);
-    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_IOTTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV

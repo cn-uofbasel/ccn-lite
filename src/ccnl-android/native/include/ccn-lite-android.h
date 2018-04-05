@@ -40,7 +40,6 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
-#include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-dispatch.h"

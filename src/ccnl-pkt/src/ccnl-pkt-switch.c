@@ -27,7 +27,6 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 
 int
@@ -60,9 +59,6 @@ ccnl_enc2suite(int enc)
 #endif
 #ifdef USE_SUITE_CISTLV
     case CCNL_ENC_CISCO2015: return CCNL_SUITE_CISTLV;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_ENC_IOT2014:   return CCNL_SUITE_IOTTLV;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     case CCNL_ENC_LOCALRPC:  return CCNL_SUITE_LOCALRPC;

@@ -35,7 +35,6 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
-#include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include <inttypes.h>
@@ -43,7 +42,6 @@
 #include <ccnl-pkt-ccnb.h>
 #include <ccnl-pkt-ccntlv.h>
 #include <ccnl-pkt-cistlv.h>
-#include <ccnl-pkt-iottlv.h>
 #include <ccnl-pkt-ndntlv.h>
 #include <ccnl-pkt-switch.h>
 #endif
@@ -208,10 +206,6 @@ int
 ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
 {
     switch (pkt->suite) {
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        return pkt->s.iottlv.ttl < 0 || pkt->s.iottlv.ttl > 0;
-#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         return pkt->s.ndntlv.scope > 2;
@@ -685,73 +679,6 @@ Done:
 }
 
 #endif // USE_SUITE_CISTLV
-
-// ----------------------------------------------------------------------
-
-#ifdef USE_SUITE_IOTTLV
-
-// process one IOTTLV packet, return <0 if no bytes consumed or error
-int
-ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen)
-{
-    int rc = -1, enc, len;
-    unsigned int typ;
-    unsigned char *start = *data;
-    struct ccnl_pkt_s *pkt;
-
-    DEBUGMSG_CFWD(TRACE, "ccnl_iottlv_forwarder: %dB from face=%p (id=%d.%d)\n",
-             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
-
-    while (!ccnl_switch_dehead(data, datalen, &enc));
-/*
-        suite = ccnl_enc2suite(enc);
-    if (suite != CCNL_SUITE_IOTTLV) {
-        DEBUGMSG_CFWD(TRACE, "  wrong encoding? (%d)\n", enc);
-        return -1;
-    }
-*/
-    DEBUGMSG_CFWD(TRACE, "  datalen now %d\n", *datalen);
-
-    if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
-        return -1;
-
-    pkt = ccnl_iottlv_bytes2pkt(typ, start, data, datalen);
-    if (!pkt) {
-        DEBUGMSG_CFWD(INFO, "  parsing error or no prefix\n");
-        goto Done;
-    }
-    DEBUGMSG_CFWD(DEBUG, "  parsed packet has %zd bytes\n", pkt->buf->datalen);
-    pkt->type = typ;
-
-    switch (typ) {
-    case IOT_TLV_Request:
-        pkt->flags |= CCNL_PKT_REQUEST;
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_iottlv_cMatch))
-            goto Done;
-        break;
-    case IOT_TLV_Reply:
-        pkt->flags |= CCNL_PKT_REPLY;
-        if (ccnl_fwd_handleContent(relay, from, &pkt))
-            goto Done;
-        break;
-#ifdef USE_FRAG
-    case IOT_TLV_Fragment:
-        if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_iottlv_forwarder))
-            goto Done;
-        break;
-#endif
-    default:
-        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", typ);
-        goto Done;
-    }
-    rc = 0;
-Done:
-    ccnl_pkt_free(pkt);
-    return rc;
-}
-
-#endif // USE_SUITE_IOTTLV
 
 // ----------------------------------------------------------------------
 

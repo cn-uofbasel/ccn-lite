@@ -30,7 +30,6 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
-#include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-dispatch.h"
@@ -683,7 +682,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         int fd, datalen, suite, skip;
         unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
-#if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
+#if defined(USE_SUITE_NDNTLV)
         unsigned int typ;
         int len;
 #endif
@@ -777,19 +776,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             break;
         }
 #endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            unsigned char *olddata;
-
-            data = olddata = buf->data + skip;
-            datalen -= skip;
-            if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
-                                                       typ != IOT_TLV_Reply)
-                goto notacontent;
-            pk = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
-            break;
-        }
-#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
             unsigned char *olddata;
@@ -822,7 +808,7 @@ Done:
         ccnl_pkt_free(pk);
         ccnl_free(buf);
         continue;
-#if defined(USE_SUITE_CCNB) || defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
+#if defined(USE_SUITE_CCNB) || defined(USE_SUITE_NDNTLV)
 notacontent:
         DEBUGMSG(WARNING, "not a content object (%s)\n", de->d_name);
         ccnl_free(buf);

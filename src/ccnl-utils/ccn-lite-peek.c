@@ -91,7 +91,7 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
-            "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2015, cisco2015, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -227,51 +227,6 @@ usage:
                                       4096, hp->fill[0] >> 6,
                                       ntohs(*(uint16_t*) hp->fill) & 0x03fff,
                                       &cp, (int*) &len3);
-                    break;
-                }
-                case CCNL_SUITE_IOTTLV: {
-                    uint16_t tmp;
-
-                    if (ccnl_iottlv_dehead(&cp, &len2, (unsigned*) &t, &len3)) { // IOT_TLV_Fragment
-                        DEBUGMSG(VERBOSE, "problem parsing fragment\n");
-                        continue;
-                    }
-                    /*
-                    fprintf(stderr, "t=%d len=%d\n", t, len2);
-                    if (ccnl_iottlv_dehead(&cp, &len, &t, &len2))
-                        continue;
-                    */
-                    DEBUGMSG(VERBOSE, "t=%d, len=%d\n", t, len3);
-                    if (t == IOT_TLV_F_OptFragHdr) { // skip it for the time being
-                        cp += len3;
-                        len2 -= len3;
-                        if (ccnl_iottlv_dehead(&cp, &len2, (unsigned*) &t, &len3))
-                            continue;
-                    }
-                    if (t != IOT_TLV_F_FlagsAndSeq || len3 < 2) {
-                        DEBUGMSG(DEBUG, "  no flags and seqrn found (%d)\n", t);
-                        continue;
-                    }
-                    tmp = ntohs(*(uint16_t*) cp);
-                    cp += len3;
-                    len2 -= len3;
-
-                    if (ccnl_iottlv_dehead(&cp, &len2, (unsigned*) &t, &len3)) {
-                        DEBUGMSG(DEBUG, "  cannot parse frag payload\n");
-                        continue;
-                    }
-                    DEBUGMSG(DEBUG, "  fragment payload len=%d\n", len3);
-                    if (t != IOT_TLV_F_Data) {
-                        DEBUGMSG(DEBUG, "  no payload (%d)\n", t);
-                        continue;
-                    }
-                    /*
-                    rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
-                             4096, tmp >> 14, tmp & 0x7ff, &cp, (int*) &len2);
-                    */
-                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
-                             4096, tmp >> 14, tmp & 0x3fff, &cp, (int*) &len3);
-                    fprintf(stderr, "--\n");
                     break;
                 }
                 default:

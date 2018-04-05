@@ -119,39 +119,6 @@ int cistlv_isData(unsigned char *buf, int len)
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_SUITE_IOTTLV
-// return 1 for Reply, 0 for Request, -1 if invalid
-int iottlv_isReply(unsigned char *buf, int len)
-{
-    int enc = 1, suite;
-    unsigned int typ;
-    int vallen;
-
-    while (!ccnl_switch_dehead(&buf, &len, &enc));
-    suite = ccnl_enc2suite(enc);
-    if (suite != CCNL_SUITE_IOTTLV)
-        return -1;
-    DEBUGMSG(DEBUG, "suite ok\n");
-    if (len < 1 || ccnl_iottlv_dehead(&buf, &len, &typ, &vallen) < 0)
-        return -1;
-    DEBUGMSG(DEBUG, "typ=%d, len=%d\n", typ, vallen);
-    if (typ == IOT_TLV_Reply)
-        return 1;
-    if (typ == IOT_TLV_Request)
-        return 0;
-    return -1;
-}
-
-int iottlv_isFragment(unsigned char *buf, int len)
-{
-    int enc;
-    while (!ccnl_switch_dehead(&buf, &len, &enc));
-    return ccnl_iottlv_peekType(buf, len) == IOT_TLV_Fragment;
-}
-
-#endif // USE_SUITE_IOTTLV
-
-// ----------------------------------------------------------------------
 #ifdef  USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len) {
     int typ;
@@ -183,10 +150,6 @@ ccnl_isContent(unsigned char *buf, int len, int suite)
     case CCNL_SUITE_CISTLV:
         return cistlv_isData(buf, len);
 #endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        return iottlv_isReply(buf, len);
-#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         return ndntlv_isData(buf, len);
@@ -205,10 +168,6 @@ ccnl_isFragment(unsigned char *buf, int len, int suite)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         return ccntlv_isFragment(buf, len);
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        return iottlv_isFragment(buf, len);
 #endif
     }
 
@@ -273,17 +232,6 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
         case CCNL_SUITE_CISTLV:
             (*len) = ccnl_cistlv_prependInterestWithHdr(name, offs, tmp);
             break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            int rc = ccnl_iottlv_prependRequest(name, NULL, offs, tmp);
-            if (rc <= 0)
-                break;
-            (*len) = rc;
-            rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, offs, tmp);
-            (*len) = (rc <= 0) ? 0 : (*len) + rc;
-            break;
-        }
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
@@ -374,18 +322,6 @@ ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, u
                                                        NULL, // lastchunknum
                                                        offs, contentpos, tmp);
             break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            int rc = ccnl_iottlv_prependReply(name, payload, paylen,
-                                              offs, contentpos, NULL, tmp);
-            if (rc <= 0)
-             break;
-            (*len) = rc;
-            rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, offs, tmp);
-            (*len) = (rc <= 0) ? 0 : (*len) + rc;
-            break;
-        }
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:

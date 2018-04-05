@@ -95,9 +95,6 @@ enum {
 #ifdef USE_SUITE_CISTLV
   CCNL_SUITE_CISTLV = 3,
 #endif
-#ifdef USE_SUITE_IOTTLV
-  CCNL_SUITE_IOTTLV = 4,
-#endif
 #ifdef USE_SUITE_LOCALRPC
   CCNL_SUITE_LOCALRPC = 5,
 #endif
@@ -114,14 +111,20 @@ enum {
 // 0x80 followed by:
 // (add new encodings at the end)
 
-enum {
-  CCNL_ENC_CCNB,
-  CCNL_ENC_NDN2013,
-  CCNL_ENC_CCNX2014,
-  CCNL_ENC_IOT2014,
-  CCNL_ENC_LOCALRPC,
-  CCNL_ENC_CISCO2015
-};
+/**
+ * @brief Provides an (internal) mapping to the supported packet types
+ *
+ * Note: Previous versions of CCN-lite supported Cisco's IOT packet format
+ * which has since be removed. In previous versions, this enum had a 
+ * member CCNL_ENC_IOT2014 (with an implictly assigned value of 3).
+ */
+typedef enum ccnl_enc_e {
+  CCNL_ENC_CCNB,     /**< encoding for CCN */
+  CCNL_ENC_NDN2013,  /**< NDN encoding (version 2013) */
+  CCNL_ENC_CCNX2014, /**< CCNx encoding (version 2014) */
+  CCNL_ENC_LOCALRPC, /**< encoding type for local rpc mechanism */
+  CCNL_ENC_CISCO2015 /**< 2015 version of the Cisco packet format */
+} ccnl_enc;
 
 // ----------------------------------------------------------------------
 // our own CCN-lite extensions for the ccnb encoding:

@@ -39,7 +39,6 @@
 #define USE_SUITE_CCNB          // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
-#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 
@@ -105,9 +104,6 @@
 #endif
 #ifdef USE_SUITE_CCNB
 #include "../../ccnl-pkt/src/ccnl-pkt-ccnb.c"
-#endif
-#ifdef USE_SUITE_IOTTLV
-#include "../../ccnl-pkt/src/ccnl-pkt-iottlv.c"
 #endif
 #include "../../ccnl-core/src/ccnl-pkt.c"
 #include "../../ccnl-core/src/ccnl-logging.c"
@@ -570,7 +566,7 @@ module_param(p, charp, 0);
 MODULE_PARM_DESC(p, "private key path");
 
 module_param(s, charp, 0);
-MODULE_PARM_DESC(s, "suite (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)");
+MODULE_PARM_DESC(s, "suite (ccnb, ccnx2015, cisco2015, ndn2013)");
 
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");

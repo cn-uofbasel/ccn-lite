@@ -26,7 +26,7 @@ concern to you (same setup and choice as demo-relay-sh).
 
 If NFN testing is sought, see the scripts in test/scripts/nfn
 
-Note that the other subdirectories in test (i.e. ccnb, ccntlv, iottlv, ndntlv) 
+Note that the other subdirectories in test (i.e. ccnb, ccntlv, ndntlv) 
 hold pre-encoded packets used by the various demo scripts.
 
 

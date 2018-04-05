@@ -26,7 +26,6 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
-#include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-logging.h"
@@ -37,7 +36,6 @@
 #include <ccnl-pkt-ccnb.h>
 #include <ccnl-pkt-ccntlv.h>
 #include <ccnl-pkt-cistlv.h>
-#include <ccnl-pkt-iottlv.h>
 #include <ccnl-pkt-ndntlv.h>
 #include <ccnl-pkt-switch.h>
 #include <ccnl-logging.h>
@@ -60,10 +58,6 @@ ccnl_str2suite(char *cp)
 #ifdef USE_SUITE_CISTLV
     if (!strcmp(cp, CONSTSTR("cisco2015")))
         return CCNL_SUITE_CISTLV;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    if (!strcmp(cp, CONSTSTR("iot2014")))
-        return CCNL_SUITE_IOTTLV;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     if (!strcmp(cp, CONSTSTR("localrpc")))
@@ -91,10 +85,6 @@ ccnl_suite2str(int suite)
     if (suite == CCNL_SUITE_CISTLV)
         return CONSTSTR("cisco2015");
 #endif
-#ifdef USE_SUITE_IOTTLV
-    if (suite == CCNL_SUITE_IOTTLV)
-        return CONSTSTR("iot2014");
-#endif
 #ifdef USE_SUITE_LOCALRPC
     if (suite == CCNL_SUITE_LOCALRPC)
         return CONSTSTR("localrpc");
@@ -121,10 +111,6 @@ ccnl_suite2defaultPort(int suite)
     if (suite == CCNL_SUITE_CISTLV)
         return CCN_UDP_PORT;
 #endif
-#ifdef USE_SUITE_IOTTLV
-    if (suite == CCNL_SUITE_IOTTLV)
-        return NDN_UDP_PORT;
-#endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
         return NDN_UDP_PORT;
@@ -145,10 +131,6 @@ ccnl_isSuite(int suite)
 #endif
 #ifdef USE_SUITE_CISTLV
     if (suite == CCNL_SUITE_CISTLV)
-        return true;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    if (suite == CCNL_SUITE_IOTTLV)
         return true;
 #endif
 #ifdef USE_SUITE_LOCALRPC
@@ -220,11 +202,6 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #endif
 
 /*
-#ifdef USE_SUITE_IOTTLV
-        if (*data == IOT_TLV_Request || *data == IOT_TLV_Reply)
-            return CCNL_SUITE_IOTTLV;
-#endif
-
 #ifdef USE_SUITE_LOCALRPC
         if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY)
             return CCNL_SUITE_LOCALRPC;

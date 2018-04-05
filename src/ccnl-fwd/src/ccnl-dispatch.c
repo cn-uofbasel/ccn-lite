@@ -36,7 +36,6 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
-#include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-pkt-localrpc.h"
@@ -118,10 +117,6 @@ ccnl_core_init(void)
 #ifdef USE_SUITE_CISTLV
     ccnl_core_suites[CCNL_SUITE_CISTLV].RX       = ccnl_cistlv_forwarder;
     ccnl_core_suites[CCNL_SUITE_CISTLV].cMatch   = ccnl_cistlv_cMatch;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    ccnl_core_suites[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder;
-    ccnl_core_suites[CCNL_SUITE_IOTTLV].cMatch   = ccnl_iottlv_cMatch;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     ccnl_core_suites[CCNL_SUITE_LOCALRPC].RX     = ccnl_localrpc_exec;
