@@ -71,12 +71,20 @@
 # define CCNL_DEFAULT_MAX_PIT_ENTRIES    (-1)
 #endif
 
-#define CCNL_CONTENT_TIMEOUT            300 // sec
-#define CCNL_INTEREST_TIMEOUT           10  // sec
-#define CCNL_MAX_INTEREST_RETRANSMIT    7
+#ifndef CCNL_CONTENT_TIMEOUT
+# define CCNL_CONTENT_TIMEOUT            300 // sec
+#endif
+#ifndef CCNL_INTEREST_TIMEOUT
+# define CCNL_INTEREST_TIMEOUT           10  // sec
+#endif
+#ifndef CCNL_MAX_INTEREST_RETRANSMIT
+# define CCNL_MAX_INTEREST_RETRANSMIT    7
+#endif
 
-// #define CCNL_FACE_TIMEOUT    60 // sec
-#define CCNL_FACE_TIMEOUT       30 // sec
+#ifndef CCNL_FACE_TIMEOUT
+// # define CCNL_FACE_TIMEOUT    60 // sec
+# define CCNL_FACE_TIMEOUT       30 // sec
+#endif
 
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
 #ifdef CCNL_RIOT
