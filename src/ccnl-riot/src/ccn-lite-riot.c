@@ -250,10 +250,6 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     (void) ccnl;
     int rc;
     DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", (int)(buf ? buf->datalen : -1), ccnl_addr2ascii(dest));
-    /* reset ageing timer */
-    xtimer_remove(&_ageing_timer);
-    xtimer_set_msg(&_ageing_timer, US_PER_SEC, &_ageing_reset, _ccnl_event_loop_pid);
-    DEBUGMSG(TRACE, "ccnl_ll_TX: reset timer\n");
 
     (void) ifc;
     switch(dest->sa.sa_family) {
@@ -415,9 +411,11 @@ void
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
+    /* start periodic timer */
+    xtimer_set_msg(&_ageing_timer, US_PER_SEC, &_ageing_reset, sched_active_pid);
+
     while(!ccnl->halt_flag) {
         msg_t m, reply;
-        /* start periodic timer */
         reply.type = CCNL_MSG_AGEING;
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
         msg_receive(&m);
