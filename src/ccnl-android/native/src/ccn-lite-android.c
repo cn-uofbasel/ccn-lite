@@ -399,22 +399,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             break;
         }
 #endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV: {
-            int hdrlen;
-            unsigned char *start;
-
-            data = start = buf->data + skip;
-            datalen -=  skip;
-
-            hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
-            data += hdrlen;
-            datalen -= hdrlen;
-
-            pk = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
-            break;
-        }
-#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
             unsigned char *olddata;

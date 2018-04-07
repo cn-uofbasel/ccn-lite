@@ -63,7 +63,6 @@
 #define USE_STATS
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
-#define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
 #define USE_UNIXSOCKET
@@ -144,9 +143,6 @@ const char *compile_string = ""
 #endif
 #ifdef USE_SUITE_CCNTLV
         "SUITE_CCNTLV, "
-#endif
-#ifdef USE_SUITE_CISTLV
-        "SUITE_CISTLV, "
 #endif
 #ifdef USE_SUITE_LOCALRPC
         "SUITE_LOCALRPC, "
@@ -266,7 +262,7 @@ usage:
                     "  -o echo_prefix\n"
 #endif
                     "  -p crypto_face_ux_socket\n"
-                    "  -s SUITE (ccnb, ccnx2015, cisco2015, ndn2013)\n"
+                    "  -s SUITE (ccnb, ccnx2015, ndn2013)\n"
                     "  -t tcpport (for HTML status page)\n"
                     "  -u udpport (can be specified twice)\n"
                     "  -6 udp6port (can be specified twice)\n"

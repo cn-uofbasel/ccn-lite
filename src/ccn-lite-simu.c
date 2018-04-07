@@ -38,7 +38,6 @@
 //#define USE_SCHEDULER
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
-#define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PREFIX_MATCHING
@@ -261,7 +260,7 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     char tmp[200], tmp2[10];
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
-    if (theSuite == CCNL_SUITE_CCNTLV || theSuite == CCNL_SUITE_CISTLV) {
+    if (theSuite == CCNL_SUITE_CCNTLV ) {
         tmp[0] = '\0';
         for (i = 0; i < p->compcnt-1; i++) {
             strcat((char*)tmp, "/");
@@ -612,7 +611,7 @@ main(int argc, char **argv)
                     "  [-g MIN_INTER_PACKET_INTERVAL]\n"
                     "  [-i MIN_INTER_CCNMSG_INTERVAL]\n"
                     "  [-m MTU]\n"
-                    "  [-s SUITE (ccnb, ccnx2015, cisco2015, ndn2013)]\n"
+                    "  [-s SUITE (ccnb, ccnx2015, ndn2013)]\n"
                     "  [-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);

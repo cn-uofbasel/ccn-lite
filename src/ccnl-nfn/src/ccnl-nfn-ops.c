@@ -434,8 +434,6 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             suite = CCNL_SUITE_CCNB;
         else if (!strcmp(con->str, "ccnx2014"))
             suite = CCNL_SUITE_CCNTLV;
-        else if (!strcmp(con->str, "cisco2015"))
-            suite = CCNL_SUITE_CISTLV;
         else if (!strcmp(con->str, "ndn2013"))
             suite = CCNL_SUITE_NDNTLV;
         */

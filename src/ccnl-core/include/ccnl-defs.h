@@ -100,9 +100,6 @@ enum {
 #ifdef USE_SUITE_CCNTLV
   CCNL_SUITE_CCNTLV = 2,
 #endif
-#ifdef USE_SUITE_CISTLV
-  CCNL_SUITE_CISTLV = 3,
-#endif
 #ifdef USE_SUITE_LOCALRPC
   CCNL_SUITE_LOCALRPC = 5,
 #endif
@@ -130,8 +127,7 @@ typedef enum ccnl_enc_e {
   CCNL_ENC_CCNB,     /**< encoding for CCN */
   CCNL_ENC_NDN2013,  /**< NDN encoding (version 2013) */
   CCNL_ENC_CCNX2014, /**< CCNx encoding (version 2014) */
-  CCNL_ENC_LOCALRPC, /**< encoding type for local rpc mechanism */
-  CCNL_ENC_CISCO2015 /**< 2015 version of the Cisco packet format */
+  CCNL_ENC_LOCALRPC  /**< encoding type for local rpc mechanism */
 } ccnl_enc;
 
 // ----------------------------------------------------------------------

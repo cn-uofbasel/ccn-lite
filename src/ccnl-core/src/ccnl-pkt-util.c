@@ -25,7 +25,6 @@
 #include "ccnl-os-time.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-logging.h"
@@ -35,7 +34,6 @@
 #include <ccnl-os-time.h>
 #include <ccnl-pkt-ccnb.h>
 #include <ccnl-pkt-ccntlv.h>
-#include <ccnl-pkt-cistlv.h>
 #include <ccnl-pkt-ndntlv.h>
 #include <ccnl-pkt-switch.h>
 #include <ccnl-logging.h>
@@ -54,10 +52,6 @@ ccnl_str2suite(char *cp)
 #ifdef USE_SUITE_CCNTLV
     if (!strcmp(cp, CONSTSTR("ccnx2015")))
         return CCNL_SUITE_CCNTLV;
-#endif
-#ifdef USE_SUITE_CISTLV
-    if (!strcmp(cp, CONSTSTR("cisco2015")))
-        return CCNL_SUITE_CISTLV;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     if (!strcmp(cp, CONSTSTR("localrpc")))
@@ -81,10 +75,6 @@ ccnl_suite2str(int suite)
     if (suite == CCNL_SUITE_CCNTLV)
         return CONSTSTR("ccnx2015");
 #endif
-#ifdef USE_SUITE_CISTLV
-    if (suite == CCNL_SUITE_CISTLV)
-        return CONSTSTR("cisco2015");
-#endif
 #ifdef USE_SUITE_LOCALRPC
     if (suite == CCNL_SUITE_LOCALRPC)
         return CONSTSTR("localrpc");
@@ -107,10 +97,6 @@ ccnl_suite2defaultPort(int suite)
     if (suite == CCNL_SUITE_CCNTLV)
         return CCN_UDP_PORT;
 #endif
-#ifdef USE_SUITE_CISTLV
-    if (suite == CCNL_SUITE_CISTLV)
-        return CCN_UDP_PORT;
-#endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
         return NDN_UDP_PORT;
@@ -127,10 +113,6 @@ ccnl_isSuite(int suite)
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        return true;
-#endif
-#ifdef USE_SUITE_CISTLV
-    if (suite == CCNL_SUITE_CISTLV)
         return true;
 #endif
 #ifdef USE_SUITE_LOCALRPC
@@ -183,15 +165,6 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
             data[1] == CCNX_PT_Fragment ||
             data[1] == CCNX_PT_NACK)
             return CCNL_SUITE_CCNTLV;
-    }
-#endif
-
-#ifdef USE_SUITE_CISTLV
-    if (data[0] == CISCO_TLV_V1 && len > 1) {
-        if (data[1] == CISCO_PT_Interest ||
-            data[1] == CISCO_PT_Content ||
-            data[1] == CISCO_PT_Nack)
-            return CCNL_SUITE_CISTLV;
     }
 #endif
 

@@ -40,7 +40,6 @@ set(CCNL_PACKETFORMAT_FLAGS
         -DUSE_SUITE_NDNTLV
         -DUSE_SUITE_CCNB
         -DUSE_SUITE_CCNTLV
-        -DUSE_SUITE_CISTLV
         -DUSE_SUITE_LOCALRPC
         CACHE PATH
         "packet format flags for CCN-lite"

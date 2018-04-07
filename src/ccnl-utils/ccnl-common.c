@@ -83,7 +83,6 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "ccnl-core.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-localrpc.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
@@ -109,7 +108,6 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "ccnl-headers.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ccnb.h"
 
 int debug_level = WARNING;
@@ -130,7 +128,6 @@ ccnl_enc2str(int enc)
     case CCNL_ENC_NDN2013:   return CONSTSTR("ndn2013");
     case CCNL_ENC_CCNX2014:  return CONSTSTR("ccnbx2014");
     case CCNL_ENC_LOCALRPC:  return CONSTSTR("localrpc");
-    case CCNL_ENC_CISCO2015: return CONSTSTR("cisco2015");
     default:
         break;
     }

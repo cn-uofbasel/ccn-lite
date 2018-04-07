@@ -78,47 +78,6 @@ int ccntlv_isFragment(unsigned char *buf, int len)
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_SUITE_CISTLV
-
-int cistlv_isData(unsigned char *buf, int len)
-{
-    struct cisco_tlvhdr_201501_s *hp = (struct cisco_tlvhdr_201501_s*)buf;
-    unsigned short hdrlen, pktlen; // payloadlen;
-
-    TRACEIN();
-
-    if (len < (int) sizeof(struct cisco_tlvhdr_201501_s)) {
-        DEBUGMSG(ERROR, "cistlv header not large enough");
-        return -1;
-    }
-    hdrlen = hp->hlen; // ntohs(hp->hdrlen);
-    pktlen = ntohs(hp->pktlen);
-    //    payloadlen = ntohs(hp->payloadlen);
-
-    if (hp->version != CISCO_TLV_V1) {
-        DEBUGMSG(ERROR, "cistlv version %d not supported\n", hp->version);
-        return -1;
-    }
-
-    if (pktlen < len) {
-        DEBUGMSG(ERROR, "cistlv packet too small (%d instead of %d bytes)\n",
-                 pktlen, len);
-        return -1;
-    }
-    buf += hdrlen;
-    len -= hdrlen;
-
-    TRACEOUT();
-
-    if(hp->pkttype == CISCO_PT_Content)
-        return 1;
-    else
-        return 0;
-}
-#endif // USE_SUITE_CISTLV
-
-// ----------------------------------------------------------------------
-
 #ifdef  USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len) {
     int typ;
@@ -145,10 +104,6 @@ ccnl_isContent(unsigned char *buf, int len, int suite)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         return ccntlv_isData(buf, len);
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        return cistlv_isData(buf, len);
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
@@ -226,11 +181,6 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
             (*len) = ccnl_ccntlv_prependInterestWithHdr(name, offs, tmp);
-            break;
-#endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV:
-            (*len) = ccnl_cistlv_prependInterestWithHdr(name, offs, tmp);
             break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -315,13 +265,6 @@ ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, u
                                                        contentpos, offs, tmp);
             break;
         }
-#endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV:
-            (*len) = ccnl_cistlv_prependContentWithHdr(name, payload, paylen,
-                                                       NULL, // lastchunknum
-                                                       offs, contentpos, tmp);
-            break;
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:

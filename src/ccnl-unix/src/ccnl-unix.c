@@ -29,7 +29,6 @@
 
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-dispatch.h"
@@ -757,22 +756,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             datalen -= hdrlen;
 
             pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
-            break;
-        }
-#endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV: {
-            int hdrlen;
-            unsigned char *start;
-
-            data = start = buf->data + skip;
-            datalen -=  skip;
-
-            hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
-            data += hdrlen;
-            datalen -= hdrlen;
-
-            pk = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
             break;
         }
 #endif
