@@ -14,9 +14,7 @@ CCN-lite is a reduced and lightweight -- yet functionally
 interoperable -- implementation of the CCNx and NDN protocols. It covers:
 
 - PARC's [Content Centric Networking Protocol](http://www.ccnx.org/), both the old (v0.8) and new (v1.0) variant,
-- the [Named-Data Networking project](http://named-data.net/),
-- the [Named-Function Networking project](http://named-function.net/),
-- an experimental and compact encoding for IoT environments
+- the [Named-Data Networking project](http://named-data.net/)
 
 CCN-lite supports multiple platforms, including:
 
@@ -131,10 +129,6 @@ What you get with CCN-lite is:
 In several selected areas we have started our own contributions that are now
 part of CCN-lite:
 
-- *Named functions* for letting clients express results instead of accessing
-  only raw data. See also the use of [Scala](https://github.com/cn-uofbasel/nfn-scala)
-  to host function execution and to interface to a NFN network.
-
 - Experimental *RPC functionality* for letting neighbors mutually invoke
   functions, which could be the starting point both for network management
   functionality and for data marshalling (of interests and data objects) using
@@ -165,10 +159,6 @@ Featue             | Description
 `USE_LOGGING`      | Enable log messages.
 `USE_KITE`         | Routing along the return path, not yet supported.
 `USE_MGMT`         | React to CCNx management protocol messages.
-`USE_NACK`         | NACK support for NFN.
-`USE_NFN`          | Enable named function networking.
-`USE_NFN_NSTRANS`  | Namespace translation for NFN.
-`USE_NFN_MONITOR`  | Message logging for nfn-scala.
 `USE_SCHEDULER`    | Rate control at CCNx msg and fragment level.
 `USE_SIGNATURES`   | Authenticate management messages.
 `USE_STATS`        | Enable statistics.
@@ -197,26 +187,6 @@ Additionally, CCN-lite has a pre-built [Dockerfile](Dockerfile) to enable the us
 [Docker](https://www.docker.com/) with CCN-lite. See the
 [Docker-specific readme file](doc/README-docker.md) for more information.
 
-### Named function support
-If you want named function support (NFN), define an environment variable at the
-shell level before invoking make:
-
-```bash
-export USE_NFN=1
-cmake .
-make clean all
-```
-
-If you want both NFN and NACK support, define an additional environment variable
-before invoking make:
-
-```bash
-export USE_NFN=1
-export USE_NACK=1
-cmake .
-make clean all
-```
-
 <a name="lof"></a>
 ## 5. Command line tools
 
@@ -226,7 +196,7 @@ with CCN-lite are the following:
 
 Tool                           | Description
 :----------------------------- | :---------------------------------------------
-`ccn-lite-relay`               | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>`ccn-lite-relay`</li><li>`ccn-nfn-relay`</li><li>`ccn-nfn-relay-nack`</li></ul>
+`ccn-lite-relay`               | CCN-lite forwarder: user space.
 `ccn-lite-lxkernel`            | CCN-lite forwarder: Linux kernel module
 `ccn-lite-ctrl`                | Command line program running the CCNx management protocol (over Unix sockets). Used for configuring a running relay either running in user space or as a kernel module.
 `ccn-lite-ccnb2xml`            | Simple CCNB packet parser
@@ -235,11 +205,10 @@ Tool                           | Description
 `ccn-lite-mkC  `               | Simple content composer, to stdout, without crypto.
 `ccn-lite-mkF  `               | Simple tool to split a large file into a fragment series.
 `ccn-lite-mkI  `               | Simple interest composer, to stdout.
-`ccn-lite-peek`                | Simple interest injector waiting for a content chunk, can also be used to request named-function results.
+`ccn-lite-peek`                | Simple interest injector waiting for a content chunk.
 `ccn-lite-pktdump`             | Powerful packet dumper for all known packet formats. Output is in hexdump style, XML or content only.
 `ccn-lite-produce`             | Creates a series of chunks for data that does not fit into a single PDU.
 `ccn-lite-rpc`                 | Send an RPC request and return the reply.
-`ccn-lite-simplenfn`           | Simplified interface to request named-function results.
 `ccn-lite-valid`               | Demo application for validating a packet's signature.
 
 
@@ -255,9 +224,6 @@ Tool                           | Description
    http://www.ccnx.org/
  - NDN site:
    http://named-data.net/
- - NFN site:
-   http://named-function.net/
-
 
 
 <a name="changelog"></a>
@@ -269,7 +235,6 @@ Tool                           | Description
    Code was split to following libraries:
 	- ccnl-core: basic data structures
         - ccnl-fwd:  forwarding functionality of CCN-lite
-        - ccnl-nfn:  library for NFN support
         - ccnl-pkt:  packet encoding library, can be used for end point application with no forwarding requirements
         - ccnl-riot: RIOT integration library 
  - change build system to cmake

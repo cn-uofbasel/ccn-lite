@@ -23,9 +23,6 @@
 #ifndef CCNL_LINUXKERNEL
 #include <stdio.h>
 #include "ccnl-os-time.h"
-#ifdef USE_NFN
-#include "ccnl-nfn-common.h"
-#endif
 #include "ccnl-buf.h"
 #include "ccnl-logging.h"
 #include "ccnl-relay.h"
@@ -97,8 +94,4 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
         ccnl_free(bufCleanUpList);
         bufCleanUpList = tmp;
     }
-
-#ifdef USE_NFN
-    ccnl_nfn_freeKrivine(ccnl);
-#endif
 }

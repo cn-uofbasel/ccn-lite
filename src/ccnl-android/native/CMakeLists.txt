@@ -48,7 +48,7 @@ add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 
 find_package(OpenSSL)
 
-include_directories(include ../../ccnl-core/include ../../ccnl-pkt/include ../../ccnl-fwd/include ../../ccnl-unix/include ../../ccnl-nfn/include)
+include_directories(include ../../ccnl-core/include ../../ccnl-pkt/include ../../ccnl-fwd/include ../../ccnl-unix/include)
 
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")

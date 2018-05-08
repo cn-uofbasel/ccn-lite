@@ -8,8 +8,8 @@ are not valid, anyhow).
 
 However, as developers we use the following basic test methods:
 
-* demo scripts, both the standard relay as well as the NFN relay
-* few unit tests
+* demo scripts,
+* few unit tests, and
 * the ccn-lite-simu
 
 ## Demo scripts
@@ -23,8 +23,6 @@ to select
 
 Also check out the test/scripts/demo-relay-fetch.sh if chunking is of
 concern to you (same setup and choice as demo-relay-sh).
-
-If NFN testing is sought, see the scripts in test/scripts/nfn
 
 Note that the other subdirectories in test (i.e. ccnb, ccntlv, ndntlv) 
 hold pre-encoded packets used by the various demo scripts.

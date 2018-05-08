@@ -170,21 +170,6 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     }
                 }
                 p->namelen = *data - p->nameptr;
-#ifdef USE_NFN
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
-                                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
-                    p->nfnflags |= CCNL_PREFIX_NFN;
-                    p->compcnt--;
-                }
-// #ifdef USE_TIMEOUT_KEEPALIVE
-//                 if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
-//                                     !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
-//                     p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
-//                     p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-//                     p->compcnt -= 2;
-//                 }
-// #endif
-#endif
                 break;
             case CCN_DTAG_CONTENT:
                 if (ccnl_ccnb_consume(typ, num, data, datalen,
@@ -423,11 +408,6 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
     for (i = 0; i < name->compcnt; i++) {
         len += ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len);
     }
-#ifdef USE_NFN
-    if (name->nfnflags & CCNL_PREFIX_NFN) {
-        len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
-    }
-#endif
     out[len++] = 0; // end-of-name
 
     return len;

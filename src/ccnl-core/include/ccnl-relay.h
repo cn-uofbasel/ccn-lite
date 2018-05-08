@@ -59,10 +59,6 @@ struct ccnl_relay_s {
 #endif
     void *aux;
 
-#ifdef USE_NFN
-    struct ccnl_krivine_s *km;  /**< Krivine Abstract Machine for NFN*/
-#endif
-
    // struct ccnl_buf_s *bufCleanUpList;
   /*
     struct ccnl_face_s *crypto_face;

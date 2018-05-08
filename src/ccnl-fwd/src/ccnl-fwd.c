@@ -28,9 +28,6 @@
 #include "ccnl-callbacks.h"
 
 #include "ccnl-pkt-util.h"
-#ifdef USE_NFN
-#include "ccnl-nfn-common.h"
-#endif
 
 #ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ccnb.h"
@@ -63,31 +60,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
-#ifdef USE_NFN
-    int nonce = 0;
-    if (pkt != NULL && (*pkt) != NULL && (*pkt)->s.ndntlv.nonce != NULL) {
-        if ((*pkt)->s.ndntlv.nonce->datalen == 4) {
-            nonce = *((int*)(*pkt)->s.ndntlv.nonce->data);
-        }
-    }
-
-    if (from) {
-        char *from_as_str = ccnl_addr2ascii(&(from->peer));
-
-        if (from_as_str) {
-            DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) nonce=%i from=%s\n",
-                ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite),
-                (*pkt)->pfx->nfnflags, nonce, from_as_str ? from_as_str : "");
-        } 
-    } else {
-        DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) nonce=%i from=%s\n",
-            ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite),
-            (*pkt)->pfx->nfnflags, nonce, "");
-
-    }
-
-    DEBUGMSG_CFWD(INFO, "  data %.*s\n", (*pkt)->contlen, (*pkt)->content);
-#else
     if (from) {
         char *from_as_str = ccnl_addr2ascii(&(from->peer));
 
@@ -101,7 +73,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite), "");
 
     }
-#endif
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
 //  FIXME: mgmt messages for NDN and other suites?
@@ -125,41 +96,10 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-#ifdef USE_NFN_REQUESTS
-    // Find the original prefix for the intermediate result and use that prefix to cache the content.
-    if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
-        if (!nfn_request_handle_content(relay, from, pkt)) {
-            // content was handled completely,
-            // no need for further processing or forwarding
-            return 0;
-        }
-    }
-
-#endif
-
     c = ccnl_content_new(pkt);
     DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
     if (!c)
         return 0;
-
-     // CONFORM: Step 2 (and 3)
-#ifdef USE_NFN
-    if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
-// #ifdef USE_NFN_REQUESTS
-//         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
-//             nfn_request_RX_keepalive(relay, from, c);
-//                 // return 0;
-//             // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
-//         } else {
-// #endif // USE_NFN_REQUESTS
-            if (ccnl_nfn_RX_result(relay, from, c))
-                return 0;   // FIXME: memory leak
-            DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
-//#ifdef USE_NFN_REQUESTS
-//        }
-//#endif // USE_NFN_REQUESTS
-    }
-#endif
 
     if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
         // CONFORM: "A node MUST NOT forward unsolicited data [...]"
@@ -168,9 +108,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-#ifdef USE_NFN_REQUESTS
-    if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
-#endif
         if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
             DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
             ccnl_content_add2cache(relay, c);
@@ -179,11 +116,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
             ccnl_content_free(c);
         }
-#ifdef USE_NFN_REQUESTS
-    } else {
-        DEBUGMSG_CFWD(DEBUG, "  not caching nfn request\n");
-    }
-#endif
 
 #ifdef USE_RONR
     /* if we receive a chunk, we assume more chunks of this content may be
@@ -308,36 +240,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
-//#ifdef USE_NFN_REQUESTS
-//    if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
-//        DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
-//        if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-//            int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-//            DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
-//            int offset;
-//            char reply[16];
-//            snprintf(reply, 16, "%d", internum);
-//            int size = internum >= 0 ? strlen(reply) : 0;
-//            struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
-//            ccnl_face_enqueue(relay, from, buf);
-//            return 0;
-//        } else {
-//            DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
-//        }
-//    }
-//#endif
-
-#ifdef USE_NFN_REQUESTS
-    if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
-        if (!nfn_request_handle_interest(relay, from, pkt, cMatch)) {
-            // request was handled completely,
-            // no need for further processing or forwarding
-            return 0;
-        }
-    }
-#endif
-
-
             // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
 
@@ -349,28 +251,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
         if (from->ifndx >= 0) {
-#ifdef USE_NFN_REQUESTS
-            struct ccnl_pkt_s *cpkt = c->pkt;
-            int matching_start_request = ccnl_nfnprefix_isRequest((*pkt)->pfx)
-                                         && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START;
-            if (matching_start_request) {
-                nfn_request_content_set_prefix(c, (*pkt)->pfx);
-            }
-#endif
-#ifdef USE_NFN_MONITOR
-            ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
-                                 c->pkt->contlen);
-#endif
-
-            if (ccnl_callback_tx_on_data(relay, from, *pkt)) {
-                continue;
-            }
-
             ccnl_send_pkt(relay, from, c->pkt);
-#ifdef USE_NFN_REQUESTS
-            c->pkt = cpkt;
-#endif
-
         } else {
 #ifdef CCNL_APP_RX
             ccnl_app_RX(relay, c);
@@ -385,10 +266,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             break;
 
     if (!i) { // this is a new/unknown I request: create and propagate
-#ifdef USE_NFN
-        if (ccnl_nfn_RX_request(relay, from, pkt))
-            return -1; // this means: everything is ok and pkt was consumed
-#endif
         propagate = 1;
     }
     if (!ccnl_pkt_fwdOK(*pkt))
@@ -396,17 +273,9 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
 
-#ifdef USE_NFN
-        DEBUGMSG_CFWD(DEBUG,
-                      "  created new interest entry %p (prefix=%s, nfnflags=%d)\n",
-                      (void *) i,
-                      ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
-                      i->pkt->pfx->nfnflags);
-#else
         DEBUGMSG_CFWD(DEBUG,
                       "  created new interest entry %p (prefix=%s)\n",
                       (void *) i, ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PACKET_SIZE));
-#endif
     }
     if (i) { // store the I request, for the incoming face (Step 3)
         DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);

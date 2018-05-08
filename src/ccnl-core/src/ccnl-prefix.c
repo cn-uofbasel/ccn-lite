@@ -25,10 +25,6 @@
 #include "ccnl-prefix.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-ccntlv.h"
-#ifdef USE_NFN
-#include "ccnl-nfn-requests.h"
-#include "ccnl-nfn-common.h"
-#endif //USE_NFN
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -87,12 +83,6 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
     p->compcnt = prefix->compcnt;
     p->chunknum = prefix->chunknum;
-#ifdef USE_NFN
-    p->nfnflags = prefix->nfnflags;
-#ifdef USE_NFN_REQUESTS
-    p->request = nfn_request_copy(prefix->request);
-#endif
-#endif
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
@@ -274,33 +264,27 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
 }
 
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
+ccnl_URItoPrefix(char* uri, int suite, unsigned int *chunknum)
 {
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
     unsigned int complens[CCNL_MAX_NAME_COMP];
     int cnt, i, len, tlen;
 
-    DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
-             ccnl_suite2str(suite), uri, (nfnexpr != NULL) ? nfnexpr : "none");
+    DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s)\n",
+             ccnl_suite2str(suite), uri);
 
     if (strlen(uri))
         cnt = ccnl_URItoComponents(compvect, complens, uri);
     else
         cnt = 0;
 
-    if (nfnexpr && *nfnexpr)
-        cnt += 1;
-
     p = ccnl_prefix_new(suite, cnt);
     if (!p)
         return NULL;
 
     for (i = 0, len = 0; i < cnt; i++) {
-        if (i == (cnt-1) && nfnexpr && *nfnexpr)
-            len += strlen(nfnexpr);
-        else
-            len += complens[i];//strlen(compvect[i]);
+        len += complens[i];//strlen(compvect[i]);
     }
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
@@ -314,13 +298,9 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     }
 
     for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
-        int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
-        char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
+        char *cp = (char*) compvect[i];
 
-        if (isnfnfcomp)
-            tlen = strlen(nfnexpr);
-        else
-            tlen = complens[i];
+        tlen = complens[i];
 
         p->comp[i] = p->bytes + len;
         tlen = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
@@ -329,17 +309,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     }
 
     p->compcnt = cnt;
-#ifdef USE_NFN
-    if (nfnexpr && *nfnexpr)
-        p->nfnflags |= CCNL_PREFIX_NFN;
-#ifdef USE_NFN_REQUESTS
-//     if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 && !memcmp(p->comp[p->compcnt-2], "R2C", 3)) {
-//         p->nfnflags |= CCNL_PREFIX_REQUEST;
-//         p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-//         p->compcnt -= 2;
-//     }
-#endif // USE_NFN_REQUESTS
-#endif // USE_NFN
 
     if(chunknum) {
         p->chunknum = (int*) ccnl_malloc(sizeof(int));
@@ -398,76 +367,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 goto done;
             }
         }
-
-#ifdef USE_NFN
-        if (nam->nfnflags != pfx->nfnflags) {
-            DEBUGMSG(VERBOSE, "nfn flags mismatch\n");
-            goto done;
-        }
-        if (ccnl_nfnprefix_isRequest(nam) != ccnl_nfnprefix_isRequest(pfx)) {
-            DEBUGMSG(VERBOSE, "request mismatch\n");
-            goto done;
-        }
-        if (ccnl_nfnprefix_isRequest(nam)) {
-            if (nam->request->type != pfx->request->type) {
-                DEBUGMSG(VERBOSE, "request type mismatch\n");
-                goto done;
-            }
-            if (pfx->request->complen != nam->request->complen
-                || memcmp(pfx->request->comp, nam->request->comp, nam->request->complen)) {
-                DEBUGMSG(VERBOSE, "request component mismatch\n");
-                goto done;
-            }
-        }
-        // if (nam->internum != pfx->internum) {
-        //     DEBUGMSG(VERBOSE, "1e\n");
-        //     goto done;
-        // }
-#endif // USE_NFN
     }
-
-#ifdef USE_NFN_REQUESTS
-    if (mode == CMP_MATCH) {
-        // int nam_is_intermediate = ccnl_nfnprefix_isIntermediate(nam);
-        // int pfx_is_intermediate = ccnl_nfnprefix_isIntermediate(pfx);
-        // if (nam_is_intermediate != pfx_is_intermediate) {
-        //     DEBUGMSG(VERBOSE, "nfn intermediate mismatch\n");
-        //     goto done;
-        // }
-        // if (nam_is_intermediate) {
-        //     if (nfn_request_get_arg_int(nam->request) != nfn_request_get_arg_int(pfx->request)) {
-        //         DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
-        //         goto done;
-        //     }
-        // }
-        int matching_start_request = !ccnl_nfnprefix_isRequest(pfx)
-                                     && ccnl_nfnprefix_isRequest(nam)
-                                     && nam->request->type == NFN_REQUEST_TYPE_START;
-        if (matching_start_request) {
-            rc = nam->compcnt;
-            goto comp_check;
-        }
-
-        if (ccnl_nfnprefix_isRequest(pfx) != ccnl_nfnprefix_isRequest(nam)) {
-            DEBUGMSG(VERBOSE, "nfn request mismatch\n");
-            goto done;
-        }
-        if (ccnl_nfnprefix_isRequest(pfx)) {
-            if (pfx->request->type != nam->request->type) {
-                DEBUGMSG(VERBOSE, "request type mismatch\n");
-                goto done;
-            }
-            if (ccnl_nfnprefix_isIntermediate(pfx)) {
-                if (nfn_request_get_arg_int(nam->request)
-                    != nfn_request_get_arg_int(pfx->request)) {
-                    DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
-                    goto done;
-                }
-            }
-        }
-    }
-    comp_check:
-#endif
 
     for (i = 0; i < plen && i < nam->compcnt; ++i) {
         comp = i < pfx->compcnt ? pfx->comp[i] : md;
@@ -568,42 +468,9 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
     (void) call_slash;
     (void) ccntlv_skip;
 
-#ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN) {
-        result = snprintf(buf + len, buflen - len, "nfn");
-        if (!(result > -1 && (size_t)result < (buflen - len))) {
-            DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-            return NULL;
-        }
-        len += result;
-    }
-#ifdef USE_NFN_REQUESTS
-    if (pr->nfnflags & CCNL_PREFIX_REQUEST) {
-        char *desc = nfn_request_description_new(pr->request);
-        result = snprintf(buf + len, buflen - len, ":%s", desc);
-        if (!(result > -1 && (size_t)result < (buflen - len))) {
-            DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-            return NULL;
-        }
-        len += result;
-        ccnl_free(desc);
-
-    }
-#endif // USE_NFN_REQUESTS
-    if (pr->nfnflags) {
-        result = snprintf(buf + len, buflen - len, "[");
-        if (!(result > -1 && (size_t)result < (buflen - len))) {
-            DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-            return NULL;
-        }
-        len += result;
-    }
-#endif // USE_NFN
-
-
     int skip = 0;
 
-#if defined(USE_SUITE_CCNTLV) // && defined(USE_NFN)
+#if defined(USE_SUITE_CCNTLV) 
     // In the future it is possibly helpful to see the type information
     // in the logging output. However, this does not work with NFN because
     // it uses this function to create the names in NFN expressions
@@ -617,26 +484,12 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
 #endif
 
     for (i = 0; i < (size_t)pr->compcnt; i++) {
-#ifdef USE_NFN
-        if((strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5)) || call_slash)
-        {
-#endif
             result = snprintf(buf + len, buflen - len, "/");
             if (!(result > -1 && (size_t)result < (buflen - len))) {
                 DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
                 return NULL;
             }
             len += result;
-#ifdef USE_NFN
-        }else{
-            result = snprintf(buf + len, buflen - len, " ");
-            if (!(result > -1 && (size_t)result < (buflen - len))) {
-                DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-                return NULL;
-            }
-            len += result;
-        }
-#endif
 
         for (j = skip; j < (size_t)pr->complen[i]; j++) {
             char c = pr->comp[i][j];
@@ -666,17 +519,6 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
             }
         }
     }
-
-#ifdef USE_NFN
-    if (pr->nfnflags) {
-        result = snprintf(buf + len, buflen - len, "]");
-        if (!(result > -1 && (size_t)result < (buflen - len))) {
-            DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-            return NULL;
-        }
-        len += result;
-    }
-#endif
 
     return buf;
 }
@@ -740,44 +582,6 @@ ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
         return NULL;
     }
     len += result;
-
-#ifdef USE_NFN
-    result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "nfnflags:%i (", p->nfnflags);
-    if (!(result > -1 && result < (CCNL_MAX_PACKET_SIZE - len))) {
-        DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-        return NULL;
-    }
-    len += result;
-    int flagcount = 6;
-    char *flagnames[6]  = {"NFN", "?", "COMPUTE", "KEEPALIVE", "INTERMEDIATE", "REQUEST"};
-    int needscomma = 0;
-    for (i = 0; i < flagcount; i++) {
-        if ((p->nfnflags & (1<<i)) != 0) {
-            if (needscomma) {
-                result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, ",");
-                if (!(result > -1 && result < (CCNL_MAX_PACKET_SIZE - len))) {
-                    DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-                    return NULL;
-                }
-                len += result;
-            }
-            result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "%s", flagnames[i]);
-            if (!(result > -1 && result < (CCNL_MAX_PACKET_SIZE - len))) {
-                DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-                return NULL;
-            }
-            len += result;
-            needscomma = 1;
-        }
-    }
-    result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "), ");
-    if (!(result > -1 && result < (CCNL_MAX_PACKET_SIZE - len))) {
-        DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
-        return NULL;
-    }
-    len += result;
-
-#endif
 
     result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "compcnt:%i ", p->compcnt);
     if (!(result > -1 && result < (CCNL_MAX_PACKET_SIZE - len))) {

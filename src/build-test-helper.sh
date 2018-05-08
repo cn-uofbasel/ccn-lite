@@ -27,11 +27,6 @@
 #        SUITE         Name of the suite to test.
 #        WITH_KRNL     If "true", use the kernel version instead of the normal one.
 #
-#   "nfn-test"
-#      Runs the nfn-test script with the provided suite.
-#      Parameters:
-#        SUITE         Name of the suite to test.
-
 
 ### Functions:
 
@@ -71,8 +66,8 @@ build-test-make() {
     local logfile=$1; shift
     local rc=0
 
-    echo "$ make clean USE_NFN=1 USE_NACK=1" >> "$logfile"
-    make clean USE_NFN=1 USE_NACK=1 >> "$logfile" 2>&1
+    echo "$ make clean" >> "$logfile"
+    make clean >> "$logfile" 2>&1
     echo "" >> "$logfile"
 
     echo "$ make -j$NO_CORES -k $@" >> "$logfile"
@@ -138,29 +133,10 @@ build-test-demo-relay() {
     return $rc
 }
 
-# Runs the nfn-test.sh script.
-#
-# Parameters:
-#     $1    log file
-#     $2    suite
-build-test-nfn-test() {
-    local logfile=$1
-    local suite=$2
-    local rc
-
-    echo "$ ../test/scripts/nfn/nfn-test.sh -v $suite" >> "$logfile"
-    ../test/scripts/nfn/nfn-test.sh -v "$suite" >> "$logfile" 2>&1
-    rc=$?
-    echo "" >> "$logfile"
-
-    return $rc
-}
-
 ### Main script:
 
 unset USE_KRNL
 unset USE_FRAG
-unset USE_NFN
 unset USE_SIGNATURES
 LOGFILE="/tmp/$TARGET.log"
 RC=0
@@ -210,18 +186,6 @@ elif [ "$MODE" = "demo-relay" ]; then
             build-test-demo-relay "$LOGFILE" "$SUITE" "$M" "$WITH_KRNL"
             if [ $? -ne 0 ]; then RC=1; fi
         done
-    fi
-
-elif [ "$MODE" = "nfn-test" ]; then
-
-    echo "$ make -j$NO_CORES clean all USE_NFN=1" >> "$LOGFILE"
-    make clean >> "$LOGFILE"
-    make -j$NO_CORES all USE_NFN=1 >> "$LOGFILE"
-    if [ $? -ne 0 ]; then
-        RC=1
-    else
-        build-test-nfn-test "$LOGFILE" "$SUITE"
-        RC=$?
     fi
 
 else

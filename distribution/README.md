@@ -1,7 +1,7 @@
 # Creating Binary installers of CCN-lite
 
 For binary distibution of CCN-Lite one will find scripts here, to create installer packets for different platforms.
-Requirement to create a binary installer is, to compile ccn-lite with NFN enabled (run 'export USE_NFN=1 && make clean all').
+Requirement to create a binary installer is, to compile ccn-lite (run 'make clean all').
 Usually it is required to switch to the Operating System, for which the installer should be created.
 A binary installer depends on a platform. Thus it is not possible to use a amd64 installer on a i386 or arm system.
 

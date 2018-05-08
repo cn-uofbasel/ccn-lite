@@ -67,8 +67,6 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
-#include "ccnl-ext-nfn.c"
-#include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
 
 #include "ccnl-ext-frag.c"

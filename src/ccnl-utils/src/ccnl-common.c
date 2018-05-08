@@ -29,7 +29,7 @@
 #define _BSD_SOURCE
 #define _SVID_SOURCE
 
-//#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES)
+//#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_SIGNATURES)
 //# define NEEDS_PACKET_CRAFTING
 //#endif
 

@@ -109,7 +109,7 @@ main(int argc, char *argv[])
         case 'h':
         default:
 Usage:
-        fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+        fprintf(stderr, "usage: %s [options] URI\n"
         "  -i FNAME    input file (instead of stdin)\n"
         "  -k FNAME    HMAC256 key (base64 encoded)\n"
         "  -l LASTCHUNKNUM number of last chunk\n"
@@ -123,8 +123,6 @@ Usage:
         "  -w STRING   witness\n"
         "Examples:\n"
         "%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"
-        "%% mkC /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
-        "%% mkC \"\" \"add 1 1\"                    (lambda expr, local)\n"
         "%% mkC /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
         argv[0]);
         exit(1);
@@ -144,7 +142,7 @@ Usage:
     close(f);
     memset(out, 0, sizeof(out));
 
-    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
+    name = ccnl_URItoPrefix(argv[optind], suite, 
                             chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {

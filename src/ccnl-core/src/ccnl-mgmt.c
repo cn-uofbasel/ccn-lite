@@ -188,7 +188,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
                 sprintf(uri, "/mgmt/seqnum-%d", it);
                 pkt = ccnl_calloc(1, sizeof(*pkt));
-                pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
+                pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL);
                 pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos, NULL);
                 pkt->content = pkt->buf->data + contentpos;
                 pkt->contlen = len5;
@@ -1875,7 +1875,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     printf("components: %s\n", components);
 
-    prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, chunkflag ? &chunknum : NULL);
+    prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, chunkflag ? &chunknum : NULL);
 
     ccnl_free(components);
     components = NULL;

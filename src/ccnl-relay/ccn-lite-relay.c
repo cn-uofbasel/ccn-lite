@@ -53,12 +53,6 @@
 #define USE_IPV4
 #define USE_IPV6
 #define USE_MGMT
-// #define USE_NACK
-// #define USE_NFN
-#define USE_NFN_NSTRANS
-// #define USE_NFN_MONITOR
-//#define USE_NFN_KEEPALIVE
-//#define USE_NFN_PULL
 // #define USE_SCHEDULER
 #define USE_STATS
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
@@ -119,18 +113,6 @@ const char *compile_string = ""
 #endif
 #ifdef USE_MGMT
         "MGMT, "
-#endif
-#ifdef USE_NACK
-        "NACK, "
-#endif
-#ifdef USE_NFN
-        "NFN, "
-#endif
-#ifdef USE_NFN_MONITOR
-        "NFN_MONITOR, "
-#endif
-#ifdef USE_NFN_NSTRANS
-        "NFN_NSTRANS, "
 #endif
 #ifdef USE_SCHEDULER
         "SCHEDULER, "
@@ -308,7 +290,7 @@ usage:
         struct ccnl_prefix_s *pfx;
         char *dup = ccnl_strdup(echopfx);
 
-        pfx = ccnl_URItoPrefix(dup, suite, NULL, NULL);
+        pfx = ccnl_URItoPrefix(dup, suite, NULL);
         if (pfx)
             ccnl_echo_add(theRelay, pfx);
         ccnl_free(dup);

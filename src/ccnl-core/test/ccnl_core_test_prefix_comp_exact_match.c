@@ -10,11 +10,11 @@ int ccnl_test_prepare_prefix_cmp_exact_match(void **prefix1, void **prefix2){
 
     char *c1 = ccnl_malloc(100);
     strcpy(c1, "/path/to/data");
-    *prefix1 = ccnl_URItoPrefix(c1, prefix_cmp_suite, NULL, NULL);
+    *prefix1 = ccnl_URItoPrefix(c1, prefix_cmp_suite, NULL);
 
     char *c2 = ccnl_malloc(100);
     strcpy(c2, "/path/to/data");
-    *prefix2 = ccnl_URItoPrefix(c2, prefix_cmp_suite, NULL, NULL);
+    *prefix2 = ccnl_URItoPrefix(c2, prefix_cmp_suite, NULL);
 
     return 1;
 }

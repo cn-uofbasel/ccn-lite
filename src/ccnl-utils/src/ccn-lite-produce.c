@@ -121,9 +121,6 @@ Usage:
     char url[strlen(url_orig)];
     optind++;
 
-    // optional nfn
-    char *nfnexpr = argv[optind];
-
     int status;
     struct stat st_buf;
     if(outdirname) {
@@ -209,7 +206,7 @@ Usage:
 
         strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
-        name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
+        name = ccnl_URItoPrefix(url, suite, &chunknum);
 
         switch (suite) {
         case CCNL_SUITE_CCNTLV:

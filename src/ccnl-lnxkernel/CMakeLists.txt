@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(ccnl-lxkernel)
 
-include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-unix/include ../ccnl-nfn/include)
+include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-unix/include)
 #file(GLOB CORESOURCE "../ccnl-core/src/*.c")
 #file(GLOB FWDSOURCE "../ccnl-fwd/src/*.c")
 #file(GLOB PKTSOURCE "../ccnl-pkt/src/*.c")

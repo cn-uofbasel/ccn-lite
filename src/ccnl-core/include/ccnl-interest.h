@@ -48,10 +48,6 @@ struct ccnl_interest_s {
 #define CCNL_PIT_TRACED            0x02
     uint32_t last_used;
     int retries;
-#ifdef USE_NFN_REQUESTS
-    struct ccnl_interest_s *keepalive; // the keepalive interest dispatched for this interest
-    struct ccnl_interest_s *keepalive_origin; // the interest that dispatched this keepalive interest 
-#endif
 #ifdef CCNL_RIOT
     evtimer_msg_event_t evtmsg_retrans;
     evtimer_msg_event_t evtmsg_timeout;

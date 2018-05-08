@@ -89,7 +89,7 @@ main(int argc, char *argv[])
         case 'h':
         default:
 usage:
-            fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+            fprintf(stderr, "usage: %s [options] URI\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
             "  -s SUITE         (ccnb, ccnx2015, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
@@ -100,8 +100,6 @@ usage:
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
             "Examples:\n"
             "%% peek /ndn/edu/wustl/ping             (classic lookup)\n"
-            "%% peek /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
-            "%% peek \"\" \"add 1 1\"                    (lambda expr, local)\n"
             "%% peek /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
             argv[0]);
             exit(1);
@@ -135,7 +133,7 @@ usage:
         sock = udp_open();
     }
 
-    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
+    prefix = ccnl_URItoPrefix(argv[optind], suite, chunknum == UINT_MAX ? NULL : &chunknum);
 
     DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n",
             argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));

@@ -21,11 +21,6 @@ src/ccn-lite-simu
 src/arduino/.build/*
 src/arduino/lib/.holder
 
-# nfn-binaries
-src/ccn-lite-relay-nack
-src/ccn-nfn-relay
-src/ccn-nfn-relay-nack
-
 # util binaries
 src/util/ccn-lite-ccnb2xml
 src/util/ccn-lite-cryptoserver
@@ -41,14 +36,11 @@ src/util/ccn-lite-produce
 src/util/ccn-lite-fetch
 src/util/ccn-lite-pktdump
 src/util/ccn-lite-rpc
-src/util/ccn-lite-simplenfn
 src/util/ccn-lite-valid
 
 # unit tests
 test/unit/prefix-cmp
 test/unit/unit
-test/scripts/nfn/nfn.jar
-test/scripts/nfn/temp-service-library/*
 
 # bin files
 bin
