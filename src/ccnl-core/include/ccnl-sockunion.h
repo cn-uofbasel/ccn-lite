@@ -111,8 +111,21 @@ typedef union {
 int
 ccnl_is_local_addr(sockunion *su);
 
-char*
-ccnl_addr2ascii(sockunion *su);
+/**
+ * @brief Returns a string representation of a given socket
+ *
+ * This function checks if the given socket type is supported by CCN-lite and
+ * returns its string representation. In no circumstance should one pass this
+ * function without a check to the return type to a function expecting a
+ * string, e.g. "printf("from: %s\n", ccnl_addr2ascii(some_type));"!
+ *
+ * @param[in] su The socket type to represent as string
+ *
+ * @return NULL if \ref su was NULL
+ * @return NULL if the given socket type is not supported
+ * @return A string representation of \ref su
+ */
+char* ccnl_addr2ascii(sockunion *su);
 
 int
 ccnl_addr_cmp(sockunion *s1, sockunion *s2);
