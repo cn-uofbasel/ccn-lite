@@ -70,17 +70,36 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) nonce=%i from=%s\n",
-                  ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE),
-                  ccnl_suite2str((*pkt)->suite),
-                  (*pkt)->pfx->nfnflags, nonce,
-                  ccnl_addr2ascii(from ? &from->peer : NULL));
+    if (from) {
+        char *from_as_str = ccnl_addr2ascii(&(from->peer));
+
+        if (from_as_str) {
+            DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) nonce=%i from=%s\n",
+                ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite),
+                (*pkt)->pfx->nfnflags, nonce, from_as_str ? from_as_str : "");
+        } 
+    } else {
+        DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) nonce=%i from=%s\n",
+            ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite),
+            (*pkt)->pfx->nfnflags, nonce, "");
+
+    }
+
     DEBUGMSG_CFWD(INFO, "  data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
-    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
-                  ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE),
-                  ccnl_suite2str((*pkt)->suite),
-                  ccnl_addr2ascii(from ? &from->peer : NULL));
+    if (from) {
+        char *from_as_str = ccnl_addr2ascii(&(from->peer));
+
+        if (from_as_str) {
+             DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
+                ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite),
+                  from_as_str ? from_as_str : "");
+        }
+    } else {
+        DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
+            ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE), ccnl_suite2str((*pkt)->suite), "");
+
+    }
 #endif
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
@@ -183,9 +202,12 @@ ccnl_fwd_handleFragment(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *data = (*pkt)->content;
     int datalen = (*pkt)->contlen;
 
-    DEBUGMSG_CFWD(INFO, "  incoming fragment (%zd bytes) from=%s\n",
-                  (*pkt)->buf->datalen,
-                  ccnl_addr2ascii(from ? &from->peer : NULL));
+    if (from) {
+        char *from_as_str = ccnl_addr2ascii(&(from->peer));
+
+        DEBUGMSG_CFWD(INFO, "  incoming fragment (%zd bytes) from=%s\n", 
+            (*pkt)->buf->datalen, from_as_str ? from_as_str : "");
+    }
 
     ccnl_frag_RX_BeginEnd2015(callback, relay, from,
                               relay->ifs[from->ifndx].mtu,
@@ -231,18 +253,20 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-
+    if (from) {
+        char *from_as_str = ccnl_addr2ascii(&(from->peer));
 #ifndef CCNL_LINUXKERNEL
-    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%"PRIi32" from=%s\n",
-                  ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE),
-                  ccnl_suite2str((*pkt)->suite), nonce,
-                  ccnl_addr2ascii(from ? &from->peer : NULL));
+        DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%"PRIi32" from=%s\n",
+             ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE),
+             ccnl_suite2str((*pkt)->suite), nonce,
+             from_as_str ? from_as_str : "");
 #else
-    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%d from=%s\n",
-                  ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE),
-                  ccnl_suite2str((*pkt)->suite), nonce,
-                  ccnl_addr2ascii(from ? &from->peer : NULL));
+        DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%d from=%s\n",
+            ccnl_prefix_to_str((*pkt)->pfx,s,CCNL_MAX_PREFIX_SIZE),
+            ccnl_suite2str((*pkt)->suite), nonce,
+            from_as_str ? from_as_str : "");
 #endif
+    }
 
 #ifdef USE_DUP_CHECK
 
