@@ -239,5 +239,17 @@ ccnl_interface_CTS(void *aux1, void *aux2);
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 #endif
 
+/**
+ * @brief Add content @p c to the Content Store and serve pending Interests
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] c     content to add to the content store
+ *
+ * @return   0,  if @p c was added to the content store
+ * @return   -1, otherwise
+*/
+int
+ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+
 #endif //CCNL_RELAY_H
 /** @} */
