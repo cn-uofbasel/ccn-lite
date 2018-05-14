@@ -148,6 +148,17 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 struct ccnl_content_s*
 ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
+/**
+ * @brief add content @p c to the content store
+ *
+ * @note adding content with this function bypasses pending interests
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] c     content to be added to the content store
+ *
+ * @return   reference to the content @p c
+ * @return   NULL, if @p c cannot be added
+*/
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
