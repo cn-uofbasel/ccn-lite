@@ -1056,3 +1056,17 @@ ccnl_interface_CTS(void *aux1, void *aux2)
 #endif
     ccnl_free(req.buf);
 }
+
+int
+ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
+{
+    struct ccnl_content_s *content;
+
+    content = ccnl_content_add2cache(ccnl, c);
+    if (content) {
+        ccnl_content_serve_pending(ccnl, content);
+        return 0;
+    }
+
+    return -1;
+}
