@@ -261,7 +261,7 @@ ccnl_prefix_clone(struct ccnl_prefix_s *p)
     }
     return p2;
 Bail:
-    free_prefix(p2);
+    ccnl_prefix_free(p2);
     return NULL;
 }
 */
@@ -1661,7 +1661,7 @@ Bail:
 
     ccnl_free(suite);
     ccnl_free(action);
-    free_prefix(p);
+    ccnl_prefix_free(p);
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
@@ -1929,7 +1929,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         //Send interest to from!
         ccnl_face_enqueue(ccnl, from, buffer);
     }
-//    free_prefix(prefix_new);
+//    ccnl_prefix_free(prefix_new);
 
 Bail:
     return 0;
