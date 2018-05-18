@@ -65,7 +65,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0, NULL);
     ccnl_free(cp);
     if (pfx2) {
-        free_prefix(pfx2);
+        ccnl_prefix_free(pfx2);
     }
 
     ucp = reply->data;
@@ -94,7 +94,7 @@ ccnl_echo_cleanup(struct ccnl_relay_s *relay)
             fwd->tap = NULL;
 /*
             if (fwd->face == NULL) { // remove this entry
-                free_prefix(fwd->prefix);
+                ccnl_prefix_free(fwd->prefix);
                 fwd->prefix = 0;
             }
 */
