@@ -546,7 +546,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     default_opts.ndntlv.interestlifetime = NDN_DEFAULT_INTEREST_LIFETIME;
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
-        DEBUGMSG(WARNING, "Suite not supported by RIOT!");
+        DEBUGMSG(WARNING, "Suite not supported by RIOT!\n");
         return ret;
     }
 
