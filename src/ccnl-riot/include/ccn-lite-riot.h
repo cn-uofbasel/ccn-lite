@@ -103,6 +103,10 @@ typedef struct {
 #define CCNL_CACHE_SIZE
 #endif
 
+#ifndef CCNL_THREAD_PRIORITY
+#define CCNL_THREAD_PRIORITY (THREAD_PRIORITY_MAIN - 1)
+#endif
+
 /**
  * Struct holding CCN-Lite's central relay information
  */
