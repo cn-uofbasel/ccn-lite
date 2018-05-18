@@ -55,12 +55,20 @@ add_definitions(${CCNL_PLATFORM_FLAGS})
 # Packet formats
 set(CCNL_PACKETFORMAT_FLAGS
     -DUSE_SUITE_NDNTLV
-    -DUSE_SUITE_CCNB
-    -DUSE_SUITE_CCNTLV
-    -DUSE_SUITE_LOCALRPC
     CACHE PATH
     "packet format flags for CCN-lite"
 )
+if (NOT DEFINED CCNL_RIOT)
+    set(CCNL_PACKETFORMAT_FLAGS
+        "${CCNL_PACKETFORMAT_FLAGS}"
+        -DUSE_SUITE_CCNB
+        -DUSE_SUITE_CCNTLV
+        -DUSE_SUITE_LOCALRPC
+        CACHE PATH
+        "packet format flags for CCN-lite"
+        FORCE
+    )
+endif()
 add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 
 # NFN flags
