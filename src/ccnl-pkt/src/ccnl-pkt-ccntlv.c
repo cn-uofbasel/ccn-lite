@@ -633,4 +633,7 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 
 #endif // USE_SUITE_CCNTLV
 
+/* suppress empty translation unit error */
+typedef int unused_typedef;
+
 // eof
