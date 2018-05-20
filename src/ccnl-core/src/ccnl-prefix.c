@@ -566,6 +566,8 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
     (void)j;
     (void)len;
     (void) call_slash;
+    (void) ccntlv_skip;
+
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
         result = snprintf(buf + len, buflen - len, "nfn");
