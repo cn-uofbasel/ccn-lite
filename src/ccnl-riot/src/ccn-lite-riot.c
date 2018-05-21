@@ -537,7 +537,7 @@ int
 ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len,
                    ccnl_interest_opts_u *int_opts)
 {
-    int ret = -1;
+    int ret = 0;
     int len = 0;
     ccnl_interest_opts_u default_opts;
     default_opts.ndntlv.nonce = 0;
@@ -546,14 +546,14 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!\n");
-        return ret;
+        return -1;
     }
 
     DEBUGMSG(INFO, "interest for chunk number: %u\n", (prefix->chunknum == NULL) ? 0 : *prefix->chunknum);
 
     if (!prefix) {
         DEBUGMSG(ERROR, "prefix could not be created!\n");
-        return ret;
+        return -2;
     }
 
     if (!int_opts) {
@@ -581,14 +581,14 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     /* TODO: support other suites */
     if (ccnl_ndntlv_dehead(&data, &len, (int*) &typ, &int_len) || (int) int_len > len) {
         DEBUGMSG(WARNING, "  invalid packet format\n");
-        return ret;
+        return -3;
     }
 
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
     if (!pkt) {
         DEBUGMSG(WARNING, "could not create Interest pkt\n");
-        return -1;
+        return -4;
     }
 
     msg_t m = { .type = GNRC_NETAPI_MSG_TYPE_SND, .content.ptr = pkt };

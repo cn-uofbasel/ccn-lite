@@ -165,7 +165,10 @@ int ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type);
  * @param[in] int_opts  Interest options (@ref ccnl_interest_opts_u)
  *
  * @return 0 on success
- * @return -1 on failure
+ * @return -1, packet format not supported
+ * @return -2, prefix is NULL
+ * @return -3, packet deheading failed
+ * @return -4, parsing failed
  */
 int ccnl_send_interest(struct ccnl_prefix_s *prefix,
                        unsigned char *buf, int buf_len,
