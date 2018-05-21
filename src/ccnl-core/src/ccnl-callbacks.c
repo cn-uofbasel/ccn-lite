@@ -25,12 +25,23 @@
 /**
  * callback function for inbound on-data events
  */
-static ccnl_cb_rx_on_data _cb_rx_on_data = NULL;
+static ccnl_cb_on_data _cb_rx_on_data = NULL;
+
+/**
+ * callback function for outbound on-data events
+ */
+static ccnl_cb_on_data _cb_tx_on_data = NULL;
 
 void
-ccnl_set_cb_rx_on_data(ccnl_cb_rx_on_data func)
+ccnl_set_cb_rx_on_data(ccnl_cb_on_data func)
 {
     _cb_rx_on_data = func;
+}
+
+void
+ccnl_set_cb_tx_on_data(ccnl_cb_on_data func)
+{
+    _cb_tx_on_data = func;
 }
 
 int
@@ -40,6 +51,18 @@ ccnl_callback_rx_on_data(struct ccnl_relay_s *relay,
 {
     if (_cb_rx_on_data) {
         return _cb_rx_on_data(relay, from, pkt);
+    }
+
+    return 0;
+}
+
+int
+ccnl_callback_tx_on_data(struct ccnl_relay_s *relay,
+                         struct ccnl_face_s *to,
+                         struct ccnl_pkt_s *pkt)
+{
+    if (_cb_tx_on_data) {
+        return _cb_tx_on_data(relay, to, pkt);
     }
 
     return 0;

@@ -25,21 +25,31 @@
 #include "ccnl-core.h"
 
 /**
- * @brief Function pointer callback type for inbound on-data events
+ * @brief Function pointer callback type for on-data events
  */
-typedef int (*ccnl_cb_rx_on_data)(struct ccnl_relay_s *relay,
-                                  struct ccnl_face_s *from,
-                                  struct ccnl_pkt_s *pkt);
+typedef int (*ccnl_cb_on_data)(struct ccnl_relay_s *relay,
+                               struct ccnl_face_s *face,
+                               struct ccnl_pkt_s *pkt);
 
 /**
- * @brief Set an inbound on-data callback function
+ * @brief Set an inbound on-data event callback function
  *
  * Setting an on-data callback function allows to intercept inbound Data
  * packets. The event is triggered before a Content Store lookup is performed.
  *
  * @param[in] func  The callback function for inbound on-data events
  */
-void ccnl_set_cb_rx_on_data(ccnl_cb_rx_on_data func);
+void ccnl_set_cb_rx_on_data(ccnl_cb_on_data func);
+
+/**
+ * @brief Set an outbound on-data event callback function
+ *
+ * Setting an on-data callback function allows to intercept outbound Data
+ * packets. The event is triggered after a Content Store lookup is performed.
+ *
+ * @param[in] func  The callback function for outbound on-data events
+ */
+void ccnl_set_cb_tx_on_data(ccnl_cb_on_data func);
 
 /**
  * @brief Callback for inbound on-data events
@@ -56,6 +66,23 @@ void ccnl_set_cb_rx_on_data(ccnl_cb_rx_on_data func);
  */
 int ccnl_callback_rx_on_data(struct ccnl_relay_s *relay,
                              struct ccnl_face_s *from,
+                             struct ccnl_pkt_s *pkt);
+
+/**
+ * @brief Callback for outbound on-data events
+ *
+ * @param[in] relay The active ccn-lite relay
+ * @param[in] from  The face the packet is sent over
+ * @param[in] pkt   The actual packet to send
+ *
+ * @note if the callback function returns any other value than 0,
+ *       then the data packet is not sent and discarded.
+ *
+ * @return return value of the callback function
+ * @return 0, if no function has been set
+ */
+int ccnl_callback_tx_on_data(struct ccnl_relay_s *relay,
+                             struct ccnl_face_s *to,
                              struct ccnl_pkt_s *pkt);
 
 #endif  /* CCNL_CALLBACKS_H */
