@@ -25,6 +25,7 @@
 
 #include "ccnl-core.h"
 #include "ccnl-producer.h"
+#include "ccnl-callbacks.h"
 
 #include "ccnl-pkt-util.h"
 #ifdef USE_NFN
@@ -110,6 +111,11 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             return ccnl_crypto(relay, pkt->buf, pkt->pfx, from);
         }
 #endif /* USE_SUITE_CCNB && USE_SIGNATURES*/
+
+    if (ccnl_callback_rx_on_data(relay, from, *pkt)) {
+        *pkt = NULL;
+        return 0;
+    }
 
     // CONFORM: Step 1:
     for (c = relay->contents; c; c = c->next) {
