@@ -77,6 +77,10 @@ typedef struct {
     size_t buflen;                  /**< size of the buffer */
 } ccnl_interest_t;
 
+/**
+ * PID of the eventloop thread
+ */
+extern kernel_pid_t ccnl_event_loop_pid;
 
 /**
  * Maximum string length for prefix representation
@@ -92,6 +96,21 @@ typedef struct {
  * Message type for advancing the ageing timer
  */
 #define CCNL_MSG_AGEING         (0x1702)
+
+/**
+ * Message type for adding content store entries
+ */
+#define CCNL_MSG_CS_ADD         (0x1704)
+
+/**
+ * Message type for deleting content store entries
+ */
+#define CCNL_MSG_CS_DEL         (0x1705)
+
+/**
+ * Message type for performing a content store lookup
+ */
+#define CCNL_MSG_CS_LOOKUP      (0x1706)
 
 /**
  * Maximum number of elements that can be cached
@@ -184,6 +203,17 @@ int ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout);
  *                  the cache is full.
  */
 void ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func);
+
+/**
+ * @brief Send a message to the CCN-lite thread to add @p to the content store
+ *
+ * @param[in] content   The content to add to the content store
+ */
+static inline void ccnl_msg_cs_add(struct ccnl_content_s *content)
+{
+    msg_t ms = { .type = CCNL_MSG_CS_ADD, .content.ptr = content };
+    msg_send(&ms, ccnl_event_loop_pid);
+}
 
 #ifdef __cplusplus
 }

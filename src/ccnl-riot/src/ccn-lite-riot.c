@@ -66,11 +66,6 @@ static msg_t _msg_queue[CCNL_QUEUE_SIZE];
 static char _ccnl_stack[CCNL_STACK_SIZE];
 
 /**
- * PID of the eventloop thread
- */
-static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
-
-/**
  * Timer to process ageing
  */
 static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
@@ -89,6 +84,8 @@ static int _ccnl_suite = CCNL_SUITE_NDNTLV;
 /**
  * @}
  */
+
+kernel_pid_t ccnl_event_loop_pid = KERNEL_PID_UNDEF;
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
@@ -234,7 +231,7 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     /* register for this nettype if not already done */
     if (_ccnl_ne.demux_ctx == 0) {
         gnrc_netreg_entry_init_pid(&_ccnl_ne, GNRC_NETREG_DEMUX_CTX_ALL,
-                                   _ccnl_event_loop_pid);
+                                   ccnl_event_loop_pid);
         return gnrc_netreg_register(netreg_type, &_ccnl_ne);
     }
     return 0;
@@ -297,7 +294,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 
                             if (is_loopback) {
                                     DEBUGMSG(DEBUG, "loopback packet\n");
-                                    if (gnrc_netapi_receive(_ccnl_event_loop_pid, pkt) < 1) {
+                                    if (gnrc_netapi_receive(ccnl_event_loop_pid, pkt) < 1) {
                                         DEBUGMSG(ERROR, "error: unable to loopback packet, discard it\n");
                                         gnrc_pktbuf_release(pkt);
                                     }
@@ -408,6 +405,8 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
 void
 *_ccnl_event_loop(void *arg)
 {
+    struct ccnl_content_s *content;
+
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
@@ -451,6 +450,11 @@ void
                 xtimer_remove(&_ageing_timer);
                 xtimer_set_msg(&_ageing_timer, US_PER_SEC, &reply, sched_active_pid);
                 break;
+            case CCNL_MSG_CS_ADD:
+                DEBUGMSG(VERBOSE, "ccn-lite: CS add\n");
+                content = (struct ccnl_content_s *)m.content.ptr;
+                ccnl_cs_add(ccnl, content);
+                break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
                 break;
@@ -472,11 +476,11 @@ ccnl_start(void)
     ccnl_relay.ccnl_ll_TX_ptr = &ccnl_ll_TX;
 
     /* start the CCN-Lite event-loop */
-    _ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
+    ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
                                           CCNL_THREAD_PRIORITY,
                                           THREAD_CREATE_STACKTEST, _ccnl_event_loop,
                                           &ccnl_relay, "ccnl");
-    return _ccnl_event_loop_pid;
+    return ccnl_event_loop_pid;
 }
 
 static xtimer_t _wait_timer = { .target = 0, .long_target = 0 };
