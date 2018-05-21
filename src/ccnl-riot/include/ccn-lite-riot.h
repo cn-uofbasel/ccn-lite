@@ -215,6 +215,18 @@ static inline void ccnl_msg_cs_add(struct ccnl_content_s *content)
     msg_send(&ms, ccnl_event_loop_pid);
 }
 
+/**
+ * @brief Send a message to the CCN-lite thread to remove a content with
+ * the @p prefix from the content store
+ *
+ * @param[in] content   The prefix of the content to remove from the content store
+ */
+static inline void ccnl_msg_cs_remove(struct ccnl_prefix_s *prefix)
+{
+    msg_t ms = { .type = CCNL_MSG_CS_DEL, .content.ptr = prefix };
+    msg_send(&ms, ccnl_event_loop_pid);
+}
+
 #ifdef __cplusplus
 }
 #endif
