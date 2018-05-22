@@ -1094,3 +1094,26 @@ ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix)
     }
     return -3;
 }
+
+struct ccnl_content_s *
+ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix)
+{
+    struct ccnl_content_s *c;
+
+    if (!ccnl || !prefix) {
+        return NULL;
+    }
+
+    for (c = ccnl->contents; c; c = c->next) {
+        char *spref = ccnl_prefix_to_path(c->pkt->pfx);
+        if (!spref) {
+            return NULL;
+        }
+        if (memcmp(prefix, spref, strlen(spref)) == 0) {
+            ccnl_free(spref);
+            return c;
+        }
+        ccnl_free(spref);
+    }
+    return NULL;
+}
