@@ -406,6 +406,7 @@ void
 *_ccnl_event_loop(void *arg)
 {
     struct ccnl_content_s *content;
+    struct ccnl_pkt_s *pkt;
 
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
@@ -427,15 +428,9 @@ void
 
             case GNRC_NETAPI_MSG_TYPE_SND:
                 DEBUGMSG(DEBUG, "ccn-lite: GNRC_NETAPI_MSG_TYPE_SND received\n");
-                gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t*) m.content.ptr;
-                if (pkt->type != GNRC_NETTYPE_CCN) {
-                    DEBUGMSG(WARNING, "ccn-lite: wrong nettype\n");
-                }
-                else {
-                    ccnl_interest_t *i = (ccnl_interest_t*) pkt->data;
-                    ccnl_send_interest(i->prefix, i->buf, i->buflen, NULL);
-                }
-                gnrc_pktbuf_release(pkt);
+                pkt = (struct ccnl_pkt_s *) m.content.ptr;
+                ccnl_fwd_handleInterest(ccnl, loopback_face, &pkt, ccnl_ndntlv_cMatch);
+                ccnl_pkt_free(pkt);
                 break;
 
             case GNRC_NETAPI_MSG_TYPE_GET:
@@ -591,9 +586,11 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
 
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
-    ret = ccnl_fwd_handleInterest(&ccnl_relay, loopback_face, &pkt, ccnl_ndntlv_cMatch);
-
-    ccnl_pkt_free(pkt);
+    msg_t m = { .type = GNRC_NETAPI_MSG_TYPE_SND, .content.ptr = pkt };
+    ret = msg_send(&m, _ccnl_event_loop_pid);
+    if(ret < 1){
+        DEBUGMSG(WARNING, "could not send Interest: %i\n", ret);
+    }
 
     return ret;
 }
