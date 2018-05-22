@@ -483,4 +483,7 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
 
 #endif // USE_SUITE_CCNB
 
+/* suppress empty translation unit error */
+typedef int unused_typedef;
+
 // eof
