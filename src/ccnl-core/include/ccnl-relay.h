@@ -262,5 +262,19 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 int
 ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
+/**
+ * @brief Remove content with @p prefix from the Content Store
+ *
+ * @param[in] ccnl      pointer to current ccnl relay
+ * @param[in] prefix    prefix of the content to remove from the Content Store
+ *
+ * @return    0, if content with @p prefix was removed
+ * @return   -1, if @p ccnl or @p prefix are NULL
+ * @return   -2, if no memory could be allocated
+ * @return   -3, if no content with @p prefix was found to be removed
+*/
+int
+ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix);
+
 #endif //CCNL_RELAY_H
 /** @} */
