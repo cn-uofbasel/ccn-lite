@@ -230,6 +230,22 @@ static inline void ccnl_msg_cs_remove(struct ccnl_prefix_s *prefix)
     msg_send(&ms, ccnl_event_loop_pid);
 }
 
+/**
+ * @brief Send a message to the CCN-lite thread to perform a content store
+ * lookup for the @p prefix
+ *
+ * @param[in] content   The prefix of the content to perform a lookup for
+ *
+ * @return              pointer to the content, if found
+ * @reutn               NULL, if not found
+ */
+static inline struct ccnl_content_s *ccnl_msg_cs_lookup(struct ccnl_prefix_s *prefix)
+{
+    msg_t mr, ms = { .type = CCNL_MSG_CS_LOOKUP, .content.ptr = prefix };
+    msg_send_receive(&ms, &mr, ccnl_event_loop_pid);
+    return (struct ccnl_content_s *) mr.content.ptr;
+}
+
 #ifdef __cplusplus
 }
 #endif

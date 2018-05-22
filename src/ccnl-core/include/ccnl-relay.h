@@ -276,5 +276,19 @@ ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 int
 ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix);
 
+/**
+ * @brief Lookup content from the Content Store with prefix @p prefix
+ *
+ * @param[in] ccnl      pointer to current ccnl relay
+ * @param[in] prefix    prefix of the content to lookup from the Content Store
+ *
+ * @return              pointer to the content, if found
+ * @return              NULL, if @p ccnl or @p prefix are NULL
+ * @return              NULL, on memory allocation failure
+ * @return              NULL, if not found
+*/
+struct ccnl_content_s *
+ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix);
+
 #endif //CCNL_RELAY_H
 /** @} */

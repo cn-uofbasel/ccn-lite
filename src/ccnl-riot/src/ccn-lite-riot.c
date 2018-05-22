@@ -407,6 +407,7 @@ void
 {
     struct ccnl_content_s *content;
     struct ccnl_pkt_s *pkt;
+    char *spref;
 
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
@@ -415,7 +416,7 @@ void
     xtimer_set_msg(&_ageing_timer, US_PER_SEC, &_ageing_reset, sched_active_pid);
 
     while(!ccnl->halt_flag) {
-        msg_t m, reply;
+        msg_t m, reply, mr;
         reply.type = CCNL_MSG_AGEING;
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
         msg_receive(&m);
@@ -456,6 +457,22 @@ void
                 if (ccnl_cs_remove(ccnl, prefix) < 0) {
                     DEBUGMSG(WARNING, "removing CS entry failed\n");
                 }
+                break;
+            case CCNL_MSG_CS_LOOKUP:
+                DEBUGMSG(VERBOSE, "ccn-lite: CS lookup\n");
+                prefix = (struct ccnl_prefix_s *)m.content.ptr;
+                spref = ccnl_prefix_to_path(prefix);
+                mr.type = CCNL_MSG_CS_LOOKUP;
+                if (spref) {
+                    content = ccnl_cs_lookup(ccnl, spref);
+                    ccnl_free(spref);
+                }
+                else {
+                    DEBUGMSG(WARNING, "ccn-lite: CS lookup failed, because of no memory available\n");
+                    content = NULL;
+                }
+                mr.content.ptr = content;
+                msg_reply(&m, &mr);
                 break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
