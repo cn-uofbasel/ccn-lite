@@ -622,7 +622,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     }
 
     msg_t m = { .type = GNRC_NETAPI_MSG_TYPE_SND, .content.ptr = pkt };
-    ret = msg_send(&m, _ccnl_event_loop_pid);
+    ret = msg_send(&m, ccnl_event_loop_pid);
     if(ret < 1){
         DEBUGMSG(WARNING, "could not send Interest: %i\n", ret);
     }
