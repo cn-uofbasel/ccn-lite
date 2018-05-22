@@ -66,12 +66,6 @@ static msg_t _msg_queue[CCNL_QUEUE_SIZE];
 static char _ccnl_stack[CCNL_STACK_SIZE];
 
 /**
- * Timer to process ageing
- */
-static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
-
-
-/**
  * caching strategy removal function
  */
 static ccnl_cache_strategy_func _cs_remove_func = NULL;
@@ -86,6 +80,8 @@ static int _ccnl_suite = CCNL_SUITE_NDNTLV;
  */
 
 kernel_pid_t ccnl_event_loop_pid = KERNEL_PID_UNDEF;
+
+evtimer_msg_t ccnl_evtimer;
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
@@ -237,8 +233,6 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     return 0;
 }
 
-static msg_t _ageing_reset = { .type = CCNL_MSG_AGEING };
-
 /* (link layer) sending function */
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -358,14 +352,6 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     return 0;
 }
 
-/* periodic callback */
-void
-ccnl_ageing(void *relay, void *aux)
-{
-    ccnl_do_ageing(relay, aux);
-    ccnl_set_timer(US_PER_SEC, ccnl_ageing, relay, 0);
-}
-
 /* receiving callback for CCN packets */
 void
 _receive(struct ccnl_relay_s *ccnl, msg_t *m)
@@ -401,23 +387,37 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     gnrc_pktbuf_release(pkt);
 }
 
+static void
+ccnl_interest_retransmit(struct ccnl_relay_s *relay, struct ccnl_interest_s *ccnl_int)
+{
+    if(ccnl_int->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
+        return;
+    }
+
+    ccnl_int->evtmsg_retrans.msg.type = CCNL_MSG_INT_RETRANS;
+    ccnl_int->evtmsg_retrans.msg.content.ptr = ccnl_int;
+    ((evtimer_event_t *)&ccnl_int->evtmsg_retrans)->offset = CCNL_INTEREST_RETRANS_TIMEOUT;
+    evtimer_add_msg(&ccnl_evtimer, &ccnl_int->evtmsg_retrans, ccnl_event_loop_pid);
+    ccnl_int->retries++;
+    ccnl_interest_propagate(relay, ccnl_int);
+}
+
 /* the main event-loop */
 void
 *_ccnl_event_loop(void *arg)
 {
     struct ccnl_content_s *content;
     struct ccnl_pkt_s *pkt;
+    struct ccnl_prefix_s *prefix;
+    struct ccnl_interest_s *ccnl_int;
     char *spref;
 
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
+    evtimer_init_msg(&ccnl_evtimer);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
-
-    /* start periodic timer */
-    xtimer_set_msg(&_ageing_timer, US_PER_SEC, &_ageing_reset, sched_active_pid);
 
     while(!ccnl->halt_flag) {
         msg_t m, reply, mr;
-        reply.type = CCNL_MSG_AGEING;
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
         msg_receive(&m);
 
@@ -439,12 +439,6 @@ void
                 DEBUGMSG(DEBUG, "ccn-lite: reply to unsupported get/set\n");
                 reply.content.value = -ENOTSUP;
                 msg_reply(&m, &reply);
-                break;
-            case CCNL_MSG_AGEING:
-                DEBUGMSG(VERBOSE, "ccn-lite: ageing timer\n");
-                ccnl_do_ageing(arg, NULL);
-                xtimer_remove(&_ageing_timer);
-                xtimer_set_msg(&_ageing_timer, US_PER_SEC, &reply, sched_active_pid);
                 break;
             case CCNL_MSG_CS_ADD:
                 DEBUGMSG(VERBOSE, "ccn-lite: CS add\n");
@@ -479,6 +473,14 @@ void
                 }
                 mr.content.ptr = content;
                 msg_reply(&m, &mr);
+                break;
+            case CCNL_MSG_INT_RETRANS:
+                ccnl_int = (struct ccnl_interest_s *)m.content.ptr;
+                ccnl_interest_retransmit(ccnl, ccnl_int);
+                break;
+            case CCNL_MSG_INT_TIMEOUT:
+                ccnl_int = (struct ccnl_interest_s *)m.content.ptr;
+                ccnl_interest_remove(ccnl, ccnl_int);
                 break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
@@ -572,7 +574,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     ccnl_interest_opts_u default_opts;
     default_opts.ndntlv.nonce = 0;
     default_opts.ndntlv.mustbefresh = false;
-    default_opts.ndntlv.interestlifetime = NDN_DEFAULT_INTEREST_LIFETIME;
+    default_opts.ndntlv.interestlifetime = CCNL_INTEREST_TIMEOUT * 1000; // ms
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!\n");

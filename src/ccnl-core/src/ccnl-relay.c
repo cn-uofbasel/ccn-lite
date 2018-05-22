@@ -32,6 +32,9 @@
 #include <ccnl-core.h>
 #endif //CCNL_LINUXKERNEL
 
+#ifdef CCNL_RIOT
+#include "ccn-lite-riot.h"
+#endif
 
 
 
@@ -353,6 +356,12 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         return i->next;
 #endif
 */
+
+#ifdef CCNL_RIOT
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&i->evtmsg_retrans);
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&i->evtmsg_timeout);
+#endif
+
     while (i->pending) {
         struct ccnl_pendint_s *tmp = i->pending->next;          \
         ccnl_free(i->pending);
