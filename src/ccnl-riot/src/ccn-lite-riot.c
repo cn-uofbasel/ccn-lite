@@ -453,10 +453,16 @@ void
                 break;
             case CCNL_MSG_CS_DEL:
                 DEBUGMSG(VERBOSE, "ccn-lite: CS remove\n");
-                prefix = (char *)m.content.ptr;
-                if (ccnl_cs_remove(ccnl, prefix) < 0) {
+                prefix = (struct ccnl_prefix_s *)m.content.ptr;
+                spref = ccnl_prefix_to_path(prefix);
+                if (!spref) {
+                    DEBUGMSG(WARNING, "ccn-lite: CS remove failed, because of no memory available\n");
+                    break;
+                }
+                if (ccnl_cs_remove(ccnl, spref) < 0) {
                     DEBUGMSG(WARNING, "removing CS entry failed\n");
                 }
+                ccnl_free(spref);
                 break;
             case CCNL_MSG_CS_LOOKUP:
                 DEBUGMSG(VERBOSE, "ccn-lite: CS lookup\n");
