@@ -639,4 +639,7 @@ int ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen)
 
 #endif // USE_SUITE_LOCALRPC
 
+/* suppress empty translation unit error */
+typedef int unused_typedef;
+
 // eof

@@ -634,4 +634,7 @@ ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #endif //USE_SUITE_LOCALRPC
 
+/* suppress empty translation unit error */
+typedef int unused_typedef;
+
 // eof
