@@ -1070,3 +1070,27 @@ ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
     return -1;
 }
+
+int
+ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix)
+{
+    struct ccnl_content_s *c;
+
+    if (!ccnl || !prefix) {
+        return -1;
+    }
+
+    for (c = ccnl->contents; c; c = c->next) {
+        char *spref = ccnl_prefix_to_path(c->pkt->pfx);
+        if (!spref) {
+            return -2;
+        }
+        if (memcmp(prefix, spref, strlen(spref)) == 0) {
+            ccnl_free(spref);
+            ccnl_content_remove(ccnl, c);
+            return 0;
+        }
+        ccnl_free(spref);
+    }
+    return -3;
+}

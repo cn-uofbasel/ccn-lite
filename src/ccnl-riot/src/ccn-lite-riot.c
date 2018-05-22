@@ -450,6 +450,13 @@ void
                 content = (struct ccnl_content_s *)m.content.ptr;
                 ccnl_cs_add(ccnl, content);
                 break;
+            case CCNL_MSG_CS_DEL:
+                DEBUGMSG(VERBOSE, "ccn-lite: CS remove\n");
+                prefix = (char *)m.content.ptr;
+                if (ccnl_cs_remove(ccnl, prefix) < 0) {
+                    DEBUGMSG(WARNING, "removing CS entry failed\n");
+                }
+                break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
                 break;
