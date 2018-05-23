@@ -32,6 +32,9 @@
 #include "ccnl-dispatch.h"
 //#include "ccnl-pkt-builder.h"
 
+#include "evtimer.h"
+#include "evtimer_msg.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,6 +72,13 @@ extern "C" {
 #endif
 
 /**
+ * Interest retransmission interval in milliseconds
+ */
+#ifndef CCNL_INTEREST_RETRANS_TIMEOUT
+#define CCNL_INTEREST_RETRANS_TIMEOUT   (1000)
+#endif
+
+/**
  * @brief Data structure for interest packet
  */
 typedef struct {
@@ -98,6 +108,11 @@ extern kernel_pid_t ccnl_event_loop_pid;
 #define CCNL_MSG_AGEING         (0x1702)
 
 /**
+ * Message type for Interest retransmissions
+ */
+#define CCNL_MSG_INT_RETRANS    (0x1703)
+
+/**
  * Message type for adding content store entries
  */
 #define CCNL_MSG_CS_ADD         (0x1704)
@@ -111,6 +126,11 @@ extern kernel_pid_t ccnl_event_loop_pid;
  * Message type for performing a content store lookup
  */
 #define CCNL_MSG_CS_LOOKUP      (0x1706)
+
+/**
+ * Message type for Interest timeouts
+ */
+#define CCNL_MSG_INT_TIMEOUT    (0x1707)
 
 /**
  * Maximum number of elements that can be cached
@@ -130,6 +150,11 @@ extern kernel_pid_t ccnl_event_loop_pid;
  * Struct holding CCN-Lite's central relay information
  */
 extern struct ccnl_relay_s ccnl_relay;
+
+/**
+ * Struct Evtimer for various ccnl events
+ */
+extern evtimer_msg_t ccnl_evtimer;
 
 /**
  * @brief Function pointer type for caching strategy function
@@ -244,6 +269,34 @@ static inline struct ccnl_content_s *ccnl_msg_cs_lookup(struct ccnl_prefix_s *pr
     msg_t mr, ms = { .type = CCNL_MSG_CS_LOOKUP, .content.ptr = prefix };
     msg_send_receive(&ms, &mr, ccnl_event_loop_pid);
     return (struct ccnl_content_s *) mr.content.ptr;
+}
+
+/**
+ * @brief Reset Interest retransmissions
+ *
+ * @param[in] i         The interest to update
+ */
+static inline void ccnl_evtimer_reset_interest_retrans(struct ccnl_interest_s *i)
+{
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&i->evtmsg_retrans);
+    i->evtmsg_retrans.msg.type = CCNL_MSG_INT_RETRANS;
+    i->evtmsg_retrans.msg.content.ptr = i;
+    ((evtimer_event_t *)&i->evtmsg_retrans)->offset = CCNL_INTEREST_RETRANS_TIMEOUT;
+    evtimer_add_msg(&ccnl_evtimer, &i->evtmsg_retrans, ccnl_event_loop_pid);
+}
+
+/**
+ * @brief Reset Interest timeout
+ *
+ * @param[in] i         The interest to update
+ */
+static inline void ccnl_evtimer_reset_interest_timeout(struct ccnl_interest_s *i)
+{
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&i->evtmsg_timeout);
+    i->evtmsg_timeout.msg.type = CCNL_MSG_INT_TIMEOUT;
+    i->evtmsg_timeout.msg.content.ptr = i;
+    ((evtimer_event_t *)&i->evtmsg_timeout)->offset = i->lifetime * 1000; // ms
+    evtimer_add_msg(&ccnl_evtimer, &i->evtmsg_timeout, ccnl_event_loop_pid);
 }
 
 #ifdef __cplusplus
