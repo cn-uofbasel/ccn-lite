@@ -25,6 +25,10 @@
 
 #include "ccnl-sockunion.h"
 
+#ifdef CCNL_RIOT
+#include "evtimer_msg.h"
+#endif
+
 struct ccnl_face_s {
     struct ccnl_face_s *next, *prev;
     int faceid;
@@ -35,6 +39,9 @@ struct ccnl_face_s {
     struct ccnl_buf_s *outq, *outqend; // queue of packets to send
     struct ccnl_frag_s *frag;  // which special datagram armoring
     struct ccnl_sched_s *sched;
+#ifdef CCNL_RIOT
+    evtimer_msg_event_t evtmsg_timeout;
+#endif
 };
 
 void

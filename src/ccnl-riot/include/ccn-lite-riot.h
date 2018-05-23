@@ -133,6 +133,11 @@ extern kernel_pid_t ccnl_event_loop_pid;
 #define CCNL_MSG_INT_TIMEOUT    (0x1707)
 
 /**
+ * Message type for Face timeouts
+ */
+#define CCNL_MSG_FACE_TIMEOUT   (0x1708)
+
+/**
  * Maximum number of elements that can be cached
  */
 #ifndef CCNL_CACHE_SIZE
@@ -297,6 +302,20 @@ static inline void ccnl_evtimer_reset_interest_timeout(struct ccnl_interest_s *i
     i->evtmsg_timeout.msg.content.ptr = i;
     ((evtimer_event_t *)&i->evtmsg_timeout)->offset = i->lifetime * 1000; // ms
     evtimer_add_msg(&ccnl_evtimer, &i->evtmsg_timeout, ccnl_event_loop_pid);
+}
+
+/**
+ * @brief Reset Face timeout
+ *
+ * @param[in] f         The face to update
+ */
+static inline void ccnl_evtimer_reset_face_timeout(struct ccnl_face_s *f)
+{
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&f->evtmsg_timeout);
+    f->evtmsg_timeout.msg.type = CCNL_MSG_FACE_TIMEOUT;
+    f->evtmsg_timeout.msg.content.ptr = f;
+    ((evtimer_event_t *)&f->evtmsg_timeout)->offset = CCNL_FACE_TIMEOUT * 1000; // ms
+    evtimer_add_msg(&ccnl_evtimer, &f->evtmsg_timeout, ccnl_event_loop_pid);
 }
 
 #ifdef __cplusplus
