@@ -87,24 +87,6 @@ evtimer_msg_t ccnl_evtimer;
 #include "ccnl-core.h"
 
 /**
- * @brief function prototypes required by ccnl-core.c
- * @{
- */
-//void ccnl_pkt_free(struct ccnl_pkt_s *pkt);
-
-struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
-                     struct ccnl_interest_s *i);
-int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-char* ccnl_addr2ascii(sockunion *su);
-void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
-const char* ccnl_suite2str(int suite);
-bool ccnl_isSuite(int suite);
-
-/**
- * @}
- */
-
-/**
  * @brief Central relay information
  */
 struct ccnl_relay_s ccnl_relay;
@@ -146,32 +128,6 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
  * @brief netreg entry for CCN-Lite packets
  */
 static gnrc_netreg_entry_t _ccnl_ne;
-
-/**
- * @brief Some function pointers
- * @{
- */
-
-extern int ccnl_isContent(unsigned char *buf, int len, int suite);
-
-/**
- * @}
- */
-
-// ----------------------------------------------------------------------
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(struct ccnl_buf_s) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
 
 /* add a netif to CCN-lite's interfaces, set the nettype, and register a receiver */
 int
