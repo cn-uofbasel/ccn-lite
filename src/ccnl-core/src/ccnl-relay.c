@@ -61,6 +61,9 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
         if (ifndx != -1 && (f->ifndx == ifndx) &&
             !ccnl_addr_cmp(&f->peer, (sockunion*)sa)) {
             f->last_used = CCNL_NOW();
+#ifdef CCNL_RIOT
+            ccnl_evtimer_reset_face_timeout(f);
+#endif
             return f;
         }
     }
@@ -102,6 +105,11 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
     DBL_LINKED_LIST_ADD(ccnl->faces, f);
 
     TRACEOUT();
+
+#ifdef CCNL_RIOT
+    ccnl_evtimer_reset_face_timeout(f);
+#endif
+
     return f;
 }
 

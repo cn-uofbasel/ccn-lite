@@ -366,6 +366,7 @@ void
     struct ccnl_pkt_s *pkt;
     struct ccnl_prefix_s *prefix;
     struct ccnl_interest_s *ccnl_int;
+    struct ccnl_face_s *face;
     char *spref;
 
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
@@ -437,6 +438,13 @@ void
             case CCNL_MSG_INT_TIMEOUT:
                 ccnl_int = (struct ccnl_interest_s *)m.content.ptr;
                 ccnl_interest_remove(ccnl, ccnl_int);
+                break;
+            case CCNL_MSG_FACE_TIMEOUT:
+                face = (struct ccnl_face_s *)m.content.ptr;
+                if (face &&
+                    !(face->flags & CCNL_FACE_FLAGS_STATIC)) {
+                    ccnl_face_remove(ccnl, face);
+                }
                 break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
