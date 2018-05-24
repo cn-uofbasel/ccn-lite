@@ -344,11 +344,6 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
 
-#ifdef CCNL_RIOT
-    ccnl_evtimer_reset_interest_retrans(i);
-    ccnl_evtimer_reset_interest_timeout(i);
-#endif
-
     return i;
 }
 
@@ -559,6 +554,9 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     ccnl_free(c);
 
     ccnl->contentcnt--;
+#ifdef CCNL_RIOT
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&c->evtmsg_cstimeout);
+#endif
     return c2;
 }
 
@@ -603,6 +601,12 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
          (ccnl->contentcnt <= ccnl->max_cache_entries)) {
             DBL_LINKED_LIST_ADD(ccnl->contents, c);
             ccnl->contentcnt++;
+#ifdef CCNL_RIOT
+            /* set cache timeout timer if content is not static */
+            if (!(c->flags & CCNL_CONTENT_FLAGS_STATIC)) {
+                ccnl_evtimer_set_cs_timeout(c);
+            }
+#endif
     }
 
     return c;

@@ -26,6 +26,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef CCNL_RIOT
+#include "evtimer_msg.h"
+#endif
+
 struct ccnl_pkt_s;
 struct ccnl_prefix_s;
 
@@ -45,6 +49,9 @@ struct ccnl_content_s {
 #endif
 
     int served_cnt;
+#ifdef CCNL_RIOT
+    evtimer_msg_event_t evtmsg_cstimeout;
+#endif
 };
 
 struct ccnl_content_s*

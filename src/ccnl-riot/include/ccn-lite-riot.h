@@ -318,6 +318,20 @@ static inline void ccnl_evtimer_reset_face_timeout(struct ccnl_face_s *f)
     evtimer_add_msg(&ccnl_evtimer, &f->evtmsg_timeout, ccnl_event_loop_pid);
 }
 
+/**
+ * @brief Set content timeout
+ *
+ * @param[in] c         The content to timeout
+ */
+static inline void ccnl_evtimer_set_cs_timeout(struct ccnl_content_s *c)
+{
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&c->evtmsg_cstimeout);
+    c->evtmsg_cstimeout.msg.type = CCNL_MSG_CS_DEL;
+    c->evtmsg_cstimeout.msg.content.ptr = c->pkt->pfx;
+    ((evtimer_event_t *)&c->evtmsg_cstimeout)->offset = CCNL_CONTENT_TIMEOUT * 1000; // ms
+    evtimer_add_msg(&ccnl_evtimer, &c->evtmsg_cstimeout, ccnl_event_loop_pid);
+}
+
 #ifdef __cplusplus
 }
 #endif
