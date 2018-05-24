@@ -116,11 +116,6 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *fro
         return -1;
     }
 
-#ifdef CCNL_RIOT
-    ccnl_evtimer_reset_interest_retrans(i);
-    ccnl_evtimer_reset_interest_timeout(i);
-#endif
-
     DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n",
                   (void *) pi, ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
                   (void *) i->pkt->pfx);
