@@ -209,7 +209,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                                                  GNRC_NETTYPE_CCN);
 
                             if (pkt == NULL) {
-                                puts("error: packet buffer full");
+                                printf("error: packet buffer full trying to allocate %d bytes\n", buf->datalen);
                                 return;
                             }
 
@@ -236,7 +236,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 
                             /* check if header building succeeded */
                             if (hdr == NULL) {
-                                puts("error: packet buffer full");
+                                puts("error: packet buffer full trying to allocate netif_hdr");
                                 gnrc_pktbuf_release(pkt);
                                 return;
                             }
