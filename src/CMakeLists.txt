@@ -7,10 +7,6 @@ set(CMAKE_SYSTEM_NAME Generic)
 
 option(BUILD_TESTING "Build the testing tree." ON)
 
-if (BUILD_TESTING)
-    enable_testing()
-endif()
-
 # CCNL flags
 set(CCNL_BASIC_FLAGS
     -DUSE_DEBUG
