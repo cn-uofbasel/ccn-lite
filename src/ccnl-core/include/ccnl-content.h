@@ -33,19 +33,27 @@
 struct ccnl_pkt_s;
 struct ccnl_prefix_s;
 
-struct ccnl_content_s {
-    struct ccnl_content_s *next, *prev;
-    struct ccnl_pkt_s *pkt;
-    unsigned short flags;
-#define CCNL_CONTENT_FLAGS_STATIC  0x01
-#define CCNL_CONTENT_FLAGS_STALE   0x02
+typedef enum ccnl_content_flags_e {
+    CCNL_CONTENT_FLAGS_STATIC = 0x01,
+    CCNL_CONTENT_FLAGS_STALE = 0x02
+} ccnl_content_flags;
+
+/**
+ * @brief Defines 
+ *
+ */
+typedef struct ccnl_content_s {
+    struct ccnl_content_s *next, *prev;  /**< pointers to the previous and the next element in the content store respectively */
+    struct ccnl_pkt_s *pkt;              /**< a byte representation of received content (the actual packet) */
+    ccnl_content_flags flags;            /**< indicates if */
+
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
     uint32_t last_used;
 
 #ifdef USE_SUITE_NDNTLV
-    uint32_t freshnessperiod;
-    bool stale;
+    uint32_t freshnessperiod; /**< defines how long a node has to wait (after the arrival of this data before) marking it “non-fresh”*/
+    bool stale;               /**< indicates if a packet was marked 'non-fresh' -> staled */
 #endif
 
     int served_cnt;
@@ -53,6 +61,7 @@ struct ccnl_content_s {
     evtimer_msg_event_t evtmsg_cstimeout;
 #endif
 };
+} ccnl_content;
 
 struct ccnl_content_s*
 ccnl_content_new(struct ccnl_pkt_s **pkt);
