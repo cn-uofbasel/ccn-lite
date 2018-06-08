@@ -1,6 +1,9 @@
-/*
- * @f ccnl-content.h
- * @b CCN lite, core CCNx protocol logic
+/**
+ * @addtogroup CCNL-core
+ * @{
+ *
+ * @file ccnl-content.h
+ * @brief CCN lite, core CCNx content store definition and helper functions 
  *
  * Copyright (C) 2011-18 University of Basel
  *
@@ -15,9 +18,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-16 created
  */
 
 #ifndef CCNL_CONTENT_H
@@ -33,33 +33,65 @@
 struct ccnl_pkt_s;
 struct ccnl_prefix_s;
 
-struct ccnl_content_s {
-    struct ccnl_content_s *next, *prev;
-    struct ccnl_pkt_s *pkt;
-    unsigned short flags;
-#define CCNL_CONTENT_FLAGS_STATIC  0x01
-#define CCNL_CONTENT_FLAGS_STALE   0x02
+/**
+ * @brief Defines if content added to the content store is
+ * static or stale.
+ */
+typedef enum ccnl_content_flags_e {
+    CCNL_CONTENT_FLAGS_STATIC = 0x01,   /**< content is static */
+    CCNL_CONTENT_FLAGS_STALE = 0x02,    /**< content is stale */
+    CCNL_CONTENT_DO_NOT_USE = UINT8_MAX /**< for internal use only, sets the width of the enum to sizeof(uint8_t) */
+} ccnl_content_flags;
+
+/**
+ * @brief Defines an entry in the content store.
+ *
+ * The content store is implemented as linked list and stores the
+ * full byte representation (the packet) of an content object 
+ * (and not just the content itself).
+ */
+typedef struct ccnl_content_s {
+    struct ccnl_content_s *next;          /**< pointer to the next element in the content store */
+    struct ccnl_content_s *prev;          /**< pointer to the previous element in the content store */
+    struct ccnl_pkt_s *pkt;               /**< a byte representation of received content (the actual packet) */
+    ccnl_content_flags flags;             /**< indicates if content is marked static or stale */
+
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
-    uint32_t last_used;
+
+    uint32_t last_used;                   /**< indicates when the stored content was last used */
 
 #ifdef USE_SUITE_NDNTLV
-    uint32_t freshnessperiod;
-    bool stale;
+    uint32_t freshnessperiod;             /**< defines how long a node has to wait (after the arrival of this data before) marking it “non-fresh”*/
+    bool stale;                           /**< indicates if a packet was marked 'non-fresh' -> staled */
 #endif
 
-    int served_cnt;
 #ifdef CCNL_RIOT
-    evtimer_msg_event_t evtmsg_cstimeout;
+    evtimer_msg_event_t evtmsg_cstimeout; /**< event timer message which is triggered when a timeout in the content store occurs */
 #endif
-};
+    int served_cnt;                       /**< determines how often the content has been served */
+} ccnl_content;
 
+/**
+ * @brief Wraps a \p packet into a \ref ccnl_content data structure
+ * 
+ * The function does not add the packet to the content store! 
+ *
+ * @param[in] packet The packet to be wrapped into a \ref ccnl_content data structure
+ * 
+ * @return Upon success, the \p packet wrapped into a \ref ccnl_content data structure
+ * @return NULL if the operation fails
+ */
 struct ccnl_content_s*
-ccnl_content_new(struct ccnl_pkt_s **pkt);
+ccnl_content_new(struct ccnl_pkt_s **packet);
 
+/**
+ * @brief Frees a \p content object.
+
+ * @param[in] content The content object which will be freed 
+ */
 void
 ccnl_content_free(struct ccnl_content_s *content);
 
-
-
 #endif // EOF
+/** @} */
