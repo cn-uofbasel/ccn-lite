@@ -119,7 +119,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     // CONFORM: Step 1:
     for (c = relay->contents; c; c = c->next) {
-        if (buf_equal(c->pkt->buf, (*pkt)->buf)) {
+        if (ccnl_prefix_cmp(c->pkt->pfx, NULL, (*pkt)->pfx, CMP_EXACT) == 0) {
             DEBUGMSG_CFWD(TRACE, "  content is duplicate, ignoring\n");
             return 0; // content is dup, do nothing
         }
