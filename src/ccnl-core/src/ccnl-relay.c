@@ -344,6 +344,11 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
 
+#ifdef CCNL_RIOT
+    ccnl_evtimer_reset_interest_retrans(i);
+    ccnl_evtimer_reset_interest_timeout(i);
+#endif
+
     return i;
 }
 
