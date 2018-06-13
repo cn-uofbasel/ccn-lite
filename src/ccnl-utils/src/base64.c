@@ -1,10 +1,8 @@
 // base64.c
 // from stackoverflow.com, user RYYST
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdint.h>
+
+#include "base64.h"
 
 static char
 encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -37,8 +35,13 @@ char
     *output_length = 4 * ((input_length + 2) / 3) + 1;
 
     char *encoded_data = (char *) malloc(*output_length);
-    memset(encoded_data, '\0', *output_length);
-    if (encoded_data == NULL) return NULL;
+
+    if (encoded_data == NULL) {
+        return NULL;
+    } else { 
+        memset(encoded_data, '\0', *output_length);
+    }
+
     int i, j;
     for (i = 0, j = 0; (unsigned int) i < input_length;) {
 
@@ -99,7 +102,9 @@ unsigned char
 
 void
 base64_cleanup(void) {
-    free(decoding_table);
+    /** only free the table if it has been allocated before */
+    if (decoding_table != NULL) { 
+        free(decoding_table);
+    }
 }
 
-// eof

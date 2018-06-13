@@ -21,7 +21,7 @@
  */
 
 
-#include "ccnl-common.c"
+#include "ccnl-common.h"
 #include "ccnl-nfn-parse.h"
 
 int

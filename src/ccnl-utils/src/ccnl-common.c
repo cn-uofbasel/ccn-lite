@@ -55,7 +55,8 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 
-#include "base64.c"
+#include "base64.h"
+//#include "base64.c"
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"

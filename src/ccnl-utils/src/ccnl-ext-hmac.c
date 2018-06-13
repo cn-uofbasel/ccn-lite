@@ -19,14 +19,7 @@
  * File history:
  * 2015-05-08 created
  */
-
-
-#include "ccnl-pkt-ccnb.h"
-#include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-localrpc.h"
-#include "ccnl-pkt-ndntlv.h"
-#include "ccnl-pkt-switch.h"
-#include "lib-sha256.c"
+#include "ccnl-ext-hmac.h"
 
 #ifdef USE_HMAC256
 
