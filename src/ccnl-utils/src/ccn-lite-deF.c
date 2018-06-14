@@ -20,7 +20,7 @@
  * 2013-07-06  created
  */
 
-#include "ccnl-common.c"
+#include "ccnl-common.h"
 #include "ccnl-frag.h"
 
 // ----------------------------------------------------------------------

@@ -21,7 +21,7 @@
  * 2014-06-18  added NDNTLV support
  */
 
-#include "ccnl-common.c"
+#include "ccnl-common.h"
 #include <unistd.h>
 #ifndef assert
 #define assert(...) do {} while(0)

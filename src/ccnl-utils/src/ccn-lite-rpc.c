@@ -20,7 +20,7 @@
  * 2014-05-11  created
  */
 
-#include "ccnl-common.c"
+#include "ccnl-common.h"
 
 /*
   use examples:

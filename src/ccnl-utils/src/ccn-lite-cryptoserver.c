@@ -21,8 +21,8 @@
  */
 
 
-#include "ccnl-common.c"
-#include "ccnl-crypto.c"
+#include "ccnl-common.h"
+#include "ccnl-crypto.h"
 
 // ----------------------------------------------------------------------
 

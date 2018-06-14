@@ -36,6 +36,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "ccnl-defs.h"
+#include "ccnl-socket.h"
+
 char *unix_path;
 
 void

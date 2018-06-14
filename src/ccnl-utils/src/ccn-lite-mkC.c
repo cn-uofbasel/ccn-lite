@@ -23,10 +23,10 @@
 
 //#define NEEDS_PACKET_CRAFTING
 
-#include "ccnl-common.c"
-#include "ccnl-crypto.c"
+#include "ccnl-common.h"
+#include "ccnl-crypto.h"
 #include "ccnl-pkt-ndntlv.h"
-#include "ccnl-ext-hmac.c"
+#include "ccnl-ext-hmac.h"
 
 
 // ----------------------------------------------------------------------

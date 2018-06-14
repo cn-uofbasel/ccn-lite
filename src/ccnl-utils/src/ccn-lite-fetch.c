@@ -23,7 +23,10 @@
 
 //#define NEEDS_PACKET_CRAFTING
 
-#include "ccnl-common.c"
+#include "ccnl-common.h"
+
+#include <stdlib.h>
+
 //#include "ccnl-socket.c"
 
 // ----------------------------------------------------------------------

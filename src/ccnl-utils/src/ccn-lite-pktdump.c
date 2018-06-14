@@ -22,9 +22,8 @@
  *
  */
 
-
-
-#include "ccnl-common.c"
+#include "base64.h"
+#include "ccnl-common.h"
 
 // ----------------------------------------------------------------------
 
