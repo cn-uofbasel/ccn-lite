@@ -228,6 +228,13 @@ Tool                           | Description
 
 <a name="changelog"></a>
 ## 8. Changelog
+### [Release 2.0.1 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.1) (Jun 2018)
+
+ - Last NFN Release, further versions will not contain NFN, see [FAQ](https://github.com/cn-uofbasel/ccn-lite/wiki/Frequently-asked-questions)
+ - Add: Documentation
+ - Bugfixes
+ - CVE patches
+ - Removed unused IOTTLV and CISTLV Packet formats.
 
 ### [Release 2.0.0 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.0) (Nov 2017)
 
@@ -262,6 +269,19 @@ Tool                           | Description
 
 <a name="credits"></a>
 ## 9. Credits
+### [Release 2.0.1 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.1) (Jun 2018)
+
+#### Code contributions:
+Michael Frey (MSA Safety)     
+Cenk Gündogan (HAW Hamburg)    
+Eric Sesterhenn (X41-DSec)    
+Peter Kietzmann (HAW Hamburg)    
+Martine Lenders (FU Berlin)    
+Claudio Marxer (Uni Basel)     
+Dima Mansour (Uni Basel)    
+Urs Schnurrenberger (Uni Basel)    
+Christian Tschudin (Uni Basel)    
+Christopher Scherb (Uni Basel)    
 
 ### [Release 2.0.0 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.0) (Nov 2017)
 
