@@ -39,28 +39,3 @@ check-ccn-lite() {
     check-binary-exists "$relay" "Cannot find binary '$relay', please run 'make clean all' in \$CCNL_HOME/src."
 }
 
-check-ccn-nfn() {
-    local relay="ccn-nfn-relay"
-    check-binary-exists "$relay" "Cannot find binary '$relay', please run 'make clean all USE_NFN=1' in \$CCNL_HOME/src."
-}
-
-check-nfn() {
-    local nfnFile="$1"
-
-    if [ ! -f "$nfnFile" ]; then
-        printf "%-47s [..]" "Info: cannot find NFN binary, downloading"
-        wget -O "$nfnFile" https://github.com/cn-uofbasel/nfn-scala/releases/download/0.2.1/nfn-assembly-0.2.1.jar > /tmp/nfn-download-jar.log 2>&1
-        if [ $? -ne 0 ]; then
-            print-back 8
-            echo $'[\e[1;31mfailed\e[0;0m]'
-            echo "\$ cat /tmp/nfn-download-jar.log"
-            cat /tmp/nfn-download-jar.log
-            echo ""
-            echo "Please download the NFN binary from 'https://github.com/cn-uofbasel/nfn-scala/releases' and save it in '\$CCNL_HOME/test/scripts/nfn'"
-            exit 1
-        else
-            print-back 6
-            echo $'[\e[1;32mdone\e[0;0m]'
-        fi
-    fi
-}

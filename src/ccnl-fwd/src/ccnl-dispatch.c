@@ -22,9 +22,6 @@
 #include "ccnl-dispatch.h"
 
 #include "ccnl-os-time.h"
-#ifdef USE_NFN
-#include "ccnl-nfn.h"
-#endif
 
 #include "ccnl-localrpc.h"
 
@@ -120,9 +117,5 @@ ccnl_core_init(void)
 #ifdef USE_SUITE_NDNTLV
     ccnl_core_suites[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder;
     ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
-#endif
-
-#ifdef USE_NFN
-    ZAM_init();
 #endif
 }

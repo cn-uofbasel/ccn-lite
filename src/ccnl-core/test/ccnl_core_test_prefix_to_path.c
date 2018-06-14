@@ -22,31 +22,7 @@ int ccnl_test_prepare_prefix_to_path_1(void **prefix, void **out){
     p->comp[2] = (unsigned char*)"data";
     p->complen[2] = 4;
 
-    p->nfnflags = 0;
-
     *out = "/path/to/data";
-    return 1;
-}
-
-int ccnl_test_prepare_prefix_to_path_2(void **prefix, void **out){
-    *prefix = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-    struct ccnl_prefix_s *p = *prefix;
-    p->compcnt = 4;
-    p->comp = ccnl_malloc(sizeof(char*) * p->compcnt);
-    p->complen = ccnl_malloc(sizeof(int) * p->compcnt);
-    p->comp[0] = (unsigned char*)"path";
-    p->complen[0] = 4;
-    p->comp[1] = (unsigned char*)"to";
-    p->complen[1] = 2;
-    p->comp[2] = (unsigned char*)"data";
-    p->complen[2] = 4;
-    p->comp[3] = (unsigned char*)"(@x call 2 /fun/func x)";
-    p->complen[3] = strlen((const char *)p->comp[3]);
-
-    p->nfnflags = 0;
-    p->nfnflags |= 0x01;
-
-    *out = (unsigned char*)"nfn[/path/to/data/(@x call 2 /fun/func x)]";
     return 1;
 }
 
@@ -76,10 +52,5 @@ int main(){
     res = RUN_TEST(testnum, "testing prefix to path function", ccnl_test_prepare_prefix_to_path_1, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p1, str);
     if(!res) return -1;
 
-    ++testnum;
-    res = RUN_TEST(testnum, "testing prefix to path function for nfn", ccnl_test_prepare_prefix_to_path_2, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p1, str);
-    if(!res) return -1;
-
     return 0;
-
 }

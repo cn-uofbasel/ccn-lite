@@ -26,7 +26,6 @@
 #ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-core.h"
-#include "ccnl-nfn-requests.h"
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
@@ -181,24 +180,6 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             }
             p->namelen = *data - p->nameptr;
             DEBUGMSG(DEBUG, "  check interest type\n");
-#ifdef USE_NFN
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
-                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
-                p->nfnflags |= CCNL_PREFIX_NFN;
-                p->compcnt--;
-                DEBUGMSG(DEBUG, "  is NFN interest\n");
-            }
-
-#ifdef USE_NFN_REQUESTS
-            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 &&
-                !memcmp(p->comp[p->compcnt-2], "R2C", 3)) {
-                p->nfnflags |= CCNL_PREFIX_REQUEST;
-                p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-                p->compcnt -= 2;
-                DEBUGMSG(DEBUG, "  is NFN REQUEST interest\n");
-            }
-#endif // USE_NFN_REQUESTS
-#endif // USE_NFN
             break;
         case NDN_TLV_Selectors:
             while (len2 > 0) {
@@ -477,39 +458,6 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
             return -1;
     }
 
-#ifdef USE_NFN
-    if (name->nfnflags & CCNL_PREFIX_NFN) {
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                (unsigned char*) "NFN", 3, offset, buf) < 0)
-            return -1;
-    }
-// #ifdef USE_TIMEOUT_KEEPALIVE
-//     if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
-//         char internum[16];
-//         snprintf(internum, 16, "%d", name->internum);
-//         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-//                                 (unsigned char*) internum, strlen(internum), offset, buf) < 0)
-//             return -1;
-//         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-//                                 (unsigned char*) "INTERMEDIATE", 12, offset, buf) < 0)
-//             return -1;
-//     }
-// #endif
-#ifdef USE_NFN_REQUESTS
-    if (name->nfnflags & CCNL_PREFIX_REQUEST) {
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                    (unsigned char*) name->request->comp,
-                                    name->request->complen, offset, buf) < 0)
-            return -1;
-        // if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-        //                         (unsigned char*) "STOP", 4, offset, buf) < 0)
-        //     return -1;
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                    (unsigned char*) "R2C", 3, offset, buf) < 0)
-            return -1;
-    }
-#endif
-#endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, name->comp[cnt],
                                     name->complen[cnt], offset, buf) < 0)

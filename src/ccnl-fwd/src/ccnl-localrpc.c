@@ -83,18 +83,6 @@ static const char *compile_string = ""
 #ifdef USE_MGMT
         "MGMT, "
 #endif
-#ifdef USE_NACK
-        "NACK, "
-#endif
-#ifdef USE_NFN
-        "NFN, "
-#endif
-#ifdef USE_NFN_MONITOR
-        "NFN_MONITOR, "
-#endif
-#ifdef USE_NFN_NSTRANS
-        "NFN_NSTRANS, "
-#endif
 #ifdef USE_SCHEDULER
         "SCHEDULER, "
 #endif
@@ -353,7 +341,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         p = ccnl_malloc(param->u.strlen + 1);
         memcpy(p, param->aux, param->u.strlen);
         p[param->u.strlen] = '\0';
-        prefix = ccnl_URItoPrefix(p, CCNL_SUITE_DEFAULT, NULL, NULL);
+        prefix = ccnl_URItoPrefix(p, CCNL_SUITE_DEFAULT, NULL);
 
         while (c) {
             if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, prefix, CMP_EXACT)) {

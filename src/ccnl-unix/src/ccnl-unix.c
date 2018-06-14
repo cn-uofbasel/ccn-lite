@@ -36,8 +36,6 @@
 #include "ccnl-http-status.h"
 #endif
 
-#include "ccnl-nfn.h"
-
 /**
  * TODO: The variables are never updated within the context of
  * ccnl_unix.c
@@ -496,11 +494,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
         relay->http = ccnl_http_new(relay, httpport);
     }
 #endif // USE_HTTP_STATUS
-
-#ifdef USE_NFN
-    relay->km = ccnl_calloc(1, sizeof(struct ccnl_krivine_s));
-    relay->km->configid = -1;
-#endif
 
 #ifdef USE_UNIXSOCKET
     if (uxpath) {

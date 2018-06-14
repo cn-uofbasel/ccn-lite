@@ -32,8 +32,6 @@
 #define USE_LOGGING
 #define USE_IPV4
 //#define USE_MGMT
-#undef USE_NFN
-#undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
 // #define USE_SIGNATURES
 #define USE_SUITE_CCNB          // must select this for USE_MGMT
@@ -82,7 +80,6 @@
 #include <ccnl-defs.h>
 #include <ccnl-frag.h>
 #include <ccnl-mgmt.h>
-//#include <ccnl-nfn.h>
 #include <ccnl-crypto.h>
 #include <ccnl-os-time.h>
 #include <ccnl-logging.h>

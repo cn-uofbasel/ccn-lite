@@ -108,7 +108,7 @@ main(int argc, char *argv[])
         /* falls through */
         default:
 Usage:
-            fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+            fprintf(stderr, "usage: %s [options] URI\n"
             "  -a LEN     miN additional components\n"
             "  -c SCOPE\n"
 
@@ -139,7 +139,6 @@ Usage:
     */
     prefix = ccnl_URItoPrefix(argv[optind],
                               packettype,
-                              argv[optind+1],
                               chunknum == UINT_MAX ? NULL : &chunknum);
     if (!prefix) {
         DEBUGMSG(ERROR, "no URI found, aborting\n");

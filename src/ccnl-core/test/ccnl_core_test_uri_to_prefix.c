@@ -15,7 +15,7 @@ int ccnl_test_prepare_uri_to_prefix(void **cmpstr, void **prefix){
     char *c = ccnl_malloc(100);
     strcpy(*cmpstr, "/path/to/data");
     strcpy(c, "/path/to/data");
-    *prefix = ccnl_URItoPrefix(c, uri_to_prefix_suite, NULL, NULL);
+    *prefix = ccnl_URItoPrefix(c, uri_to_prefix_suite, NULL);
 
 
     return 1;
@@ -44,7 +44,7 @@ int ccnl_test_prepare_AppendCmpToPrefix(void **cmpstr, void **prefix){
     char *c = ccnl_malloc(100);
     strcpy(*cmpstr, "/path/to/data/cmp");
     strcpy(c, "/path/to/data");
-    *prefix = ccnl_URItoPrefix(c, uri_to_prefix_suite, NULL, NULL);
+    *prefix = ccnl_URItoPrefix(c, uri_to_prefix_suite, NULL);
 
 
     return 1;

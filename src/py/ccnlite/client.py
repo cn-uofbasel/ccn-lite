@@ -99,32 +99,6 @@ class Access:
         name = util.str2lci(lci)
         return self._getLabeledX(name, callback, maxchunktime, raw=raw)
 
-    def getLabeledResult(self, nfnlocator, expression, callback=None,
-                         maxTotalTime=9000, maxchunktime=1.5):
-        '''
-	Interests sent to this server may have one of the following
-        name formats:
-        nfnlocator=|<path1>|...|<pathn>|
-	(1) |<path1>|...|<pathn>|call m module.function <data1> ... <datam>|NFN
-		where m equals the number of parameters to the function
-		and <data1> ... <datam> specify the paths to the needed data objects
-	(2) |<path1>|...|<pathn>|<component>|NFN
-		where <component> may be
-		- a function call without parameters: module.function()
-		- a function call taking parameters: module.function(<component>,...<component>)
-		- a name of a data object
-		which allows composition of functions, e.g. module.functionA(<data1>, module.functionB(<data2>), <data3>)
-        '''
-        if nfnlocator:
-            name = util.str2lci(nfnlocator)
-        else:
-            name = []
-        if expression:
-            name.append(expression)
-        name.append("NFN");
-#        print name
-        return self._getLabeledX(name, callback, maxchunktime, raw=True)
-
 # eof
    
     

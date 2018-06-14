@@ -33,13 +33,11 @@
 
 int
 ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
-                              char* nfnexpr,
                               unsigned int *chunknum,
                               int suite,
                               unsigned char *out, int out_len,
                               int *len,
                               float wait, int sock, struct sockaddr sa) {
-    (void) nfnexpr;
     (void) chunknum;
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB) {
@@ -264,12 +262,6 @@ usage:
 
     char *url = argv[optind];
 
-    char *nfnexpr = 0;
-
-    if (argv[optind+1]) {
-        nfnexpr = argv[optind+1];
-    }
-
     unsigned char *content = 0;
     int contlen;
 
@@ -282,7 +274,7 @@ usage:
         *curchunknum = 0;
     }
 
-    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(url, suite, nfnexpr, curchunknum);
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(url, suite, curchunknum);
 
 
     const int maxretry = 3;
@@ -303,7 +295,6 @@ usage:
 
         // Fetch chunk
         if (ccnl_fetchContentForChunkName(prefix,
-                                          nfnexpr,
                                           curchunknum,
                                           suite,
                                           out, sizeof(out),

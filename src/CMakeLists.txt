@@ -71,15 +71,6 @@ if (NOT DEFINED CCNL_RIOT)
 endif()
 add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 
-# NFN flags
-set(CCNL_NFN_FLAGS
-    -DUSE_NFN
-    -DUSE_NFN_REQUESTS
-#    -DUSE_NFN_NSTRANS
-    CACHE PATH
-    "NFN flags for CCN-lite"
-)
-
 if(DEFINED CCNL_RIOT)
     set(CCNL_RIOT_FLAGS
         -DCCNL_APP_RX
@@ -92,7 +83,6 @@ if(DEFINED CCNL_RIOT)
 endif()
 
 if (NOT DEFINED CCNL_RIOT)
-    add_definitions(${CCNL_NFN_FLAGS})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g -pedantic") #TODO: add -fsanitize=address
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g")
@@ -119,7 +109,6 @@ if (NOT DEFINED CCNL_LINUXKERNEL)
         add_subdirectory(ccnl-unix)
         add_subdirectory(ccnl-relay)
         add_subdirectory(ccnl-utils)
-        add_subdirectory(ccnl-nfn)
     endif()
 endif()
 if (DEFINED CCNL_RIOT)
@@ -132,7 +121,7 @@ endif()
 
 if (NOT DEFINED CCNL_LINUXKERNEL)
 if (NOT DEFINED CCNL_RIOT)
-    add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+    add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix)
 endif()
 endif()
 
@@ -153,5 +142,4 @@ endif()
 
 # unused:
 set(CCNL_DISABLED_FLAGS "USE_LINKLAYER USE_DEBUG USE_DEBUG_MALLOC USE_FRAG
-						USE_NACK USE_NFN USE_NFN_MONITOR USE_NFN_KEEPALIVE
-						USE_NFN_PULL USE_SCHEDULER USE_SIGNATURES")
+						USE_SCHEDULER USE_SIGNATURES")

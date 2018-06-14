@@ -294,11 +294,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
     }
 #endif // USE_HTTP_STATUS
 
-#ifdef USE_NFN
-    relay->km = ccnl_calloc(1, sizeof(struct ccnl_krivine_s));
-    relay->km->configid = -1;
-#endif
-
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
@@ -663,12 +658,12 @@ ccnl_android_init()
 #ifdef USE_ECHO
 #ifdef USE_SUITE_CCNTLV
     strcpy(hello, echopath);
-    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
+    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, &dummy);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV
     strcpy(hello, echopath);
-    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL, NULL);
+    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #endif // USE_ECHO

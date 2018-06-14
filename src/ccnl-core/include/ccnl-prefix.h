@@ -40,18 +40,6 @@ struct ccnl_prefix_s {
     ssize_t namelen; /**<  valid length of name memory */
     unsigned char *bytes;   /**< memory for name component copies */
     int *chunknum;   /**< if defined, number of the chunk else -1 */
-#ifdef USE_NFN
-    unsigned int nfnflags; /**< if defined, flags for nfn */
-#  define CCNL_PREFIX_NFN   0x01
-#  define CCNL_PREFIX_COMPU 0x04
-// FIXME: these values need to be compiled conditionally
-# define CCNL_PREFIX_REQUEST 0x20
-#ifdef USE_NFN_REQUESTS
-    struct nfn_request_s *request; /**< if nfn request, information about the nfn request (R2C) */
-#endif
-
-    unsigned char *nfnexpr; /**< if nfn request, contains nfn expression */
-#endif
 };
 
 /**
@@ -157,13 +145,12 @@ unescape_component(char *comp);
  *
  * @param[in] URI       The uri that should be transformed, components separated by '/'
  * @param[in] suite     Packet format of the prefix, that should be created
- * @param[in] nfnexpr   If prefix is a NFN expression, this parameter contains the NFN computation
  * @param[in] chunknum  If prefix is part of a chunked data file, this contains the chunknumber
  *
  * @return The prefix datastruct that was created
 */
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum);
+ccnl_URItoPrefix(char* uri, int suite, unsigned int *chunknum);
 
 /**
  * @brief Transforms a URI to a list of strings 
