@@ -1,31 +1,8 @@
-/*
- * @f ccnl-ext-hmac.c
- * @b HMAC-256 signing support
- *
- * Copyright (C) 2015 <christian.tschudin@unibas.ch>
- *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2015-05-08 created
- */
 #include "ccnl-ext-hmac.h"
 
 #ifdef USE_HMAC256
 
-
-
-// RFC2014 keyval generation
+// RFC2104 keyval generation
 void
 ccnl_hmac256_keyval(unsigned char *key, int klen,
                     unsigned char *keyval) // MUST have 64 bytes (BLOCK_LENGTH)
@@ -85,7 +62,7 @@ ccnl_hmac256_keysetup(SHA256_CTX_t *ctx, unsigned char *keyval, int kvlen,
     ccnl_SHA256_Update(ctx, buf, sizeof(buf));
 }
 
-// RFC2014 signature generation
+// RFC2104 signature generation
 void
 ccnl_hmac256_sign(unsigned char *keyval, int kvlen,
                   unsigned char *data, int dlen,
