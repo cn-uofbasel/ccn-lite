@@ -64,6 +64,7 @@ void*
 debug_calloc(size_t n, size_t s, const char *fn, int lno, char *tstamp)
 #endif
 {
+    /** TODO: potential integer overflow by n * z operation */
     void *p = debug_malloc(n * s, fn, lno, tstamp);
     if (p)
         memset(p, 0, n*s);
