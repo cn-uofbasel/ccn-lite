@@ -110,7 +110,7 @@ debug_memdump(void)
         CONSOLE(":%d @%d.%03d\n", h->lineno,
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
 #else
-        CONSOLE("addr %p %5d Bytes, %s:%d @%s\n",
+        CONSOLE("addr %p %lu Bytes, %s:%d @%s\n",
                 (void *)(h + sizeof(struct mhdr)),
                 h->size, getBaseName(h->fname), h->lineno, h->tstamp);
 #endif

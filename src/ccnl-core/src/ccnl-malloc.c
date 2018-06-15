@@ -27,10 +27,10 @@
 
 #ifdef CCNL_ARDUINO
 void*
-debug_malloc(int s, const char *fn, int lno, double tstamp)
+debug_malloc(size_t s, const char *fn, int lno, double tstamp)
 #else
 void*
-debug_malloc(int s, const char *fn, int lno, char *tstamp)
+debug_malloc(size_t s, const char *fn, int lno, char *tstamp)
 #endif
 {
     struct mhdr *h = (struct mhdr *) malloc(s + sizeof(struct mhdr));
@@ -58,12 +58,13 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
 
 #ifdef CCNL_ARDUINO
 void*
-debug_calloc(int n, int s, const char *fn, int lno, double tstamp)
+debug_calloc(size_t n, size_t s, const char *fn, int lno, double tstamp)
 #else
 void*
-debug_calloc(int n, int s, const char *fn, int lno, char *tstamp)
+debug_calloc(size_t n, size_t s, const char *fn, int lno, char *tstamp)
 #endif
 {
+    /** TODO: potential integer overflow by n * z operation */
     void *p = debug_malloc(n * s, fn, lno, tstamp);
     if (p)
         memset(p, 0, n*s);
@@ -87,7 +88,7 @@ debug_unlink(struct mhdr *hdr)
 }
 
 void*
-debug_realloc(void *p, int s, const char *fn, int lno)
+debug_realloc(void *p, size_t s, const char *fn, int lno)
 {
     struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
 
