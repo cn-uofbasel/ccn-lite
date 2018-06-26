@@ -3,7 +3,7 @@ project(ccnl-core)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../lib)
 
-include_directories(include ../ccnl-pkt/include ../ccnl-unix/include ../ccnl-fwd/include ../ccnl-test/include)
+include_directories(include ../ccnl-pkt/include ../ccnl-unix/include ../ccnl-fwd/include ../ccnl-test/include ../ccnl-utils/include)
 
 if(DEFINED CCNL_RIOT)
     include_directories(include ../ccnl-riot/include)

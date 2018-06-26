@@ -1,8 +1,11 @@
-/*
- * @f ccnl-malloc.h
- * @b CCN lite (CCNL), core header file (internal data structures)
+/**
+ * @addtogroup CCNL-core
+ * @{
  *
- * Copyright (C) 2011-17, University of Basel
+ * @file ccnl-malloc.h
+ * @brief Malloc (re-)definition of CCN-lite
+ *
+ * Copyright (C) 2011-18, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,13 +18,9 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-16 created
  */
-
- #ifndef CCNL_MALLOC_H
- #define CCNL_MALLOC_H
+#ifndef CCNL_MALLOC_H
+#define CCNL_MALLOC_H
 
 #ifndef CCNL_LINUXKERNEL
 #include <stdlib.h>
@@ -34,7 +33,8 @@
 struct mhdr {
     struct mhdr *next;
     char *fname;
-    int lineno, size;
+    int lineno;
+    size_t size;
 #ifdef CCNL_ARDUINO
     double tstamp;
 #else
@@ -46,14 +46,14 @@ struct mhdr {
 
 #ifdef USE_DEBUG_MALLOC
 
-void *debug_realloc(void *p, int s, const char *fn, int lno);
+void *debug_realloc(void *p, size_t s, const char *fn, int lno);
 void debug_free(void *p, const char *fn, int lno);
 
 #ifdef CCNL_ARDUINO
 void*
-debug_malloc(int s, const char *fn, int lno, double tstamp);
+debug_malloc(size_t num, size_t size, const char *fn, int lno, double tstamp);
 void*
-debug_calloc(int n, int s, const char *fn, int lno, double tstamp);
+debug_calloc(size_t num, size_t size, const char *fn, int lno, double tstamp);
 void*
 debug_strdup(const char *s, const char *fn, int lno, double tstamp);
 
@@ -65,9 +65,9 @@ debug_strdup(const char *s, const char *fn, int lno, double tstamp);
 
 #else 
 void*
-debug_malloc(int s, const char *fn, int lno, char *tstamp);
+debug_malloc(size_t s, const char *fn, int lno, char *tstamp);
 void* 
-debug_calloc(int n, int s, const char *fn, int lno, char *tstamp);
+debug_calloc(size_t num, size_t size, const char *fn, int lno, char *tstamp);
 void*
 debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
 
@@ -100,14 +100,23 @@ debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
 #ifdef CCNL_LINUXKERNEL
 
 
+/**
+ * @brief Allocates a block of size bytes of memory, returning a pointer to the beginning of the block.
+ *
+ * @param[in] size Size of the memory block, in bytes
+ *
+ * @return Upon failure, the function returns NULL
+ * @return Upon success, a pointer to the memory block allocated by the function
+ */
 static inline void*
-ccnl_malloc(int s);
+ccnl_malloc(size_t s);
 
 static inline void*
-ccnl_calloc(int n, int s);
+ccnl_calloc(size_t num, size_t size);
 
 static inline void
 ccnl_free(void *ptr);
 #endif
 
-#endif //CCNL_MALLOC_H
+#endif 
+/** @} */
