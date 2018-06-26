@@ -679,7 +679,8 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     fseek(file, 0L, SEEK_END);
     datalen = ftell(file);
     fseek(file, 0L, SEEK_SET);
-    data = (unsigned char *) ccnl_malloc(sizeof(unsigned char)*datalen);
+    data = (unsigned char *) ccnl_malloc(sizeof(unsigned char)*datalen+1);
+    memset(data, 0, sizeof(unsigned char)*datalen+1);
     fread(data, datalen, 1, file);
     fclose(file);
 

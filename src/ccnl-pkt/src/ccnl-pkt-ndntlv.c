@@ -44,7 +44,6 @@
 int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
 {
-
     if (**buf < 253 && *len >= 1) {
         *val = **buf;
         *buf += 1;
