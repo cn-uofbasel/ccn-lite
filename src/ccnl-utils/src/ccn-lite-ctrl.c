@@ -534,7 +534,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char fwdentry[2000];
-    char suite_s[1];
+    char suite_s[2];
     char *cp;
     (void)private_key_path;
 
@@ -576,6 +576,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
     len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
 
     suite_s[0] = suite;
+    suite_s[1] = 0;
     len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s);
     fwdentry[len3++] = 0; // end-of-fwdentry
 
