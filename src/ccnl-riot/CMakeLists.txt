@@ -3,7 +3,7 @@ project(ccnl-riot)
  
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../lib)
 
-include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-unix/include)
+include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-unix/include ../ccnl-utils/include)
  
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
