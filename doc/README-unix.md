@@ -25,7 +25,7 @@ CCN-lite requires OpenSSL. Use the following to install it:
     ```bash
     cd $CCNL_HOME
     mkdir build && cd build
-    cmake ../src
+    cmake ..
     make
     ```
     On macOS (with OpenSSL installed by Homebrew):
