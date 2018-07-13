@@ -72,8 +72,6 @@ ccnl_dump(int lev, int typ, void *p)
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
-    #define INDENT(lev)   for (i = 0; i < (lev); i++) CONSOLE("  ")
-
     switch (typ) {
         case CCNL_BUF:
             while (buf) {
@@ -488,22 +486,33 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
 }
 
 int
-get_pendint_dump(int lev, void *p, char **out){
-    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
-    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
-    struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
+get_pendint_dump(int lev, void *p, char **out) {
+    /* remove compiler warning on unused variable */
+    (void) lev;
 
-    int pos = 0, line = 0;
-    (void)lev;
+    struct ccnl_relay_s *top = (struct ccnl_relay_s *) p;
+    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
+    struct ccnl_pendint_s *pir = (struct ccnl_pendint_s *) itr->pending;
+
+    int line = 0;
+    int result = 0;
+
     while (pir) {
-//        INDENT(lev);
-        pos = 0;
-        pos += sprintf(out[line] + pos, "%p PENDINT next=%p face=%p last=%d",
+        /* indent entry by 'lev' spaces */
+        //INDENT(lev);
+
+        /* check if the sprintf call fails */
+        if ((result = sprintf(out[line], "%p PENDINT next=%p face=%p last=%d",
                        (void *) pir, (void *) pir->next,
-                       (void *) pir->face, pir->last_used);
+                       (void *) pir->face, pir->last_used)) < 0) { 
+            DEBUGMSG(ERROR, "get_pendint_dump: could not write PIT entry\n");
+        }
+        /* set pointer to next entry */
         pir = pir->next;
+        /* new entry in pit */
         ++line;
     }
+
     return line;
 }
 
