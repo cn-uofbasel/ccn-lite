@@ -20,6 +20,7 @@
 #ifndef CCNL_CS
 #define CCNL_CS
 
+#include "stdlib.h"
 #include "stdint.h"
 
 typedef struct {
@@ -52,7 +53,7 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
             const ccnl_cs_name_t *name,
             const ccnl_cs_content_t *content);
 
-ccnl_cs_op_lookup_t *
+ccnl_cs_content_t *
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name);
 

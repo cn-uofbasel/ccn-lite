@@ -23,15 +23,19 @@
 ccnl_cs_ops_t ccnl_cs_ops_simple;
 
 static void add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
+    (void) name;
+    (void) content;
     return;
 }
 
-static cnl_cs_content_t *lookup(const ccnl_cs_name_t *name) {
+static ccnl_cs_content_t *lookup(const ccnl_cs_name_t *name) {
+    (void) name;
     return NULL;
 }
 
 static void remove(const ccnl_cs_name_t *name) {
-    return NULL;
+    (void) name;
+    return;
 }
 
 void ccnl_cs_init_simple(void) {

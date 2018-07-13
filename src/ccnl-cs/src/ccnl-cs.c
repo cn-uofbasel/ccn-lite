@@ -34,7 +34,7 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
 }
 
 void
-ccnl_cs_add(ccnl_cs_ops *ops,
+ccnl_cs_add(ccnl_cs_ops_t *ops,
             const ccnl_cs_name_t *name,
             const ccnl_cs_content_t *content) {
 
@@ -43,16 +43,16 @@ ccnl_cs_add(ccnl_cs_ops *ops,
     return;
 }
 
-void
-ccnl_cs_lookup(ccnl_cs_ops *ops,
-               const ccnl_cs_name_t *name,
+ccnl_cs_content_t *
+ccnl_cs_lookup(ccnl_cs_ops_t *ops,
+               const ccnl_cs_name_t *name) {
 
     return ops->lookup(name);
 }
 
 void
-ccnl_cs_remove(ccnl_cs_ops *ops,
-               const ccnl_cs_name_t *name,
+ccnl_cs_remove(ccnl_cs_ops_t *ops,
+               const ccnl_cs_name_t *name) {
 
     ops->remove(name);
     return;
