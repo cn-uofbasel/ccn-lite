@@ -3,10 +3,10 @@ project(ccn-lite-relay)
 
 set(PROJECT_LINK_LIBS libccnl-core.a libccnl-pkt.a libccnl-fwd.a libccnl-unix.a)
 set(EXT_LINK_LIBS ssl crypto)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 link_directories(
-    ${CMAKE_CURRENT_BINARY_DIR}/../lib
+    ${CMAKE_BINARY_DIR}/lib
 )
 
 include_directories(

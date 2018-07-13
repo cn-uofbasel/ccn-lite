@@ -25,6 +25,7 @@
 #define CCNL_PKT_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "ccnl-buf.h"
 #include "ccnl-prefix.h"
