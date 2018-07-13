@@ -1,6 +1,6 @@
 /*
- * @file ccnl-cs.c
- * @brief CS - Content Store
+ * @file ccnl-cs-simple.h
+ * @brief Simple CS - Simple Content Store Implementation
  *
  * Copyright (C) 2018 HAW Hamburg
  *
@@ -15,45 +15,15 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
  */
+
+#ifndef CCNL_CS_SIMPLE
+#define CCNL_CS_SIMPLE
 
 #include "ccnl-cs.h"
 
-void
-ccnl_cs_init(ccnl_cs_ops_t *ops,
-             ccnl_cs_op_add_t add_fun,
-             ccnl_cs_op_lookup_t lookup_fun,
-             ccnl_cs_op_remove_t remove_fun) {
+extern ccnl_cs_ops_t ccnl_cs_ops_simple;
 
-    ops->add = add_fun;
-    ops->lookup = lookup_fun;
-    ops->remove = remove_fun;
+void ccnl_cs_init_simple(void);
 
-    return;
-}
-
-void
-ccnl_cs_add(ccnl_cs_ops *ops,
-            const ccnl_cs_name_t *name,
-            const ccnl_cs_content_t *content) {
-
-    ops->add(name, content);
-
-    return;
-}
-
-void
-ccnl_cs_lookup(ccnl_cs_ops *ops,
-               const ccnl_cs_name_t *name,
-
-    return ops->lookup(name);
-}
-
-void
-ccnl_cs_remove(ccnl_cs_ops *ops,
-               const ccnl_cs_name_t *name,
-
-    ops->remove(name);
-    return;
-}
+#endif //CCNL_CS_SIMPLE

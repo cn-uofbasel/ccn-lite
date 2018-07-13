@@ -46,12 +46,16 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_lookup_t lookup_fun,
              ccnl_cs_op_remove_t remove_fun);
 void
-ccnl_cs_add(ccnl_cs_ops, const ccnl_cs_name_t *name, const ccnl_cs_content_t *content);
+ccnl_cs_add(ccnl_cs_ops *ops,
+            const ccnl_cs_name_t *name,
+            const ccnl_cs_content_t *content);
 
 ccnl_cs_op_lookup_t *
-ccnl_cs_lookup(ccnl_cs_ops, const ccnl_cs_name_t *name);
+ccnl_cs_lookup(ccnl_cs_ops *ops,
+               const ccnl_cs_name_t *name);
 
 void
-ccnl_cs_remove(ccnl_cs_ops, const ccnl_cs_name_t *name);
+ccnl_cs_remove(ccnl_cs_ops *ops,
+               const ccnl_cs_name_t *name);
 
 #endif //CCNL_CS
