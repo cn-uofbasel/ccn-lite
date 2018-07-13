@@ -1,6 +1,6 @@
 /*
  * @file ccnl-cs.c
- * @brief CCN lite - Content Store
+ * @brief CS - Content Store
  *
  * Copyright (C) 2018 HAW Hamburg
  *
