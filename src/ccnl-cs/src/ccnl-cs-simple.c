@@ -22,10 +22,10 @@
 
 ccnl_cs_ops_t ccnl_cs_ops_simple;
 
-static void add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
+static int add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
     (void) name;
     (void) content;
-    return;
+    return 0;
 }
 
 static ccnl_cs_content_t *lookup(const ccnl_cs_name_t *name) {
@@ -33,9 +33,9 @@ static ccnl_cs_content_t *lookup(const ccnl_cs_name_t *name) {
     return NULL;
 }
 
-static void remove(const ccnl_cs_name_t *name) {
+static int remove(const ccnl_cs_name_t *name) {
     (void) name;
-    return;
+    return 0;
 }
 
 void ccnl_cs_init_simple(void) {

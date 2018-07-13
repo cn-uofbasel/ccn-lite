@@ -33,14 +33,13 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
     return;
 }
 
-void
+int
 ccnl_cs_add(ccnl_cs_ops_t *ops,
             const ccnl_cs_name_t *name,
             const ccnl_cs_content_t *content) {
 
-    ops->add(name, content);
+    return ops->add(name, content);
 
-    return;
 }
 
 ccnl_cs_content_t *
@@ -50,10 +49,9 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
     return ops->lookup(name);
 }
 
-void
+int
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name) {
 
-    ops->remove(name);
-    return;
+    return ops->remove(name);
 }
