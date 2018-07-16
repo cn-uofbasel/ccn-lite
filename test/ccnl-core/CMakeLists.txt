@@ -13,6 +13,11 @@ add_executable(test_interest test_interest.c)
 target_link_libraries(test_interest ccnl-core cmocka)
 add_test(test_interest test_interest)
 
+add_executable(test_producer test_producer.c)
+target_link_libraries(test_producer ccnl-core cmocka)
+target_link_libraries(test_producer ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
+add_test(test_producer test_producer)
+
 add_executable(test_prefix test_prefix.c)
 target_link_libraries(test_prefix ccnl-core ccnl-fwd ccnl-pkt ccnl-unix cmocka)
 target_link_libraries(test_prefix ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
