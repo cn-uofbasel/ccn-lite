@@ -1285,6 +1285,10 @@ help:
             FILE *f = fopen(file_uri, "r");
 
             if (!f) {
+                if (recvbuffer) {
+                    free(recvbuffer);
+                }
+                    
                 if (recvbuffer2) {
                     free(recvbuffer2);
                 }
