@@ -653,7 +653,7 @@ ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
         DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
         return NULL;
     }
-    len += result;
+
     return buf;
 }
 
