@@ -209,7 +209,7 @@ ccnl_mkContentObject(struct ccnl_prefix_s *name,
                      unsigned char *payload, int paylen,
                      ccnl_data_opts_u *opts)
 {
-    int dataoffset;
+    int dataoffset = 0;
     struct ccnl_pkt_s *c_p = ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
     c_p->buf = ccnl_mkSimpleContent(name, payload, paylen, &dataoffset, opts);
     c_p->pfx = ccnl_prefix_dup(name);
