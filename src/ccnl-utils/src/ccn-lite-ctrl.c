@@ -1284,8 +1284,12 @@ help:
             long fsize = 0;
             FILE *f = fopen(file_uri, "r");
 
-            if (!f)
+            if (!f) {
+                if (recvbuffer2) {
+                    free(recvbuffer2);
+                }
                 return 0;
+            }
             //determine size of the file
             fseek(f, 0L, SEEK_END);
             fsize = ftell(f);
