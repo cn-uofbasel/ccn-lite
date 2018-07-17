@@ -250,13 +250,17 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             continue;
 
         DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
-        if (from->ifndx >= 0) {
-            ccnl_send_pkt(relay, from, c->pkt);
-        } else {
-#ifdef CCNL_APP_RX
-            ccnl_app_RX(relay, c);
-#endif
+
+        if (from) {
+            if (from->ifndx >= 0) {
+                ccnl_send_pkt(relay, from, c->pkt);
+            } else {
+#ifdef CCNL_APP_RX 
+                ccnl_app_RX(relay, c);
+#endif 
+            }
         }
+
         return 0; // we are done
     }
 
