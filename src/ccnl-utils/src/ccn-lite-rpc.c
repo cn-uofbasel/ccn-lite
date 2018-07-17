@@ -163,9 +163,18 @@ parsePrefixTerm(int lev, char **cpp)
         if (**cpp == '(') {
             *cpp += 1;
             t2 = parsePrefixTerm(lev+1, cpp);
-            if (!t2)
+            if (!t2) {
+                if (term) {
+                    free(term);
+                }
+
                 return 0;
+            }
             if (**cpp != ')') {
+                if (term) {
+                    free(term);
+                }
+
                 DEBUGMSG(ERROR, "parsePrefixTerm error: missing )\n");
                 return 0;
             }
