@@ -97,7 +97,6 @@ base64dump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml,
     }
     fprintf(out, "%s\n", base64_encode((char*)cp, len, (size_t*)&encodedLen));
     cp += len;
-    len = 0;
 }
 
 // ----------------------------------------------------------------------
