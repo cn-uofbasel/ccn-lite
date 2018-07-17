@@ -35,6 +35,8 @@ void test_uri_to_prefix(){
     struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(c, uri_to_prefix_suite, NULL);
     assert_string_equal(cmpstr, ccnl_prefix_to_path(prefix));
     ccnl_prefix_free(prefix);
+    ccnl_free(c);
+    ccnl_free(cmpstr);
 }
 
 void test_append_to_prefix(){
