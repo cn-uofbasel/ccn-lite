@@ -310,19 +310,24 @@ get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next)
     return line;
 }
 
-int
-get_prefix_dump(int lev, void *p, int *len, char** val)
+int get_prefix_dump(int lev, void *p, int *len, char** val)
 {
-    struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
-    char s[CCNL_MAX_PREFIX_SIZE];
-//    int i;
-//    INDENT(lev);
-    //*prefix =  (void *) pre;
+    /* silence compiler warning */
     (void)lev;
-    *len = pre->compcnt;
-    //*val = ccnl_prefix_to_path(pre);
-    sprintf(*val, "%s", ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
-    return 1;
+
+    /* buffer for ccnl_prefix_to_str */
+    char s[CCNL_MAX_PREFIX_SIZE];
+    
+    struct ccnl_prefix_s *pre = (struct ccnl_prefix_s *) p;
+
+    if (pre) {
+//    INDENT(lev);
+        *len = pre->compcnt;
+        sprintf(*val, "%s", ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
+        return 1;
+    }
+
+    return -1;
 }
 
 int
