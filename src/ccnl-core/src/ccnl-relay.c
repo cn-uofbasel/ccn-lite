@@ -178,29 +178,36 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
                        struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                        struct ccnl_buf_s *buf, sockunion *dest)
 {
-    struct ccnl_txrequest_s *r;
-
-    DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
+    if (ifc) {
+        struct ccnl_txrequest_s *r;
+        
+        if (buf) { 
+            DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
                   (void*)ifc, (void*)buf,
                   buf ? buf->datalen : -1, ifc ? ifc->qlen : -1);
+        }
 
-    if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
-        DEBUGMSG_CORE(WARNING, "  DROPPING buf=%p\n", (void*)buf);
-        ccnl_free(buf);
-        return;
-    }
-    r = ifc->queue + ((ifc->qfront + ifc->qlen) % CCNL_MAX_IF_QLEN);
-    r->buf = buf;
-    memcpy(&r->dst, dest, sizeof(sockunion));
-    r->txdone = tx_done;
-    r->txdone_face = f;
-    ifc->qlen++;
+        if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
+            if (buf) {
+                DEBUGMSG_CORE(WARNING, "  DROPPING buf=%p\n", (void*)buf); 
+                ccnl_free(buf); 
+                return;
+            }
+        }
+        
+        r = ifc->queue + ((ifc->qfront + ifc->qlen) % CCNL_MAX_IF_QLEN); 
+        r->buf = buf;
+        memcpy(&r->dst, dest, sizeof(sockunion));
+        r->txdone = tx_done;
+        r->txdone_face = f;
+        ifc->qlen++;
 
 #ifdef USE_SCHEDULER
-    ccnl_sched_RTS(ifc->sched, 1, buf->datalen, ccnl, ifc);
-#else
-    ccnl_interface_CTS(ccnl, ifc);
+        ccnl_sched_RTS(ifc->sched, 1, buf->datalen, ccnl, ifc);
+#else 
+        ccnl_interface_CTS(ccnl, ifc);
 #endif
+    }
 }
 
 struct ccnl_buf_s*
