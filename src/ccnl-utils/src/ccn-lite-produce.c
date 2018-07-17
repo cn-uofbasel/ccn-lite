@@ -196,7 +196,6 @@ Usage:
     unsigned int lastchunknum = sz/chunk_size;
     if (sz % chunk_size == 0) --lastchunknum;
 
-    chunk_len = 1;
     chunk_len = read(f, chunk_buf, chunk_size);
     while (!is_last && chunk_len > 0) {
 
