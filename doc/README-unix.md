@@ -3,7 +3,7 @@
 ## Prerequisites
 
 CCN-lite requires OpenSSL. Use the following to install it:
-* Ubuntu: `sudo apt-get install libssl-dev cmake`
+* Ubuntu: `sudo apt-get install cmake libssl-dev pkg-config && pkg-config libssl-dev`
 * macOS: `brew install openssl cmake`
 
 ## Installation
