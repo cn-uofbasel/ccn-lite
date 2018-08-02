@@ -390,7 +390,6 @@ int
 ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
                   int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
-    unsigned char *md;
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     char s[CCNL_MAX_PREFIX_SIZE];
@@ -412,8 +411,20 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
         return 0;
     }
 
-    md = (prefix->compcnt - p->compcnt == 1) ? compute_ccnx_digest(c->pkt->buf) : NULL;
-    return ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt;
+    if ((prefix->compcnt - p->compcnt) == 1) {
+        unsigned char *md = compute_ccnx_digest(c->pkt->buf); 
+
+        /* computing the ccnx digest failed */
+        if (!md) {
+            DEBUGMSG(TRACE, "computing the digest failed\n");
+            return -3;
+        }
+        
+        return (ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt);
+    }
+
+    DEBUGMSG(TRACE, "mismatch in expected number of components between prefix and content\n");
+    return -2;
 }
 
 #endif // NEEDS_PREFIX_MATCHING
