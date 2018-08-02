@@ -10,7 +10,7 @@ void test_prefix_to_path()
     char *result = "/path/to/data";
     struct ccnl_prefix_s *p = ccnl_malloc(sizeof(struct ccnl_prefix_s));
     p->compcnt = 3;
-    p->comp = ccnl_malloc(sizeof(char*) * p->compcnt);
+    p->comp = (unsigned char**)ccnl_malloc(sizeof(unsigned char*) * p->compcnt);
     p->complen = ccnl_malloc(sizeof(int) * p->compcnt);
     p->comp[0] = (unsigned char*)"path";
     p->complen[0] = 4;
