@@ -119,6 +119,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
  * @param[in] c             Content to test the prefix against
  *
  * @return      -1 if no match at all (all modes) or exact match failed
+ * @return      -2 mismatch in expected number of components between prefix and content
+ * @return      -3 computation of digest failed 
  * @return      0 if full match
  * @return      n>0 for matched components
 */
