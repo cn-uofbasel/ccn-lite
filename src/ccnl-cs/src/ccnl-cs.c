@@ -3,6 +3,7 @@
  * @brief CS - Content Store
  *
  * Copyright (C) 2018 HAW Hamburg
+ * Copyright (C) 2018 MSA Safety
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +18,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  */
-
 #include "ccnl-cs.h"
 
 void
@@ -37,21 +37,41 @@ int
 ccnl_cs_add(ccnl_cs_ops_t *ops,
             const ccnl_cs_name_t *name,
             const ccnl_cs_content_t *content) {
+    int result = -3;
 
-    return ops->add(name, content);
+    if (ops) {
+        if (name) {
+            if (content) {
+                return ops->add(name, content); 
+            }
+        } else {
+            result = -2;
+        }
+    } else {
+        result = -1;
+    }
 
+    return result;
 }
 
 ccnl_cs_content_t *
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name) {
-
     return ops->lookup(name);
 }
 
 int
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name) {
+    int result = -2;
 
-    return ops->remove(name);
+    if (ops) {
+        if (name) {
+            return ops->remove(name);
+        }
+    } else {
+        result = -1;
+    }
+
+    return result;
 }
