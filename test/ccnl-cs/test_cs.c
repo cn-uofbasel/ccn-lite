@@ -47,7 +47,7 @@ void test1()
   assert_int_equal(result, 0);
 }
 
-void test_ccnl_cs_remove_invalid_struct()
+void test_ccnl_cs_add_invalid_parameters()
 {
     /** build up our ccnl_cs_name_t struct */
     uint8_t _size = 10;
@@ -58,11 +58,88 @@ void test_ccnl_cs_remove_invalid_struct()
     ccnl_cs_name_t name;
     /** TODO: that's a bit hard to read -> fix */
     name.name = &(_name[0]);
-    name.namelen = _size;
+    name.length = _size;
+            
+    ccnl_cs_content_t content;
+    int result = ccnl_cs_add(NULL, &name, &content);
+    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
+    assert_int_equal(result, -1);
+
+    /* we don't initialize the function pointers */
+    ccnl_cs_ops_t options;
+
+    result = ccnl_cs_add(&options, NULL, &content);
+    /* if we pass an invalid name, call should fail */
+    assert_int_equal(result, -2);
+
+    result = ccnl_cs_add(&options, &name, NULL);
+    /* if we pass an invalid content object, call should fail */
+    assert_int_equal(result, -3);
+}
+
+void test_ccnl_cs_add_successful()
+{
+    /** build up our ccnl_cs_name_t struct */
+    uint8_t _size = 10;
+    uint8_t _name[_size];
+    memset(&(_name[0]), 0x42, _size);  
+
+    /** set the name */
+    ccnl_cs_name_t name;
+    /** TODO: that's a bit hard to read -> fix */
+    name.name = &(_name[0]);
+    name.length = _size;
+    ccnl_cs_content_t content;
+    //TODO    
+    int result = ccnl_cs_add(NULL, &name, &content);
+    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
+    assert_int_equal(result, 0);
+}
+
+void test_ccnl_cs_add_unsuccessful()
+{
+    /** build up our ccnl_cs_name_t struct */
+    uint8_t _size = 10;
+    uint8_t _name[_size];
+    memset(&(_name[0]), 0x42, _size);  
+
+    /** set the name */
+    ccnl_cs_name_t name;
+    /** TODO: that's a bit hard to read -> fix */
+    name.name = &(_name[0]);
+    name.length = _size;
+     ccnl_cs_content_t content;
+    //TODO    
+    int result = ccnl_cs_add(NULL, &name, &content);
+    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
+    assert_int_equal(result, 0);
+
+    // and now try to add the same content again which should fail
+
+}
+
+void test_ccnl_cs_remove_invalid_parameters()
+{
+    /** build up our ccnl_cs_name_t struct */
+    uint8_t _size = 10;
+    uint8_t _name[_size];
+    memset(&(_name[0]), 0x42, _size);  
+
+    /** set the name */
+    ccnl_cs_name_t name;
+    name.name = &(_name[0]);
+    name.length = _size;
             
     int result = ccnl_cs_remove(NULL, &name);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, 0);
+    assert_int_equal(result, -1);
+
+    /* we don't set function pointers */
+    ccnl_cs_ops_t options;
+
+    result = ccnl_cs_remove(&options, NULL);
+    /* if we pass an invalid name, call should fail */
+    assert_int_equal(result, -2);
 }
 
 void test_ccnl_cs_remove_wrong_name_size(void **state)
@@ -79,7 +156,7 @@ void test_ccnl_cs_remove_wrong_name_size(void **state)
     /** TODO: that's a bit hard to read -> fix */
     name.name = &(_name[0]);
     /** what happens if we set the size to 0? */
-    name.namelen = 0;
+    name.length = 0;
             
     /* TODO: pass actual valid first parameter */
     int result = ccnl_cs_remove(content_store_impl, &name);
@@ -87,7 +164,7 @@ void test_ccnl_cs_remove_wrong_name_size(void **state)
     assert_int_equal(result, 0);
 
     /** what happens if we set the size to two-times the actual size? */
-    name.namelen = 2 * _size;
+    name.length = 2 * _size;
     /* TODO: pass actual valid first parameter */
     result = ccnl_cs_remove(content_store_impl, &name);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
@@ -102,7 +179,7 @@ void test_ccnl_cs_remove_partially_valid_structs(void **state)
     /** leave the member 'name' uninitialized */
     ccnl_cs_name_t name;
     /** but give it a size */
-    name.namelen = 256;
+    name.length = 256;
 
     int result = ccnl_cs_remove(content_store_impl, &name);
     /* call should fail */
@@ -121,8 +198,9 @@ int main(void)
 {
      const UnitTest tests[] = {
          unit_test(test1),
+         unit_test(test_ccnl_cs_remove_invalid_parameters),
+         unit_test(test_ccnl_cs_add_invalid_parameters),
     /*
-         unit_test(test_ccnl_cs_remove_invalid_struct),
          unit_test(test_ccnl_cs_remove_invalid_name),
          unit_test(test_ccnl_cs_remove_wrong_name_size, setup, NULL),
          unit_test(test_ccnl_cs_remove_partially_valid_structs, setup, NULL),
