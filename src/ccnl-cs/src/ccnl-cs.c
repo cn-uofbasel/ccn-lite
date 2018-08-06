@@ -33,11 +33,11 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
     return;
 }
 
-int
+ccnl_cs_status_t
 ccnl_cs_add(ccnl_cs_ops_t *ops,
             const ccnl_cs_name_t *name,
             const ccnl_cs_content_t *content) {
-    int result = -3;
+    int result = CS_CONTENT_IS_INVALID;
 
     if (ops) {
         if (name) {
@@ -45,10 +45,10 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
                 return ops->add(name, content); 
             }
         } else {
-            result = -2;
+            result = CS_NAME_IS_INVALID;
         }
     } else {
-        result = -1;
+        result = CS_OPTIONS_ARE_NULL;
     }
 
     return result;
@@ -60,17 +60,17 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
     return ops->lookup(name);
 }
 
-int
+ccnl_cs_status_t
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name) {
-    int result = -2;
+    int result = CS_NAME_IS_INVALID;
 
     if (ops) {
         if (name) {
             return ops->remove(name);
         }
     } else {
-        result = -1;
+        result = CS_OPTIONS_ARE_NULL;
     }
 
     return result;

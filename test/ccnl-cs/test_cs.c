@@ -63,18 +63,18 @@ void test_ccnl_cs_add_invalid_parameters()
     ccnl_cs_content_t content;
     int result = ccnl_cs_add(NULL, &name, &content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, -1);
+    assert_int_equal(result, CS_OPTIONS_ARE_NULL);
 
     /* we don't initialize the function pointers */
     ccnl_cs_ops_t options;
 
     result = ccnl_cs_add(&options, NULL, &content);
     /* if we pass an invalid name, call should fail */
-    assert_int_equal(result, -2);
+    assert_int_equal(result, CS_NAME_IS_INVALID);
 
     result = ccnl_cs_add(&options, &name, NULL);
     /* if we pass an invalid content object, call should fail */
-    assert_int_equal(result, -3);
+    assert_int_equal(result, CS_CONTENT_IS_INVALID);
 }
 
 void test_ccnl_cs_add_successful()
@@ -93,7 +93,7 @@ void test_ccnl_cs_add_successful()
     //TODO    
     int result = ccnl_cs_add(NULL, &name, &content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, 0);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
 }
 
 void test_ccnl_cs_add_unsuccessful()
@@ -112,7 +112,7 @@ void test_ccnl_cs_add_unsuccessful()
     //TODO    
     int result = ccnl_cs_add(NULL, &name, &content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, 0);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
 
     // and now try to add the same content again which should fail
 
@@ -132,14 +132,14 @@ void test_ccnl_cs_remove_invalid_parameters()
             
     int result = ccnl_cs_remove(NULL, &name);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, -1);
+    assert_int_equal(result, CS_OPTIONS_ARE_NULL);
 
     /* we don't set function pointers */
     ccnl_cs_ops_t options;
 
     result = ccnl_cs_remove(&options, NULL);
     /* if we pass an invalid name, call should fail */
-    assert_int_equal(result, -2);
+    assert_int_equal(result, CS_NAME_IS_INVALID);
 }
 
 void test_ccnl_cs_remove_wrong_name_size(void **state)

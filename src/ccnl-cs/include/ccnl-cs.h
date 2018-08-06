@@ -21,8 +21,21 @@
 #ifndef CCNL_CS
 #define CCNL_CS
 
-#include "stdlib.h"
-#include "stdint.h"
+#include <limits.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+/**
+ * @brief Provides status codes for content store operations
+ */
+typedef enum {
+    CS_OPERATION_WAS_SUCCESSFUL = 0, /**< operation was successfull */
+    CS_OPTIONS_ARE_NULL = -1,        /**< \ref ccnl_cs_ops_t are NULL */
+    CS_NAME_IS_INVALID = -2,         /**< name is invalid or NULL */
+    CS_CONTENT_IS_INVALID = -3,      /**< content is invalid or NULL */
+    
+    CS_DO_NOT_USE = INT_MAX          /**< set the enum to a fixed width, do not use! */
+} ccnl_cs_status_t;
 
 /**
  * @brief An abstract representation of an ICN name 
@@ -90,7 +103,7 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
  * @return -2 An invalid \ref ccnl_cs_name_t struct was passed to the function (e.g. \p name is NULL)
  * @return -3 An invalid \ref ccnl_cs_content_t struct was passed to the function (e.g. \p content is NULL)
  */
-int
+ccnl_cs_status_t
 ccnl_cs_add(ccnl_cs_ops_t *ops,
             const ccnl_cs_name_t *name,
             const ccnl_cs_content_t *content);
@@ -119,7 +132,7 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
  * @return -1 An invalid \ref ccnl_cs_op_t struct was passed to the function (e.g. \p ops is NULL)
  * @return -2 An invalid \ref ccnl_cs_name_t struct was passed to the function (e.g. \p name is NULL)
  */
-int
+ccnl_cs_status_t
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name);
 
