@@ -81,10 +81,12 @@ ccnl_ccnb_hunt_for_end(unsigned char **buf, int *len,
     int typ, num;
 
     while (ccnl_ccnb_dehead(buf, len, &num, &typ) == 0) {
-        if (num==0 && typ==0)
+        if (num==0 && typ==0) {
             return 0;
-        if (ccnl_ccnb_consume(typ, num, buf, len, valptr, vallen) < 0)
+        }
+        if (ccnl_ccnb_consume(typ, num, buf, len, valptr, vallen) < 0) {
             return -1;
+        }
     }
     return -1;
 }
@@ -94,13 +96,18 @@ ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
                   unsigned char **valptr, int *vallen)
 {
     if (typ == CCN_TT_BLOB || typ == CCN_TT_UDATA) {
-        if (valptr)  *valptr = *buf;
-        if (vallen)  *vallen = num;
+        if (valptr) {
+            *valptr = *buf;
+        }
+        if (vallen) {
+            *vallen = num;
+        }
         *buf += num, *len -= num;
         return 0;
     }
-    if (typ == CCN_TT_DTAG || typ == CCN_TT_DATTR)
+    if (typ == CCN_TT_DTAG || typ == CCN_TT_DATTR) {
         return ccnl_ccnb_hunt_for_end(buf, len, valptr, vallen);
+    }
 //  case CCN_TT_TAG, CCN_TT_ATTR:
 //  case DTAG, DATTR:
     return -1;
@@ -111,11 +118,13 @@ ccnl_ccnb_data2uint(unsigned char *cp, int len)
 {
     int i, val;
 
-    for (i = 0, val = 0; i < len; i++)
-        if (isdigit(cp[i]))
-            val = 10*val + cp[i] - '0';
-        else
+    for (i = 0, val = 0; i < len; i++) {
+        if (isdigit(cp[i])) {
+            val = 10 * val + cp[i] - '0';
+        } else {
             return -1;
+        }
+    }
     return val;
 }
 
@@ -131,8 +140,9 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     //pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
     pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
-    if (!pkt)
+    if (!pkt) {
         return NULL;
+    }
     pkt->suite = CCNL_SUITE_CCNB;
     pkt->val.final_block_id = -1;
     pkt->s.ccnb.scope = 3;
@@ -148,33 +158,40 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     oldpos = *data - start;
     while (ccnl_ccnb_dehead(data, datalen, &num, &typ) == 0) {
-        if (num==0 && typ==0) // end
+        if (num==0 && typ==0) { // end
             break;
+        }
         if (typ == CCN_TT_DTAG) {
             switch (num) {
             case CCN_DTAG_NAME:
                 p->nameptr = start + oldpos;
                 for (;;) {
-                    if (ccnl_ccnb_dehead(data, datalen, &num, &typ) != 0)
+                    if (ccnl_ccnb_dehead(data, datalen, &num, &typ) != 0) {
                         goto Bail;
-                    if (num==0 && typ==0)
+                    }
+                    if (num==0 && typ==0) {
                         break;
+                    }
                     if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
                         p->compcnt < CCNL_MAX_NAME_COMP) {
                         if (ccnl_ccnb_hunt_for_end(data, datalen, p->comp + p->compcnt,
-                                p->complen + p->compcnt) < 0) goto Bail;
+                                p->complen + p->compcnt) < 0) {
+                            goto Bail;
+                        }
                         p->compcnt++;
                     } else {
-                        if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0)
+                        if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0) {
                             goto Bail;
+                        }
                     }
                 }
                 p->namelen = *data - p->nameptr;
                 break;
             case CCN_DTAG_CONTENT:
                 if (ccnl_ccnb_consume(typ, num, data, datalen,
-                                      &pkt->content, &pkt->contlen) < 0)
+                                      &pkt->content, &pkt->contlen) < 0) {
                     goto Bail;
+                }
                 oldpos = *data - start;
                 continue;
             case CCN_DTAG_SCOPE:
@@ -183,13 +200,15 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             case CCN_DTAG_MAXSUFFCOMP:
             case CCN_DTAG_NONCE:
             case CCN_DTAG_PUBPUBKDIGEST:
-                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0)
+                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0) {
                     goto Bail;
+                }
                 switch (num) {
                 case CCN_DTAG_SCOPE:
-                    if (len == 1)
+                    if (len == 1) {
                         pkt->s.ccnb.scope = isdigit(*cp) && (*cp < '3') ?
-                            *cp - '0' : -1;
+                                            *cp - '0' : -1;
+                    }
                     break;
                 case CCN_DTAG_ANSWERORIGKIND:
                     pkt->s.ccnb.aok = ccnl_ccnb_data2uint(cp, len);
@@ -201,12 +220,14 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     pkt->s.ccnb.maxsuffix = ccnl_ccnb_data2uint(cp, len);
                     break;
                 case CCN_DTAG_NONCE:
-                    if (!pkt->s.ccnb.nonce)
+                    if (!pkt->s.ccnb.nonce) {
                         pkt->s.ccnb.nonce = ccnl_buf_new(cp, len);
+                    }
                     break;
                 case CCN_DTAG_PUBPUBKDIGEST:
-                    if (!pkt->s.ccnb.ppkd)
+                    if (!pkt->s.ccnb.ppkd) {
                         pkt->s.ccnb.ppkd = ccnl_buf_new(cp, len);
+                    }
                     break;
                 case CCN_DTAG_EXCLUDE:
                     DEBUGMSG(WARNING, "ccnb 'exclude' field ignored\n");
@@ -214,25 +235,30 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 }
                 break;
             default:
-                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0)
+                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0) {
                     goto Bail;
+                }
             }
             oldpos = *data - start;
             continue;
         }
-        if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0)
+        if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0) {
             goto Bail;
+        }
         oldpos = *data - start;
     }
     pkt->pfx = p;
     pkt->buf = ccnl_buf_new(start, *data - start);
     // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (pkt->content)
+    if (pkt->content) {
         pkt->content = pkt->buf->data + (pkt->content - start);
-    for (num = 0; num < p->compcnt; num++)
-            p->comp[num] = pkt->buf->data + (p->comp[num] - start);
-    if (p->nameptr)
+    }
+    for (num = 0; num < p->compcnt; num++) {
+        p->comp[num] = pkt->buf->data + (p->comp[num] - start);
+    }
+    if (p->nameptr) {
         p->nameptr = pkt->buf->data + (p->nameptr - start);
+    }
 
     return pkt;
 Bail:
@@ -248,13 +274,15 @@ ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
     int len = *datalen, typ, num;
     unsigned int val = 0;
 
-    if (ccnl_ccnb_dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
+    if (ccnl_ccnb_dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB) {
         return -1;
+    }
     if (width) {
-      if (*width < num)
+      if (*width < num) {
           num = *width;
-      else
+      } else {
           *width = num;
+      }
     }
 
     // big endian (network order):
@@ -264,8 +292,9 @@ ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
     }
     *result = val;
 
-    if (len < 1 || *cp != '\0') // no end-of-entry
+    if (len < 1 || *cp != '\0') {// no end-of-entry
         return -1;
+    }
     *data = cp+1;
     *datalen = len-1;
     return 0;
@@ -284,10 +313,12 @@ ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
     assert(p->suite == CCNL_SUITE_CCNB);
 #endif
 
-    if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c))
+    if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c)) {
         return -1;
-    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd))
+    }
+    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd)) {
         return -1;
+    }
     // FIXME: should check stale bit in aok here
     return 0;
 }
@@ -312,8 +343,9 @@ ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
         tmp[len++] = num & 0x7f;
         num = num >> 7;
     }
-    for (i = len-1; i >= 0; i--)
+    for (i = len-1; i >= 0; i--) {
         *buf++ = tmp[i];
+    }
     return len;
 }
 
@@ -369,9 +401,11 @@ ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
     int len = ccnl_ccnb_mkHeader(out, num, tt);
 
     if (!bytes) {
-        for (bytes = sizeof(val) - 1; bytes > 0; bytes--)
-            if (val >> (8*bytes))
+        for (bytes = sizeof(val) - 1; bytes > 0; bytes--) {
+            if (val >> (8 * bytes)) {
                 break;
+            }
+        }
         bytes++;
     }
     len += ccnl_ccnb_mkHeader(out+len, bytes, CCN_TT_BLOB);
@@ -446,11 +480,13 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
     len += ccnl_ccnb_mkName(name, out+len);
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
-    if (contentpos)
+    if (contentpos) {
         *contentpos = len;
+    }
     memcpy(out+len, data, datalen);
-    if (contentpos)
+    if (contentpos) {
         *contentpos = len;
+    }
     len += datalen;
     out[len++] = 0; // end-of-content
 

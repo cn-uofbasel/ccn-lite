@@ -31,8 +31,9 @@
 int
 ccnl_switch_dehead(unsigned char **buf, int *len, int *code)
 {
-    if (*len < 2 || **buf != 0x80)
+    if (*len < 2 || **buf != 0x80) {
         return -1;
+    }
     if ((*buf)[1] < 253) {
         *code = (*buf)[1];
         *buf += 2;
@@ -75,16 +76,17 @@ ccnl_switch_prependCodeVal(unsigned long val, int *offset, unsigned char *buf)
 {
     int len, i, t;
 
-    if (val < 253)
+    if (val < 253) {
         len = 0, t = val;
-    else if (val <= 0xffff)
+    } else if (val <= 0xffff) {
         len = 2, t = 253;
-    else if (val <= 0xffffffffL)
+    } else if (val <= 0xffffffffL) {
         len = 4, t = 254;
-    else
+    } else {
         len = 8, t = 255;
-    if (*offset < (len+1))
+    } if (*offset < (len+1)) {
         return -1;
+    }
 
     for (i = 0; i < len; i++) {
         buf[--(*offset)] = val & 0xff;
@@ -99,11 +101,13 @@ ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf)
 {
     int len;
 
-    if (*offset < 2)
+    if (*offset < 2) {
         return -1;
+    }
     len = ccnl_switch_prependCodeVal(code, offset, buf);
-    if (len < 0 || *offset < 1)
+    if (len < 0 || *offset < 1) {
         return -1;
+    }
     *offset -= 1;
     buf[*offset] = 0x80;
 

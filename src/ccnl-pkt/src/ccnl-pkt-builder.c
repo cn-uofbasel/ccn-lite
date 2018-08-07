@@ -27,10 +27,12 @@ int ccnb_isContent(unsigned char *buf, int len)
 {
     int num, typ;
 
-    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
+    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
         return -1;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
+    }
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) {
         return 0;
+    }
     return 1;
 }
 #endif // USE_SUITE_CCNB
@@ -83,10 +85,12 @@ int ndntlv_isData(unsigned char *buf, int len) {
     int typ;
     int vallen;
 
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int *) &typ, &vallen))
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int *) &typ, &vallen)) {
         return -1;
-    if (typ != NDN_TLV_Data)
+    }
+    if (typ != NDN_TLV_Data) {
         return 0;
+    }
     return 1;
 }
 #endif //USE_SUITE_NDNTLV
@@ -163,8 +167,9 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 
     ccnl_mkInterest(name, opts, tmp, &len, &offs);
 
-    if (len > 0)
+    if (len > 0) {
         buf = ccnl_buf_new(tmp + offs, len);
+    }
     ccnl_free(tmp);
 
     return buf;
@@ -243,8 +248,9 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
     if (len) {
         buf = ccnl_buf_new(tmp + offs, len);
-        if (payoffset)
+        if (payoffset) {
             *payoffset = contentpos;
+        }
     }
     ccnl_free(tmp);
 
