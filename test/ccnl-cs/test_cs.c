@@ -77,6 +77,36 @@ void test_ccnl_cs_add_invalid_parameters()
     assert_int_equal(result, CS_CONTENT_IS_INVALID);
 }
 
+void test_ccnl_cs_lookup_invalid_parameters()
+{
+    /** build up our ccnl_cs_name_t struct */
+    uint8_t _size = 10;
+    uint8_t _name[_size];
+    memset(&(_name[0]), 0x42, _size);  
+
+    /** set the name */
+    ccnl_cs_name_t name;
+    /** TODO: that's a bit hard to read -> fix */
+    name.name = &(_name[0]);
+    name.length = _size;
+            
+    ccnl_cs_content_t content;
+    int result = ccnl_cs_lookup(NULL, &name, &content);
+    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
+    assert_int_equal(result, CS_OPTIONS_ARE_NULL);
+
+    /* we don't initialize the function pointers */
+    ccnl_cs_ops_t options;
+
+    result = ccnl_cs_lookup(&options, NULL, &content);
+    /* if we pass an invalid name, call should fail */
+    assert_int_equal(result, CS_NAME_IS_INVALID);
+
+    result = ccnl_cs_lookup(&options, &name, NULL);
+    /* if we pass an invalid content object, call should fail */
+    assert_int_equal(result, CS_CONTENT_IS_INVALID);
+}
+
 void test_ccnl_cs_add_successful()
 {
     /** build up our ccnl_cs_name_t struct */
@@ -89,6 +119,7 @@ void test_ccnl_cs_add_successful()
     /** TODO: that's a bit hard to read -> fix */
     name.name = &(_name[0]);
     name.length = _size;
+
     ccnl_cs_content_t content;
     //TODO    
     int result = ccnl_cs_add(NULL, &name, &content);
@@ -200,6 +231,7 @@ int main(void)
          unit_test(test1),
          unit_test(test_ccnl_cs_remove_invalid_parameters),
          unit_test(test_ccnl_cs_add_invalid_parameters),
+         unit_test(test_ccnl_cs_lookup_invalid_parameters),
     /*
          unit_test(test_ccnl_cs_remove_invalid_name),
          unit_test(test_ccnl_cs_remove_wrong_name_size, setup, NULL),
