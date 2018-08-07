@@ -209,7 +209,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                                                  GNRC_NETTYPE_CCN);
 
                             if (pkt == NULL) {
-                                printf("error: packet buffer full trying to allocate %d bytes\n", buf->datalen);
+                                printf("error: packet buffer full trying to allocate %d bytes\n", (int)buf->datalen);
                                 return;
                             }
 
