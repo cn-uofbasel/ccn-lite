@@ -61,7 +61,7 @@ typedef int (*ccnl_cs_op_add_t)(const ccnl_cs_name_t *name, const ccnl_cs_conten
 /**
  * Type definition for the function pointer to the lookup function
  */
-typedef ccnl_cs_content_t *(*ccnl_cs_op_lookup_t)(const ccnl_cs_name_t *name);
+typedef int (*ccnl_cs_op_lookup_t)(const ccnl_cs_name_t *name, ccnl_cs_content_t *content);
 
 /**
  * Type definition for the function pointer to the remove function
@@ -113,14 +113,17 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
  *
  * @param[in] ops Data structure which holds the function pointer to the lookup function
  * @param[in] name The name of the content which is about to searched in the content store
+ * @param[out] content If the lookup was successfull, the variable contains the result
  *
- * @return 0 The content was added successfully to the content store
+ * @return 0 The content was found in the content store
  * @return -1 An invalid \ref ccnl_cs_op_t struct was passed to the function (e.g. \p ops is NULL)
  * @return -2 An invalid \ref ccnl_cs_name_t struct was passed to the function (e.g. \p name is NULL)
+ * @return -2 An invalid \ref ccnl_cs_content_t struct was passed to the function (e.g. \p content is NULL)
  */
-ccnl_cs_content_t *
+ccnl_cs_status_t
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
-               const ccnl_cs_name_t *name);
+               const ccnl_cs_name_t *name,
+               ccnl_cs_content_t *content);
 
 /**
  * @brief Removes an item from the content store 

@@ -54,10 +54,24 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
     return result;
 }
 
-ccnl_cs_content_t *
+ccnl_cs_status_t
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
-               const ccnl_cs_name_t *name) {
-    return ops->lookup(name);
+               const ccnl_cs_name_t *name, ccnl_cs_content_t *content) {
+    int result = CS_CONTENT_IS_INVALID;
+
+    if (ops) {
+        if (name) {
+            if (content) {
+                return ops->lookup(name, content);
+            }
+        } else {
+            result = CS_NAME_IS_INVALID;
+        }
+    } else {
+        result = CS_OPTIONS_ARE_NULL;
+    }
+
+    return result;
 }
 
 ccnl_cs_status_t
