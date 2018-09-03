@@ -13,3 +13,8 @@ add_executable(test_cs test_cs.c)
 target_link_libraries(test_cs ccnl-cs cmocka)
 target_link_libraries(test_cs ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
 add_test(test_cs test_cs)
+
+add_executable(test_cs_uthash test_cs_uthash.c)
+target_link_libraries(test_cs_uthash ccnl-cs cmocka)
+target_link_libraries(test_cs_uthash ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
+add_test(test_cs_uthash test_cs_uthash)

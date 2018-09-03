@@ -29,7 +29,8 @@
  * @brief Provides status codes for content store operations
  */
 typedef enum {
-    CS_OPERATION_WAS_SUCCESSFUL = 0, /**< operation was successfull */
+    CS_OPERATION_UNSUCCESSFUL = 0,   /**< operation was not successfull */
+    CS_OPERATION_WAS_SUCCESSFUL = 1, /**< operation was successfull */
     CS_OPTIONS_ARE_NULL = -1,        /**< \ref ccnl_cs_ops_t are NULL */
     CS_NAME_IS_INVALID = -2,         /**< name is invalid or NULL */
     CS_CONTENT_IS_INVALID = -3,      /**< content is invalid or NULL */
@@ -115,10 +116,11 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
  * @param[in] name The name of the content which is about to searched in the content store
  * @param[out] content If the lookup was successfull, the variable contains the result
  *
- * @return 0 The content was found in the content store
+ * @return 0 The content could not be found in the content store
+ * @return 1 The content was found in the content store
  * @return -1 An invalid \ref ccnl_cs_op_t struct was passed to the function (e.g. \p ops is NULL)
  * @return -2 An invalid \ref ccnl_cs_name_t struct was passed to the function (e.g. \p name is NULL)
- * @return -2 An invalid \ref ccnl_cs_content_t struct was passed to the function (e.g. \p content is NULL)
+ * @return -3 An invalid \ref ccnl_cs_content_t struct was passed to the function (e.g. \p content is NULL)
  */
 ccnl_cs_status_t
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
@@ -138,5 +140,26 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
 ccnl_cs_status_t
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name);
+
+/**
+ * Allocates a \ref ccnl_cs_name_t struct
+ *
+ * @param[in] prefix The prefix to set in the name
+ * @param[in] size The length of the \p name
+ *
+ * @return (TODO)
+ */
+ccnl_cs_name_t *ccnl_cs_create_name(const char* prefix, size_t length);
+
+/**
+ * Allocates a \ref ccnl_cs_content_t struct
+ *
+ * @param[in] content The content to set
+ * @param[in] size The size of the \p content
+ *
+ * @return (TODO)
+ */
+ccnl_cs_content_t *ccnl_cs_create_content(uint8_t *content, 
+                size_t size);
 
 #endif //CCNL_CS

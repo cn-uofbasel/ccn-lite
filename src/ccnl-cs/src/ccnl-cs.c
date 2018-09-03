@@ -20,15 +20,20 @@
  */
 #include "ccnl-cs.h"
 
+#include <stdio.h>
+#include <string.h>
+
 void
 ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_add_t add_fun,
              ccnl_cs_op_lookup_t lookup_fun,
              ccnl_cs_op_remove_t remove_fun) {
 
-    ops->add = add_fun;
-    ops->lookup = lookup_fun;
-    ops->remove = remove_fun;
+    if (ops) {
+        ops->add = add_fun; 
+        ops->lookup = lookup_fun; 
+        ops->remove = remove_fun;
+    }
 
     return;
 }
@@ -89,3 +94,48 @@ ccnl_cs_remove(ccnl_cs_ops_t *ops,
 
     return result;
 }
+
+ccnl_cs_name_t *ccnl_cs_create_name(const char* name, size_t length) {
+    /** allocate the size of the structure + the size of the string we'll store*/
+    size_t size = sizeof(ccnl_cs_name_t); // + (sizeof(uint8_t) * length);
+    ccnl_cs_name_t *result = malloc(size);
+
+    if (result) {
+        size = (sizeof(uint8_t) * length);
+        result->name = malloc(size);
+
+        if (result->name) {
+            /* set members of 'result' struct */
+            memcpy(result->name, name, length);
+            result->length = length;
+        } else {
+            free(result);
+            result = NULL;
+        }
+    }
+
+    return result;
+}
+
+
+ccnl_cs_content_t *ccnl_cs_create_content(uint8_t *content, size_t size) {
+    ccnl_cs_content_t *result = malloc(sizeof(ccnl_cs_content_t));
+
+    if (result) {
+        result->content = malloc(sizeof(uint8_t) * size);
+
+        if (result->content) {
+            /* set members of 'result' struct */
+            memcpy(result->content, content, size);
+            result->length = size;
+        /* could not allocate memory for member 'content' */
+        } else {
+            free(result);
+            result = NULL;
+        }
+    }
+
+    return result;
+}
+
+

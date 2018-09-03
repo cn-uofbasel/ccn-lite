@@ -224,7 +224,34 @@ void test_ccnl_cs_remove_partially_valid_structs(void **state)
     assert_int_equal(result, 0);
 }
 
- 
+void test_ccnl_cs_create_name_successful(void **state) 
+{
+    const char* name = "/this/is/a/test";
+    size_t length = sizeof(uint8_t) * 15;
+    ccnl_cs_name_t *entry = ccnl_cs_create_name(name, length);
+    assert_ptr_not_equal(entry, NULL);
+
+    int result = memcmp(name, entry->name, length);
+    assert_int_equal(entry->length, length);
+    assert_int_equal(result, 0);
+    free(entry);
+    
+}
+
+void test_ccnl_cs_create_content_successful(void **state) 
+{
+    uint8_t data[8] = { 0x43, 0x43, 0x4e, 0x2d, 0x4c, 0x49, 0x54, 0x45};
+    size_t length = sizeof(uint8_t) * 8;
+    ccnl_cs_content_t *content = ccnl_cs_create_content(data, length);
+    assert_ptr_not_equal(content, NULL);
+
+    int result = memcmp(data, content->content, length);
+    assert_int_equal(result, 0);
+    assert_int_equal(content->length, length);
+    free(content);
+}
+
+
 int main(void)
 {
      const UnitTest tests[] = {
@@ -232,6 +259,8 @@ int main(void)
          unit_test(test_ccnl_cs_remove_invalid_parameters),
          unit_test(test_ccnl_cs_add_invalid_parameters),
          unit_test(test_ccnl_cs_lookup_invalid_parameters),
+         unit_test(test_ccnl_cs_create_name_successful),
+         unit_test(test_ccnl_cs_create_content_successful),
     /*
          unit_test(test_ccnl_cs_remove_invalid_name),
          unit_test(test_ccnl_cs_remove_wrong_name_size, setup, NULL),
