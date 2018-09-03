@@ -34,6 +34,8 @@ typedef enum {
     CS_OPTIONS_ARE_NULL = -1,        /**< \ref ccnl_cs_ops_t are NULL */
     CS_NAME_IS_INVALID = -2,         /**< name is invalid or NULL */
     CS_CONTENT_IS_INVALID = -3,      /**< content is invalid or NULL */
+
+    CS_NAME_COULD_NOT_BE_FOUND = -4, /**< a name could not be found */
     
     CS_DO_NOT_USE = INT_MAX          /**< set the enum to a fixed width, do not use! */
 } ccnl_cs_status_t;
@@ -140,26 +142,5 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
 ccnl_cs_status_t
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name);
-
-/**
- * Allocates a \ref ccnl_cs_name_t struct
- *
- * @param[in] prefix The prefix to set in the name
- * @param[in] size The length of the \p name
- *
- * @return (TODO)
- */
-ccnl_cs_name_t *ccnl_cs_create_name(const char* prefix, size_t length);
-
-/**
- * Allocates a \ref ccnl_cs_content_t struct
- *
- * @param[in] content The content to set
- * @param[in] size The size of the \p content
- *
- * @return (TODO)
- */
-ccnl_cs_content_t *ccnl_cs_create_content(uint8_t *content, 
-                size_t size);
 
 #endif //CCNL_CS
