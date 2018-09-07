@@ -41,7 +41,7 @@ void ccnl_cs_init_uthash(ccnl_cs_ops_t *ccnl_cs_ops_uthash) {
 }
 
 static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
-    /** name is not already stored in the content store */
+    /* name is not already stored in the content store */
     if (!ccnl_cs_uthash_exists((ccnl_cs_name_t*)name)) {
         ccnl_cs_uthash_t *entry = malloc(sizeof(ccnl_cs_uthash_t));
 
@@ -49,15 +49,15 @@ static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccn
             entry->key = ccnl_cs_create_name((const char*)name->name, name->length);
 
             if (entry->key) {
-                /** copy over the name */
+                /* copy over the name */
                 memcpy(entry->key->name, name->name, name->length);
                 entry->key->length = name->length;
 
-                /** create value member */
+                /* create value member */
                 entry->value = ccnl_cs_create_content(content->content, content->length);
 
                 if (entry->value) {
-                    /** copy over the content */
+                    /* copy over the content */
                     memcpy(entry->value->content, content->content, content->length);
                     entry->value->length = content->length;
 
@@ -82,7 +82,7 @@ static ccnl_cs_status_t ccnl_cs_uthash_lookup(const ccnl_cs_name_t *name, ccnl_c
     HASH_FIND(hh, hashmap, name->name, name->length, entry); 
 
     if (entry) {
-        // TODO: should be caught in top-level lookup func
+        // TODO: should be caught in ccnl_cs_lookup
         if (content) {
             content->content = entry->value->content;
             content->length = entry->value->length;
@@ -99,9 +99,9 @@ static ccnl_cs_status_t ccnl_cs_uthash_remove(const ccnl_cs_name_t *name) {
     /* lookup if an entry for the given name exists */
     HASH_FIND(hh, hashmap, name->name, name->length, entry); 
 
-    /** check if entry was filled by the lookup  */
+    /* check if entry was filled by the lookup  */
     if (entry) {
-        /** free the entry */
+        /* free the entry */
         free(entry);
 
         return CS_OPERATION_WAS_SUCCESSFUL;
