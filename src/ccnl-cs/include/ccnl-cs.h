@@ -72,12 +72,18 @@ typedef int (*ccnl_cs_op_lookup_t)(const ccnl_cs_name_t *name, ccnl_cs_content_t
 typedef int (*ccnl_cs_op_remove_t)(const ccnl_cs_name_t *name);
 
 /**
+ * Type definition for the function pointer to the remove function
+ */
+typedef int (*ccnl_cs_op_clear_t)(void);
+
+/**
  * @brief Holds function pointers to concrete implementations of a content store
  */
 typedef struct {
     ccnl_cs_op_add_t add;       /**< Function pointer to the add function */
     ccnl_cs_op_lookup_t lookup; /**< Function pointer to the lookup function */
     ccnl_cs_op_remove_t remove; /**< Function pointer to the remove function */
+    ccnl_cs_op_clear_t clear;   /**< Function pointer to the clear function */
 } ccnl_cs_ops_t;
 
 /**
@@ -92,7 +98,9 @@ void
 ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_add_t add_fun,
              ccnl_cs_op_lookup_t lookup_fun,
-             ccnl_cs_op_remove_t remove_fun);
+             ccnl_cs_op_remove_t remove_fun
+             ccnl_cs_op_clear_t clear_fun
+             );
 
 /**
  * @brief Adds an item to the content store
@@ -142,5 +150,8 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
 ccnl_cs_status_t
 ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name);
+
+ccnl_cs_status_t
+ccnl_cs_clear(ccnl_cs_ops_t *ops);
 
 #endif //CCNL_CS

@@ -27,12 +27,14 @@ void
 ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_add_t add_fun,
              ccnl_cs_op_lookup_t lookup_fun,
-             ccnl_cs_op_remove_t remove_fun) {
+             ccnl_cs_op_remove_t remove_funx 
+             ccnl_cs_op_clear_t clear_fun) {
 
     if (ops) {
         ops->add = add_fun; 
         ops->lookup = lookup_fun; 
         ops->remove = remove_fun;
+        ops->clear = clear_fun;
     }
 
     return;
@@ -95,3 +97,9 @@ ccnl_cs_remove(ccnl_cs_ops_t *ops,
     return result;
 }
 
+ccnl_cs_status_t
+ccnl_cs_clear(ccnl_cs_ops_t *ops) {
+    if (ops) {
+        ops->clear();
+    }
+}

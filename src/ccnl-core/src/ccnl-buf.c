@@ -1,8 +1,9 @@
-/*
+/**
  * @f ccnl-buf.c
  * @b CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011-17, University of Basel
+ * Copyright (C) 2011-18 University of Basel
+ * Copyright (C) 2018    MSA Safety
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -72,8 +73,12 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
         ccnl_free(ccnl->fib);
         ccnl->fib = fwd;
     }
-    while (ccnl->contents)
-        ccnl_content_remove(ccnl, ccnl->contents);
+
+    /** check if the variable is set */
+    if (ccnl->contents) {
+       ccnl_cs_clear(ccnl->contents);
+    }
+
     while (ccnl->nonces) {
         struct ccnl_buf_s *tmp = ccnl->nonces->next;
         ccnl_free(ccnl->nonces);
