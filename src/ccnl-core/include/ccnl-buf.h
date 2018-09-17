@@ -45,9 +45,6 @@ ccnl_buf_new(void *data, int len);
                          !memcmp(X->data,Y->data,X->datalen))
 
 void
-ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
-
-void
 ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
     
 #endif //CCNL_BUF_H
