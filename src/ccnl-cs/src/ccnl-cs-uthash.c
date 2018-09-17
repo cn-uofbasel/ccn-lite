@@ -33,11 +33,12 @@ static ccnl_cs_uthash_t *hashmap = NULL;
 static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content);
 static ccnl_cs_status_t ccnl_cs_uthash_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t *content);
 static ccnl_cs_status_t ccnl_cs_uthash_remove(const ccnl_cs_name_t *name);
+static ccnl_cs_status_t ccnl_cs_uthash_cleare(void);
 
 
 void ccnl_cs_init_uthash(ccnl_cs_ops_t *ccnl_cs_ops_uthash) {
     /* set the function pointers */
-    ccnl_cs_init(ccnl_cs_ops_uthash, ccnl_cs_uthash_add, ccnl_cs_uthash_lookup, ccnl_cs_uthash_remove);
+    ccnl_cs_init(ccnl_cs_ops_uthash, ccnl_cs_uthash_add, ccnl_cs_uthash_lookup, ccnl_cs_uthash_remove, ccnl_cs_uthash_clear);
 }
 
 static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
@@ -142,4 +143,14 @@ void ccnl_cs_uthash_dump(void) {
         printf("\nlength: %d\n", entry->value->length);
         printf("\n");
     }
+}
+
+static ccnl_cs_status_t ccnl_cs_uthash_cleare(void) {
+  ccnl_cs_uthash_t *current_entry, *tmp;
+
+  HASH_ITER(hh, hashmap, current_entry, tmp) {
+        HASH_DEL(users,current_entry);  
+        free(current_entry);            
+  }
+
 }
