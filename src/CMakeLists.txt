@@ -128,7 +128,7 @@ endif()
 
 if (NOT DEFINED CCNL_LINUXKERNEL)
 if (NOT CCNL_RIOT)
-    add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix)
+    add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-cs)
 endif()
 endif()
 

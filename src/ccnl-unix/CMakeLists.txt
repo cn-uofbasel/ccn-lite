@@ -3,7 +3,7 @@ project(ccnl-unix)
  
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-include_directories(include ../ccnl-addons/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-core/include)
+include_directories(include ../ccnl-addons/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-core/include ../ccnl-cs/include)
  
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
