@@ -56,11 +56,7 @@ ccnl_content_new(struct ccnl_pkt_s **pkt)
     c->pkt = *pkt;
     *pkt = NULL;
     c->last_used = CCNL_NOW();
-#ifdef USE_SUITE_NDNTLV
-    if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
-        c->stale = false;
-    }
-#endif
+    c->flags = CCNL_CONTENT_FLAGS_NOT_STALE;
 
     return c;
 }
