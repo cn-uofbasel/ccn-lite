@@ -58,8 +58,6 @@ ccnl_content_new(struct ccnl_pkt_s **pkt)
     c->last_used = CCNL_NOW();
 #ifdef USE_SUITE_NDNTLV
     if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
-        /* convert from milli seconds to seconds for now, as CCNL_NOW() has second granularity */
-        c->freshnessperiod = CCNL_NOW() + (c->pkt->s.ndntlv.freshnessperiod / 1000);
         c->stale = false;
     }
 #endif

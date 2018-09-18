@@ -62,7 +62,6 @@ typedef struct ccnl_content_s {
     uint32_t last_used;                   /**< indicates when the stored content was last used */
 
 #ifdef USE_SUITE_NDNTLV
-    uint32_t freshnessperiod;             /**< defines how long a node has to wait (after the arrival of this data before) marking it “non-fresh”*/
     bool stale;                           /**< indicates if a packet was marked 'non-fresh' -> staled */
 #endif
 
