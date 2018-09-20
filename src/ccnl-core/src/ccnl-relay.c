@@ -738,7 +738,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
 #ifdef USE_SUITE_NDNTLV
             if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
                 if ((c->last_used + (c->pkt->s.ndntlv.freshnessperiod / 1000)) <= (uint32_t) t) {
-                    c->stale = true;
+                    c->flags |= CCNL_CONTENT_FLAGS_STALE;
                 }
             }
 #endif

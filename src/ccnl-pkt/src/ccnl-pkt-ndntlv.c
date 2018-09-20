@@ -319,7 +319,7 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
         return -1;
 
-    if (p->s.ndntlv.mbf && c->stale) {
+    if (p->s.ndntlv.mbf && ((c->flags & CCNL_CONTENT_FLAGS_STALE) != 0)) {
         DEBUGMSG(DEBUG, "ignore stale content\n");
         return -1;
     }
