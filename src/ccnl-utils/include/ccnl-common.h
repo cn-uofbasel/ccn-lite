@@ -77,7 +77,6 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 #include "ccnl-socket.h"
 
-#define ccnl_core_addToCleanup(b)       do{}while(0)
 
 // include only the utils, not the core routines:
 #ifdef USE_FRAG

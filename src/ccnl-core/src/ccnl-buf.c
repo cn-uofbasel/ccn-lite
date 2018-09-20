@@ -53,15 +53,6 @@ ccnl_buf_new(void *data, int len)
     return b;
 }
 
-struct ccnl_buf_s *bufCleanUpList;
-
-void
-ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
-{
-    buf->next = bufCleanUpList;
-    bufCleanUpList = buf;
-}
-
 void
 ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 {
@@ -88,10 +79,4 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
     }
     for (k = 0; k < ccnl->ifcount; k++)
         ccnl_interface_cleanup(ccnl->ifs + k);
-
-    while (bufCleanUpList) {
-        struct ccnl_buf_s *tmp = bufCleanUpList->next;
-        ccnl_free(bufCleanUpList);
-        bufCleanUpList = tmp;
-    }
 }
