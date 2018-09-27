@@ -48,7 +48,7 @@ ccnl_content_new(struct ccnl_pkt_s **pkt)
 
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
              (void*) *pkt, ccnl_prefix_to_str((*pkt)->pfx, s, CCNL_MAX_PREFIX_SIZE),
-             ((*pkt)->pfx->chunknum)? *((*pkt)->pfx->chunknum) : -1);
+             ((*pkt)->pfx->chunknum) ? *((*pkt)->pfx->chunknum) : 0);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)

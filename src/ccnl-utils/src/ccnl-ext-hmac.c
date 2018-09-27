@@ -143,27 +143,30 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
 
 #ifdef USE_SUITE_NDNTLV
 
-int
+int8_t
 ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
-                           unsigned int *final_block_id, int *contentpos,
-                           unsigned char *keyval, // 64B
-                           unsigned char *keydigest, // 32B
-                           int *offset, unsigned char *buf)
+                                 uint8_t *payload, size_t paylen,
+                                 uint32_t *final_block_id, size_t *contentpos,
+                                 uint8_t *keyval, // 64B
+                                 uint8_t *keydigest, // 32B
+                                 size_t *offset, uint8_t *buf)
 {
-    int oldoffset = *offset, oldoffset2, mdoffset, endofsign, mdlength = 32;
-    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureHmacWithSha256 };
+    int mdlength = 32; //fixme:type
+    size_t oldoffset = *offset, oldoffset2, mdoffset, endofsign;
+    uint8_t signatureType[1] = { NDN_SigTypeVal_SignatureHmacWithSha256 };
     (void) keydigest; 
-    if (contentpos)
+    if (contentpos) {
         *contentpos = *offset - paylen;
+    }
 
     // fill in backwards
 
     *offset -= mdlength; // sha256 msg digest bits, filled out later
     mdoffset = *offset;
     // mandatory
-    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureValue, mdlength, offset, buf) <0)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureValue, (uint64_t) mdlength, offset, buf) < 0) {
         return -1;
+    }
 
     // to find length from start of content to end of SignatureInfo
     endofsign = *offset;
@@ -180,52 +183,60 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
 
     // use NDN_SigTypeVal_SignatureHmacWithSha256
     if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,
-                offset, buf)< 0)
+                                offset, buf) < 0) {
         return 1;
+    }
 
     // Groups KeyLocator and Signature Type with stored len
-    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureInfo, endofsign - *offset, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureInfo, endofsign - *offset, offset, buf) < 0) {
         return -1;
+    }
 
     // mandatory payload/content
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
-                                offset, buf) < 0)
+                                offset, buf) < 0) {
         return -1;
+    }
 
     // to find length of optional MetaInfo fields
     oldoffset2 = *offset;
-    if(final_block_id) {
+    if (final_block_id) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
                                                  *final_block_id,
                                                  NDN_Marker_SegmentNumber,
-                                                 offset, buf) < 0)
+                                                 offset, buf) < 0) {
             return -1;
-
+        }
         // optional
-        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset, offset, buf) < 0)
+        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset, offset, buf) < 0) {
             return -1;
+        }
     }
 
     // mandatory (empty for now)
-    if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0) {
         return -1;
+    }
 
     // mandatory
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf)) {
         return -1;
+    }
 
     // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
-                              offset, buf) < 0)
-           return -1;
+                              offset, buf) < 0) {
+        return -1;
+    }
 
-    if (contentpos)
+    if (contentpos) {
         *contentpos -= *offset;
+    }
 
-    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
+    ccnl_hmac256_sign(keyval, 64, buf + *offset, (int) (endofsign - *offset), //fixme:type !!!
                       buf + mdoffset, &mdlength);
 
-    return oldoffset - *offset;
+    return 0;
 }
 
 #endif // USE_SUITE_NDNTLV

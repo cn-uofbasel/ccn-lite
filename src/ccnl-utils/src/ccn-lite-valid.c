@@ -25,13 +25,15 @@
 #include "ccnl-ext-hmac.h"
 
 struct ccnl_pkt_s*
-ccnl_parse(unsigned char *data, int datalen)
+ccnl_parse(uint8_t *data, size_t datalen)
 {
     unsigned char *base = data;
-    int enc, suite = -1, skip = 0;
+    int suite = -1;
+    int32_t enc;
+    size_t skip = 0;
     struct ccnl_pkt_s *pkt = 0;
 
-    DEBUGMSG(DEBUG, "start parsing %d bytes\n", datalen);
+    DEBUGMSG(DEBUG, "start parsing %zu bytes\n", datalen);
 
     // work through explicit code switching
     while (!ccnl_switch_dehead(&data, &datalen, &enc))
@@ -40,7 +42,7 @@ ccnl_parse(unsigned char *data, int datalen)
         suite = ccnl_pkt2suite(data, datalen, &skip);
 
     if (!ccnl_isSuite(suite)) {
-        DEBUGMSG(WARNING, "?unknown packet format? %d bytes starting with 0x%02x at offset %zd\n",
+        DEBUGMSG(WARNING, "?unknown packet format? %zu bytes starting with 0x%02x at offset %zd\n",
                      datalen, *data, data - base);
         return NULL;
     }
@@ -56,14 +58,14 @@ ccnl_parse(unsigned char *data, int datalen)
         data += hdrlen;
         datalen -= hdrlen;
 
-        pkt = ccnl_ccntlv_bytes2pkt(base, &data, &datalen);
+        pkt = ccnl_ccntlv_bytes2pkt(base, &data, (int*)&datalen);//fixme:type
         if (!pkt) {
             DEBUGMSG(FATAL, "ccnx2015: parse error\n");
             return NULL;
         }
         if (pkt->type != CCNX_TLV_TL_Interest &&
                                             pkt->type != CCNX_TLV_TL_Object) {
-          DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%d)\n",
+          DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%lu)\n",
                    pkt->type);
             return pkt;
         }
@@ -72,8 +74,8 @@ ccnl_parse(unsigned char *data, int datalen)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        int typ;
-        int len2;
+        uint64_t typ;
+        size_t len2;
 
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");

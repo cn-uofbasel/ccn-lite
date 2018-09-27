@@ -604,10 +604,10 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
 }
 
 struct ccnl_prefix_s*
-getPrefix(unsigned char *data, int datalen, int *suite)
+getPrefix(uint8_t *data, size_t datalen, int32_t *suite)
 {
     struct ccnl_prefix_s *prefix;
-    int skip;
+    size_t skip;
     struct ccnl_pkt_s *pkt = NULL;
 
     *suite = ccnl_pkt2suite(data, datalen, &skip);
@@ -624,9 +624,9 @@ getPrefix(unsigned char *data, int datalen, int *suite)
     case CCNL_SUITE_CCNB: {
         int num, typ;
         unsigned char *start = data;
-        if (!ccnl_ccnb_dehead(&data, &datalen, &num, &typ) &&
+        if (!ccnl_ccnb_dehead(&data, (int*)&datalen, &num, &typ) &&//fixme:type
                                                         typ == CCN_TT_DTAG)
-            pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
+            pkt = ccnl_ccnb_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
         break;
     }
     case CCNL_SUITE_CCNTLV: {
@@ -636,16 +636,17 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         if (hdrlen > 0) {
             data += hdrlen;
             datalen -= hdrlen;
-            pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+            pkt = ccnl_ccntlv_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
         }
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        int typ;
-        int len;
+        uint64_t typ;
+        size_t len;
         unsigned char *start = data;
-        if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len))
+        if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) {
             pkt = ccnl_ndntlv_bytes2pkt(typ, start, &data, &datalen);
+        }
         break;
     }
     default:

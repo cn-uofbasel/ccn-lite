@@ -174,10 +174,12 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     }
                     if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
                         p->compcnt < CCNL_MAX_NAME_COMP) {
+                        int complen = (int) *(p->complen + p->compcnt);
                         if (ccnl_ccnb_hunt_for_end(data, datalen, p->comp + p->compcnt,
-                                p->complen + p->compcnt) < 0) {
+                                                   &complen) < 0) {//fixme:type
                             goto Bail;
                         }
+                        *(p->complen + p->compcnt) = (size_t) complen;
                         p->compcnt++;
                     } else {
                         if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0) {
@@ -187,13 +189,17 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 }
                 p->namelen = *data - p->nameptr;
                 break;
-            case CCN_DTAG_CONTENT:
+            case CCN_DTAG_CONTENT: {
+                int contlen = (int) pkt->contlen;
                 if (ccnl_ccnb_consume(typ, num, data, datalen,
-                                      &pkt->content, &pkt->contlen) < 0) {
+                                      &pkt->content, &contlen) < 0) {//fixme:type
                     goto Bail;
                 }
+                pkt->contlen = (size_t) contlen;
+
                 oldpos = *data - start;
                 continue;
+            }
             case CCN_DTAG_SCOPE:
             case CCN_DTAG_ANSWERORIGKIND:
             case CCN_DTAG_MINSUFFCOMP:
@@ -253,7 +259,7 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     if (pkt->content) {
         pkt->content = pkt->buf->data + (pkt->content - start);
     }
-    for (num = 0; num < p->compcnt; num++) {
+    for (num = 0; (unsigned)num < p->compcnt; num++) {//fixme:type
         p->comp[num] = pkt->buf->data + (p->comp[num] - start);
     }
     if (p->nameptr) {
@@ -439,7 +445,7 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
     int len, i;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    for (i = 0; i < name->compcnt; i++) {
+    for (i = 0; (unsigned)i < name->compcnt; i++) {//fixme:type
         len += ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len);
     }
     out[len++] = 0; // end-of-name

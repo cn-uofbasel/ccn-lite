@@ -28,8 +28,8 @@
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-ndntlv.h"
 
-int
-ccnl_switch_dehead(unsigned char **buf, int *len, int *code)
+int8_t
+ccnl_switch_dehead(uint8_t **buf, size_t *len, int32_t *code)
 {
     if (*len < 2 || **buf != 0x80) {
         return -1;
@@ -71,47 +71,51 @@ ccnl_enc2suite(int enc)
 
 #ifdef NEEDS_PACKET_CRAFTING
 
-int
-ccnl_switch_prependCodeVal(unsigned long val, int *offset, unsigned char *buf)
+int8_t
+ccnl_switch_prependCodeVal(uint64_t val, size_t *offset, uint8_t *buf, size_t *res)
 {
-    int len, i, t;
+    size_t len, i;
+    uint8_t t;
 
     if (val < 253) {
-        len = 0, t = val;
+        len = 0, t = (uint8_t) val;
     } else if (val <= 0xffff) {
         len = 2, t = 253;
     } else if (val <= 0xffffffffL) {
         len = 4, t = 254;
     } else {
         len = 8, t = 255;
-    } if (*offset < (len+1)) {
+    }
+
+    if (*offset < (len+1)) {
         return -1;
     }
 
     for (i = 0; i < len; i++) {
-        buf[--(*offset)] = val & 0xff;
+        buf[--(*offset)] = (uint8_t) (val & 0xff);
         val = val >> 8;
     }
     buf[--(*offset)] = t;
-    return len + 1;
+    *res = len + 1;
+    return 0;
 }
 
-int
-ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf)
+int8_t
+ccnl_switch_prependCoding(uint64_t code, size_t *offset, uint8_t *buf, size_t *res)
 {
-    int len;
+    size_t len;
 
     if (*offset < 2) {
         return -1;
     }
-    len = ccnl_switch_prependCodeVal(code, offset, buf);
-    if (len < 0 || *offset < 1) {
+    if (ccnl_switch_prependCodeVal(code, offset, buf, &len) || *offset < 1) {
         return -1;
     }
     *offset -= 1;
     buf[*offset] = 0x80;
 
-    return len+1;
+    *res = len + 1;
+    return 0;
 }
 
 #endif // NEEDS_PACKET_CRAFTING

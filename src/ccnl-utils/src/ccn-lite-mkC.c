@@ -44,7 +44,8 @@ main(int argc, char *argv[])
     unsigned char *publisher = out;
     char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
-    int f, len, opt, plen, offs = 0;
+    int f, opt, plen;
+    size_t len, offs = 0;
     int contentpos;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
@@ -129,16 +130,23 @@ Usage:
         }
     }
 
-    if (!argv[optind])
+    if (!argv[optind]) {
         goto Usage;
+    }
 
     if (infname) {
         f = open(infname, O_RDONLY);
-        if (f < 0)
+        if (f < 0) {
             perror("file open:");
-    } else
+        }
+    } else {
         f = 0;
-    len = read(f, body, sizeof(body));
+    }
+    ssize_t _len = read(f, body, sizeof(body));
+    if (_len < 0) {
+        DEBUGMSG(ERROR, "read: %d\n", errno);
+    }
+    len = (size_t) _len;
     close(f);
     memset(out, 0, sizeof(out));
 
@@ -148,7 +156,7 @@ Usage:
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
+        len = (size_t) ccnl_ccnb_fillContent(name, body, (int) len, NULL, out); //fixme: type
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
@@ -161,13 +169,14 @@ Usage:
             // use the first key found in the key file
             ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
             ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
-            len = ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
+            len = (size_t) ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,//fixme:type
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  NULL, keyval, keyid, &offs, out);
-        } else
-            len = ccnl_ccntlv_prependContentWithHdr(name, body, len,
-                          lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                          NULL /* Int *contentpos */, &offs, out);
+                  NULL, keyval, keyid, (int*) &offs, out);//fixme:type
+        } else {
+            len = (size_t) ccnl_ccntlv_prependContentWithHdr(name, body, len, //fixme:type
+                                                    lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                                                    NULL /* Int *contentpos */, (int*)&offs, out);//fixme:type
+        }
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -184,9 +193,14 @@ Usage:
                   NULL, keyval, keyid, &offs, out);
         } else {
             data_opts.ndntlv.finalblockid = lastchunknum;
-            len = ccnl_ndntlv_prependContent(name, body, len,
+            size_t offz = offs;
+            ccnl_ndntlv_prependContent(name, body, len,
                   NULL, lastchunknum == UINT_MAX ? NULL : &(data_opts.ndntlv),
-                  &offs, out);
+                                             &offz, out);//fixme:type
+                                             //TODO: new implementation of prependContent returns -1 or 0, not length
+            printf("pkt len: %d\n", (int) (offs - offz));
+            len = (offs - offz);
+            offs = offz;
         }
         break;
 #endif
@@ -198,8 +212,9 @@ Usage:
         f = creat(outfname, 0666);
         if (f < 0)
             perror("file open:");
-    } else
+    } else {
         f = 1;
+    }
     write(f, out + offs, len);
     close(f);
 

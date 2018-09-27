@@ -164,7 +164,9 @@ ccnl_cmpfib(const void *a, const void *b)
 {
     struct ccnl_prefix_s *p1 = (*(struct ccnl_forward_s**)a)->prefix;
     struct ccnl_prefix_s *p2 = (*(struct ccnl_forward_s**)b)->prefix;
-    int i, len, r;
+    int r;
+    size_t len;
+    uint32_t i; //TODO: Is uint32_t correct here?
     for (i = 0; ; i++) {
         if (p1->compcnt <= i) {
             return p2->compcnt <= i ? 0 : -1;
@@ -173,15 +175,19 @@ ccnl_cmpfib(const void *a, const void *b)
             return 1;
         }
         len = p1->complen[i];
-        if (len > p2->complen[i])
+        if (len > p2->complen[i]) {
             len = p2->complen[i];
+        }
         r = memcmp(p1->comp[i], p2->comp[i], len);
-        if (r)
+        if (r) {
             return r;
-        if (p1->complen[i] > len)
+        }
+        if (p1->complen[i] > len) {
             return 1;
-        if (p2->complen[i] > len)
+        }
+        if (p2->complen[i] > len) {
             return -1;
+        }
     }
     return 0;
 }
@@ -194,7 +200,8 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         "HTTP/1.1 200 OK\n\r"
         "Content-Type: text/html; charset=utf-8\n\r"
         "Connection: close\n\r\n\r", *cp;
-    int len = strlen(hdr), i, j, cnt;
+    size_t len = strlen(hdr);
+    int i, j, cnt;
     time_t t;
     //struct utsname uts;
     struct ccnl_face_s *f;

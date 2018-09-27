@@ -775,14 +775,15 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                    unsigned int *len, char *cur_tag, int rawxml, FILE* out)
 {
     int i, maxi;
-    unsigned int typ, vallen;
+    uint64_t typ;
+    unsigned int vallen;
     unsigned char *cp;
     char *n, tmp[100];
     (void)cur_tag;
 
     while (*len > 0) {
         cp = *buf;
-        if (ccnl_ndntlv_dehead(buf, (int*) len, (int*)&typ, (int*)&vallen) < 0)
+        if (ccnl_ndntlv_dehead(buf, (size_t *) len, &typ, (size_t *)&vallen) < 0)//fixme:type
             return -1;
         if (vallen > *len) {
             fprintf(stderr, "\n%04zx ** NDN_TLV length problem for %s:\n"
@@ -901,7 +902,8 @@ int
 localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
                int rawxml, FILE* out)
 {
-    unsigned int typ, vallen, i;
+    uint64_t typ;
+    unsigned int vallen, i;
     unsigned char *cp;
     char *n, tmp[100], dorecurse;
 
@@ -919,7 +921,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
     } else
     */
         {
-            if (ccnl_lrpc_dehead(buf, len, (int*)&typ, (int*)&vallen) < 0)
+            if (ccnl_lrpc_dehead(buf, (size_t*)len, &typ, (size_t *)&vallen) < 0)//fixme:type
                 return -1;
             if (vallen > (unsigned int)*len) {
                 fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
@@ -997,13 +999,15 @@ static void
 localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
-    int origlen = len, typ, vallen;
+    uint64_t typ;
+    int origlen = len, vallen;
     // int typ2, vallen2, len2;
     //    unsigned char *cp;
 
-    if (len <= 0 || ccnl_lrpc_dehead(&buf, &len, &typ, &vallen) < 0 ||
-                              (typ != LRPC_PT_REQUEST && typ != LRPC_PT_REPLY))
+    if (len <= 0 || ccnl_lrpc_dehead(&buf, (size_t*)&len, &typ, (size_t*)&vallen) < 0 || //fixme:type
+                              (typ != LRPC_PT_REQUEST && typ != LRPC_PT_REPLY)) {
         return;
+    }
 
     /*
     cp = buf;
@@ -1052,12 +1056,13 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        int pkttype;
-        int vallen;
+        uint64_t pkttype;
+        size_t vallen;
         data = start;
-        if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
+        if (ccnl_ndntlv_dehead(&data, (size_t*)&len, &pkttype, &vallen) < 0) {//fixme:type
             return -1;
-        pkt = ccnl_ndntlv_bytes2pkt(pkttype, start, &data, &len);
+        }
+        pkt = ccnl_ndntlv_bytes2pkt(pkttype, start, &data, (size_t*)&len);//fixme:type
         break;
     }
     default:
@@ -1069,7 +1074,7 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         return -1;
     }
 
-    printf("%.*s", pkt->contlen, pkt->content);
+    printf("%.*s", (int) pkt->contlen, pkt->content);//fixme:type
     if (format > 2) {
         printf("\n");
     }
@@ -1082,12 +1087,13 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
 
 // returns 0 on success, -1 on error, 1 on "warning"
 int
-dump_content(int lev, unsigned char *base, unsigned char *data,
-             int len, int format, int suite, FILE *out)
+dump_content(int lev, uint8_t *base, uint8_t *data,
+             size_t len, int format, int suite, FILE *out)
 {
     char *forced;
-    int enc, oldlen = len;
-    unsigned char *olddata = data;
+    int32_t enc;
+    size_t oldlen = len;
+    uint8_t *olddata = data;
     int rc = 0;
 
     if (len == 0) {
@@ -1098,9 +1104,10 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
     if (suite >= 0) {
         forced = "forced";
         while (!ccnl_switch_dehead(&data, &len, &enc)) {
-            if (format)
+            if (format) {
                 continue;
-            printf("%04x", (int)(olddata - base));
+            }
+            printf("%04zd", (olddata - base));
             indent(NULL, lev);
             while (olddata < data)
                 printf("0x%02x ", *(olddata++));
@@ -1111,22 +1118,26 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
         forced = "auto-detected";
         while (!ccnl_switch_dehead(&data, &len, &enc)) {
             suite = ccnl_enc2suite(enc);
-            if (format)
+            if (format) {
                 continue;
-            printf("%04x", (int)(olddata - base));
+            }
+            printf("%04zx", (olddata - base));
             indent(NULL, lev);
-            while (olddata < data)
+            while (olddata < data) {
                 printf("0x%02x ", *(olddata++));
+            }
             printf("--> switch to %s\n", ccnl_enc2str(enc));
             forced = "explicit";
             olddata = data;
         }
-        if (suite < 0)
+        if (suite < 0) {
             suite = ccnl_pkt2suite(olddata, oldlen, NULL);
+        }
     }
 
-    if (format >= 2)
-        return emit_content_only(data, len, suite, format);
+    if (format >= 2) {
+        return emit_content_only(data, (int) len, suite, format);//fixme:type
+    }
 
     switch (suite) {
     case CCNL_SUITE_CCNB:

@@ -128,16 +128,16 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
  * @param[in]  keydigest The digest (>= 32 bytes)
  * @param[out] offset TODO
  * @param[out] buf A byte representation of the actual packet
- * 
- * @return Upon success, the function returns the number of used bytes
+ *
+ * @return 0 upon success, nonzero upon failure
  */
-int
+int8_t
 ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
-                           unsigned int *final_block_id, int *contentpos,
-                           unsigned char *keyval, 
-                           unsigned char *keydigest, 
-                           int *offset, unsigned char *buf);
+                                 uint8_t *payload, size_t paylen,
+                                 uint32_t *final_block_id, size_t *contentpos,
+                                 uint8_t *keyval, // 64B
+                                 uint8_t *keydigest, // 32B
+                                 size_t *offset, uint8_t *buf);
 #endif // USE_SUITE_NDNTLV
 #endif // NEEDS_PACKET_CRAFTING
 

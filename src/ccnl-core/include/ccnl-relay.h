@@ -80,7 +80,7 @@ void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 
 struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
-                       struct sockaddr *sa, int addrlen);
+                        struct sockaddr *sa, size_t addrlen);
 
 struct ccnl_face_s*
 ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);

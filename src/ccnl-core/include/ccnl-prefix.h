@@ -25,6 +25,7 @@
 #define CCNL_PREFIX_H
 
 #include <stddef.h>
+#include <stdint.h>
 #ifndef CCNL_LINUXKERNEL
 #include <unistd.h>
 #endif
@@ -32,14 +33,14 @@
 struct ccnl_content_s;
 
 struct ccnl_prefix_s {
-    unsigned char **comp; /**< name components of the prefix without '\0' at the end */
-    int *complen; /**< length of the name components */
-    int compcnt; /**< number of name components */
+    uint8_t **comp; /**< name components of the prefix without '\0' at the end */
+    size_t *complen; /**< length of the name components */
+    uint32_t compcnt; /**< number of name components */
     char suite; /**< type of the packet format */
-    unsigned char *nameptr; /**< binary name (for fast comparison) */
+    uint8_t *nameptr; /**< binary name (for fast comparison) */
     ssize_t namelen; /**<  valid length of name memory */
-    unsigned char *bytes;   /**< memory for name component copies */
-    int *chunknum;   /**< if defined, number of the chunk else -1 */
+    uint8_t *bytes;   /**< memory for name component copies */
+    uint32_t *chunknum;   /**< if defined, number of the chunk else -1 */
 };
 
 /**
@@ -80,8 +81,8 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
  *
  * @return      0 on success else < 0
 */
-int 
-ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmplen);
+int8_t
+ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, uint8_t *cmp, size_t cmplen);
 
 /**
  * @brief Set a Cunknum to a Prefix
@@ -124,9 +125,9 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
  * @return      0 if full match
  * @return      n>0 for matched components
 */
-int
+int8_t
 ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
-                  int minsuffix, int maxsuffix, struct ccnl_content_s *c);
+                  uint64_t minsuffix, uint64_t maxsuffix, struct ccnl_content_s *c);
 
 /**
  * @brief checks if a prefixname is a prefix of a content name
@@ -135,7 +136,7 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
  *
  * @return  length of the escaped component
 */
-int
+size_t
 unescape_component(char *comp);
 
 //int
@@ -163,8 +164,8 @@ ccnl_URItoPrefix(char* uri, int suite, unsigned int *chunknum);
  *
  * @return number of components that where added to compVector
 */
-int
-ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
+uint32_t
+ccnl_URItoComponents(char **compVector, size_t *compLens, char *uri);
 
 #ifndef CCNL_LINUXKERNEL
 /**

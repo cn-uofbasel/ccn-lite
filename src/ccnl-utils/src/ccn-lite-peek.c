@@ -175,11 +175,14 @@ usage:
 
         for (;;) { // wait for a content pkt (ignore interests)
             unsigned char *cp = out;
-            int enc, suite2, len2;
+            int32_t enc;
+            int suite2;
+            size_t len2;
             DEBUGMSG(TRACE, "  waiting for packet\n");
 
-            if (block_on_read(sock, wait) <= 0) // timeout
+            if (block_on_read(sock, wait) <= 0) { // timeout
                 break;
+            }
             len = recv(sock, out, sizeof(out), 0);
 
             DEBUGMSG(DEBUG, "received %d bytes\n", len);
@@ -192,8 +195,9 @@ usage:
 */
             suite2 = -1;
             len2 = len;
-            while (!ccnl_switch_dehead(&cp, &len2, &enc))
+            while (!ccnl_switch_dehead(&cp, &len2, &enc)) {
                 suite2 = ccnl_enc2suite(enc);
+            }
             if (suite2 != -1 && suite2 != suite) {
                 DEBUGMSG(DEBUG, "  unknown suite %d\n", suite);
                 continue;

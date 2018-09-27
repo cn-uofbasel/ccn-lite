@@ -44,7 +44,7 @@ int ccntlv_isFragment(unsigned char *buf, int len);
 #endif // USE_SUITE_CCNTLV
 
 #ifdef  USE_SUITE_NDNTLV
-int ndntlv_isData(unsigned char *buf, int len);
+int8_t ndntlv_isData(uint8_t *buf, size_t len);
 #endif //USE_SUITE_NDNTLV
 
 int
@@ -76,9 +76,8 @@ ccnl_mkInterestObject(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts);
 struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts);
 
-void
-ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts, unsigned char *tmp,
-                int *len, int *offs);
+void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
+                     uint8_t *tmp, size_t *len, size_t *offs);
 
 #endif
 

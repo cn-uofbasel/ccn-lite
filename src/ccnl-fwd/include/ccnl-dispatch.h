@@ -45,8 +45,8 @@ ccnl_core_init(void);
  * @param[in] addrlen   length of the socketaddress
  */
 void
-ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
-             int datalen, struct sockaddr *sa, int addrlen);
+ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, uint8_t *data,
+             size_t datalen, struct sockaddr *sa, size_t addrlen);
 
 #endif
 /** @} */

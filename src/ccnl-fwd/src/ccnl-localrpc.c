@@ -148,7 +148,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     for (i = 0; i < lev; i++)
         fprintf(stderr, "  ");
     if (t == LRPC_FLATNAME)
-        fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->u.namelen);
+        fprintf(stderr, "%s (0x%x, len=%zu)\n", n, t, x->u.namelen);
     else
         fprintf(stderr, "%s (0x%x)\n", n, t);
 
@@ -181,7 +181,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 
 // ----------------------------------------------------------------------
 
-int
+int8_t
 ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     struct rdr_ds_s *nonce, int rc, char *reason,
                     struct rdr_ds_s *content)
@@ -189,21 +189,26 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     struct ccnl_buf_s *pkt;
     struct rdr_ds_s *seq, *element;
-    int len, switchlen;
+    size_t len, switchlen, partlen;
     unsigned char tmp[10];
 
     len = strlen(reason) + 50; // add some headroom
-    if (content)
-        len += ccnl_rdr_getFlatLen(content);
+    if (content) {
+        if (ccnl_rdr_getFlatLen(content, &partlen)) {
+            return -1;
+        }
+        len += partlen;
+    }
     pkt = ccnl_buf_new(NULL, len);
-    if (!pkt)
-        return 0;
+    if (!pkt) {
+        return -1;
+    }
 
     // we build a sequence, and later change the type in the flattened bytes
     seq = ccnl_rdr_mkSeq();
-    element = ccnl_rdr_mkNonce((char*)nonce->aux, nonce->u.binlen);
+    element = ccnl_rdr_mkNonce((uint8_t*)nonce->aux, nonce->u.binlen);
     ccnl_rdr_seqAppend(seq, element);
-    element = ccnl_rdr_mkNonNegInt(rc);
+    element = ccnl_rdr_mkNonNegInt((uint64_t) rc);
     ccnl_rdr_seqAppend(seq, element);
     element = ccnl_rdr_mkStr(reason);
     ccnl_rdr_seqAppend(seq, element);
@@ -212,19 +217,22 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     len = sizeof(tmp);
-    switchlen = ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &len, tmp);
-    if (switchlen > 0)
-        memcpy(pkt->data, tmp+len, switchlen);
-    else // this should not happen
-        switchlen = 0;
-
-    len = ccnl_rdr_serialize(seq, pkt->data + switchlen,
-                             pkt->datalen - switchlen);
-    ccnl_rdr_free(seq);
-    if (len < 0) {
+    if (ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &len, tmp, &switchlen)) {
+        ccnl_rdr_free(seq);
         ccnl_free(pkt);
-        return 0;
+        return -1;
     }
+
+    memcpy(pkt->data, tmp + len, switchlen);
+
+    if (ccnl_rdr_serialize(seq, pkt->data + switchlen,
+                           pkt->datalen - switchlen, &len)) {
+        ccnl_rdr_free(seq);
+        ccnl_free(pkt);
+        return -1;
+    }
+    ccnl_rdr_free(seq);
+
 //    fprintf(stderr, "%d bytes to return face=%p\n", len, from);
 
     *(pkt->data + switchlen) = LRPC_PT_REPLY;
@@ -499,7 +507,7 @@ rpc_getBuiltinFct(struct rdr_ds_s *var)
     if (var->type != LRPC_FLATNAME)
         return NULL;
     while (x->name) {
-        if ((int)strlen(x->name) == var->u.namelen &&
+        if (strlen(x->name) == var->u.namelen &&
             !memcmp(x->name, var->aux, var->u.namelen))
             return x->fct;
         x++;

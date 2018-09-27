@@ -97,7 +97,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     c = ccnl_content_new(pkt);
-    DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
+    DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", (unsigned)c->pkt->contlen, c->pkt->content);//fixme:type
     if (!c)
         return 0;
 
@@ -111,7 +111,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
             DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
             ccnl_content_add2cache(relay, c);
-            DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
+            DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", (unsigned)c->pkt->contlen, c->pkt->content);//fixme:type
         } else {
             DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
             ccnl_content_free(c);
@@ -481,7 +481,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
-            DEBUGMSG_CFWD(WARNING, "  ccntlv: interest pkt type mismatch %d %d\n",
+            DEBUGMSG_CFWD(WARNING, "  ccntlv: interest pkt type mismatch %d %ld\n",
                           hp->pkttype, pkt->type);
         }
     } else if (hp->pkttype == CCNX_PT_Data) {
@@ -489,7 +489,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
-            DEBUGMSG_CFWD(WARNING, "  ccntlv: data pkt type mismatch %d %d\n",
+            DEBUGMSG_CFWD(WARNING, "  ccntlv: data pkt type mismatch %d %ld\n",
                      hp->pkttype, pkt->type);
         }
     } // else ignore
@@ -510,20 +510,22 @@ Done:
 
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen)
+                      uint8_t **data, int *datalen)
 {
-    int rc = -1, len;
-    unsigned int typ;
+    int rc = -1;
+    size_t len, _datalen;
+    uint64_t typ;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
+    _datalen = (size_t) *datalen; //fixme:type
 
-    DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%zu bytes left)\n", _datalen);
 
-    if (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) || (int) len > *datalen) {
+    if (ccnl_ndntlv_dehead(data, &_datalen, &typ, &len) || len > _datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
     }
-    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
+    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, &_datalen);
     if (!pkt) {
         DEBUGMSG_CFWD(INFO, "  ndntlv packet coding problem\n");
         goto Done;
@@ -545,11 +547,12 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         break;
 #endif
     default:
-        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", typ);
+        DEBUGMSG_CFWD(INFO, "  unknown packet type %lu, dropped\n", typ);
         break;
     }
     rc = 0;
 Done:
+    *datalen = (int) _datalen;//fixme:type
     ccnl_pkt_free(pkt);
     return rc;
 }

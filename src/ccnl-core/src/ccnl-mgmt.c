@@ -1690,42 +1690,71 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) {
+        goto Bail;
+    }
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) {
+        goto Bail;
+    }
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) {
+        goto Bail;
+    }
 
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) {
+        goto Bail;
+    }
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) {
+        goto Bail;
+    }
+    if (typ != CCN_TT_BLOB) {
+        goto Bail;
+    }
     buflen = num;
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_FWDINGENTRY) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) {
+        goto Bail;
+    }
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_FWDINGENTRY) {
+        goto Bail;
+    }
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
-    if (!p) goto Bail;
+    if (!p) {
+        goto Bail;
+    }
     p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char*));
-    p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    if (!p->comp || !p->complen) goto Bail;
+    p->complen = (size_t*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(size_t));
+    if (!p->comp || !p->complen) {
+        goto Bail;
+    }
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-        if (num==0 && typ==0)
+        if (num==0 && typ==0) {
             break; // end
+        }
 
         if (typ == CCN_TT_DTAG && num == CCN_DTAG_NAME) {
             for (;;) {
-                if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-                if (num==0 && typ==0)
+                if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) {
+                    goto Bail;
+                }
+                if (num==0 && typ==0) {
                     break;
+                }
                 if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
                     p->compcnt < CCNL_MAX_NAME_COMP) {
                         // if (ccnl_grow_prefix(p)) goto Bail;
                     if (ccnl_ccnb_consume(typ, num, &buf, &buflen,
                                 p->comp + p->compcnt,
-                                p->complen + p->compcnt) < 0) goto Bail;
+                                          // FIXME: This is so horribly wrong
+                                          (int*) p->complen + p->compcnt) < 0) {
+                        goto Bail;
+                    }
                     p->compcnt++;
                 } else {
-                    if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+                    if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) {
+                        goto Bail;
+                    }
                 }
             }
             continue;
@@ -1982,7 +2011,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     for (c2 = ccnl->contents; c2; c2 = c2->next)
     {
-        if(c2->pkt->pfx->compcnt != (int)num_of_components) continue;
+        if(c2->pkt->pfx->compcnt != num_of_components) continue;
         for(i = 0; i < (int)num_of_components; ++i)
         {
             if(strcmp((char*)c2->pkt->pfx->comp[i], (char*)components[i]))

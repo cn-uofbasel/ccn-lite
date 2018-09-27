@@ -106,7 +106,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  */
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen);
+                      uint8_t **data, int *datalen);
 #endif // USE_SUITE_NDNTLV
 
 /**

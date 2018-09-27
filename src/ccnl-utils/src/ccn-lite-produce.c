@@ -221,7 +221,7 @@ Usage:
                                  (unsigned char *) chunk_buf, chunk_len,
                                  NULL,
                                  &(data_opts.ndntlv),// is_last ? &chunknum : NULL,
-                                 &offs, out);
+                                                    (size_t*)&offs, out);//fixme:type
             break;
         default:
             DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);

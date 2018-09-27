@@ -191,7 +191,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     // possibly want to remove the chunk segment from the
                     // name components and rely on the chunknum field in
                     // the prefix.
-                  p->chunknum = (int*) ccnl_malloc(sizeof(int));
+                  p->chunknum = (uint32_t *) ccnl_malloc(sizeof(uint32_t));
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp, len3,
                                                          (unsigned int*) p->chunknum) < 0) {
@@ -276,7 +276,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     if (pkt->content) {
         pkt->content = pkt->buf->data + (pkt->content - start);
     }
-    for (i = 0; i < p->compcnt; i++) {
+    for (i = 0; (unsigned) i < p->compcnt; i++) {//fixme:type
         p->comp[i] = pkt->buf->data + (p->comp[i] - start);
     }
     if (p->nameptr) {
@@ -462,7 +462,7 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
     // CCNX_TLV_N_Meta
 
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-        if (*offset < name->complen[cnt]) {
+        if ((unsigned)*offset < name->complen[cnt]) {//fixme:type
             return -1;
         }
         *offset -= name->complen[cnt];

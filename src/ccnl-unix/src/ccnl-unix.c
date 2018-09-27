@@ -671,11 +671,12 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct stat s;
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
-        int fd, datalen, suite, skip;
-        unsigned char *data;
+        int fd, suite;
+        size_t datalen, skip;
+        uint8_t *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_NDNTLV)
-        unsigned int typ;
+        uint64_t typ;
         int len;
 #endif
         struct ccnl_pkt_s *pk;
@@ -710,9 +711,9 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             datalen = -1;
         close(fd);
 
-        if (!buf || datalen != s.st_size || datalen < 2) {
-            DEBUGMSG(WARNING, "size mismatch for file %s, %d/%d bytes\n",
-                     de->d_name, datalen, (int) s.st_size);
+        if (!buf || (ssize_t)datalen != s.st_size || datalen < 2) {//fixme:type
+            DEBUGMSG(WARNING, "size mismatch for file %s, %zu/%zd bytes\n",
+                     de->d_name, datalen, s.st_size);
             continue;
         }
         buf->datalen = datalen;
@@ -732,7 +733,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             data += 2;
             datalen -= 2;
 
-            pk = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
+            pk = ccnl_ccnb_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
             break;
         }
 #endif
@@ -748,17 +749,17 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             data += hdrlen;
             datalen -= hdrlen;
 
-            pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+            pk = ccnl_ccntlv_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
             break;
         }
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
-            unsigned char *olddata;
+            uint8_t *olddata;
 
             data = olddata = buf->data + skip;
             datalen -= skip;
-            if (ccnl_ndntlv_dehead(&data, &datalen, (int*) &typ, &len) ||
+            if (ccnl_ndntlv_dehead(&data, &datalen, &typ, (size_t*) &len) ||
                                                          typ != NDN_TLV_Data)
                 goto notacontent;
             pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);

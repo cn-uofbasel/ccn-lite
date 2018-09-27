@@ -81,11 +81,11 @@ int ccntlv_isFragment(unsigned char *buf, int len)
 // ----------------------------------------------------------------------
 
 #ifdef  USE_SUITE_NDNTLV
-int ndntlv_isData(unsigned char *buf, int len) {
-    int typ;
-    int vallen;
+int8_t ndntlv_isData(uint8_t *buf, size_t len) {
+    uint64_t typ;
+    size_t vallen;
 
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int *) &typ, &vallen)) {
+    if (ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen)) {
         return -1;
     }
     if (typ != NDN_TLV_Data) {
@@ -111,7 +111,7 @@ ccnl_isContent(unsigned char *buf, int len, int suite)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        return ndntlv_isData(buf, len);
+        return ndntlv_isData(buf, (size_t) len);//fixme: type
 #endif
     }
 
@@ -157,12 +157,15 @@ struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 {
     struct ccnl_buf_s *buf = NULL;
-    unsigned char *tmp;
-    int len = 0, offs;
+    uint8_t *tmp;
+    size_t len = 0, offs;
     struct ccnl_prefix_s *prefix;
     (void)prefix;
 
-    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (uint8_t*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    if (!tmp) {
+        return NULL;
+    }
     offs = CCNL_MAX_PACKET_SIZE;
 
     ccnl_mkInterest(name, opts, tmp, &len, &offs);
@@ -176,20 +179,24 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 }
 
 void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
-                     unsigned char *tmp, int *len, int *offs) {
+                     uint8_t *tmp, size_t *len, size_t *offs) {
     ccnl_interest_opts_u default_opts;
+    size_t oldoffset = *offs;
 
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            (*len) = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+            (*len) = (size_t) ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);//fixme:type
             (*offs) = 0;
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV:
-            (*len) = ccnl_ccntlv_prependInterestWithHdr(name, offs, tmp);
+        case CCNL_SUITE_CCNTLV: {
+            int off = (int) *offs; //fixme:type
+            (*len) = (size_t) ccnl_ccntlv_prependInterestWithHdr(name, &off, tmp);//fixme:type
+            *offs = (size_t) off; //fixme:type
             break;
+        }
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
@@ -201,7 +208,12 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
                 opts->ndntlv.nonce = rand();
             }
 
-            (*len) = ccnl_ndntlv_prependInterest(name, -1, &(opts->ndntlv), offs, tmp);
+            if (ccnl_ndntlv_prependInterest(name, -1, &(opts->ndntlv), offs, tmp)) {
+                DEBUGMSG(ERROR, "Failed to create interest");
+                return;
+            }
+            *len = oldoffset - *offs;
+            DEBUGMSG(TRACE, "Packet length: %zd\n", *len);
             break;
 #endif
         default:
@@ -278,7 +290,7 @@ ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, u
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             (*len) = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                                contentpos, &(opts->ndntlv), offs, tmp);
+                                                (size_t*)contentpos, &(opts->ndntlv), (size_t*)offs, tmp);//fixme:type
             break;
 #endif
         default:

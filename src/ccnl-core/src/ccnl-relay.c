@@ -37,7 +37,7 @@
 
 struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
-                       struct sockaddr *sa, int addrlen)
+                        struct sockaddr *sa, size_t addrlen)
 // sa==NULL means: local(=in memory) client, search for existing ifndx being -1
 // sa!=NULL && ifndx==-1: search suitable interface for given sa_family
 // sa!=NULL && ifndx!=-1: use this (incoming) interface for outgoing
@@ -420,8 +420,9 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
         DEBUGMSG_CORE(DEBUG, "  ccnl_interest_propagate, rc=%d/%d\n",
                  rc, fwd->prefix->compcnt);
-        if (rc < fwd->prefix->compcnt)
+        if (rc < (signed) fwd->prefix->compcnt) {
             continue;
+        }
 
         DEBUGMSG_CORE(DEBUG, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
         // suppress forwarding to origin of interest, except wireless
@@ -557,7 +558,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
     DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
                   ccnl->contentcnt, ccnl->max_cache_entries,
-                  (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
+                  (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? (signed) *(c->pkt->pfx->chunknum) : -1);
 
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (ccnl_prefix_cmp(c->pkt->pfx, NULL, cit->pkt->pfx, CMP_EXACT) == 0) {
@@ -738,6 +739,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
 #ifdef USE_SUITE_NDNTLV
             if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
                 if ((c->last_used + (c->pkt->s.ndntlv.freshnessperiod / 1000)) <= (uint32_t) t) {
+                    // Never mark static content as stale
                     c->stale = true;
                 }
             }
@@ -955,8 +957,8 @@ ccnl_cs_dump(struct ccnl_relay_s *ccnl)
     while (c) {
         printf("CS[%u]: %s [%d]: %.*s\n", i++,
                ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
-               (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1,
-               c->pkt->contlen, c->pkt->content);
+               (c->pkt->pfx->chunknum)? (signed) *(c->pkt->pfx->chunknum) : -1,
+               (int32_t) c->pkt->contlen, c->pkt->content);
         c = c->next;
     }
 #endif
