@@ -738,9 +738,10 @@ ccnl_do_ageing(void *ptr, void *dummy)
         else {
 #ifdef USE_SUITE_NDNTLV
             if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
-                if ((c->last_used + (c->pkt->s.ndntlv.freshnessperiod / 1000)) <= (uint32_t) t) {
-                    // Never mark static content as stale
-                    c->stale = true;
+                // Mark content as stale if its freshness period expired and it is not static
+                if ((c->last_used + (c->pkt->s.ndntlv.freshnessperiod / 1000)) <= (uint32_t) t &&
+                        !(c->flags & CCNL_CONTENT_FLAGS_STATIC)) {
+                    c->flags |= CCNL_CONTENT_FLAGS_STALE;
                 }
             }
 #endif

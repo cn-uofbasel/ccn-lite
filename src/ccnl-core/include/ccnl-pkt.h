@@ -75,13 +75,13 @@ struct ccnl_pktdetail_ccntlv_s {
  */
 struct ccnl_pktdetail_ndntlv_s {
     /* Interest */
-    uint64_t minsuffix, maxsuffix, scope; //TODO: NDN-TLV 0.3 removed min/maxsuffix; scope has been gone since 0.2
+    uint64_t minsuffix, maxsuffix, scope;
     bool mbf;
     struct ccnl_buf_s *nonce;      /**< nonce */
     struct ccnl_buf_s *ppkl;       /**< publisher public key locator */
     uint64_t interestlifetime;     /**< interest lifetime */
     /* Data */
-    uint64_t freshnessperiod;      /**< content freshness period */
+    uint64_t freshnessperiod;      /**< defines how long a node has to wait (after the arrival of this data before) marking it “non-fresh” */
 };
 
 struct ccnl_pkt_s {

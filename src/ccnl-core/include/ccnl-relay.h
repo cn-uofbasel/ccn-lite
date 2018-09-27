@@ -58,8 +58,6 @@ struct ccnl_relay_s {
     struct ccnl_http_s *http;  /**< http server for status information*/
 #endif
     void *aux;
-
-   // struct ccnl_buf_s *bufCleanUpList;
   /*
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
