@@ -30,7 +30,7 @@
  * @brief       Functionpointer to a CCN-lite Forwarder Function
  */
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*, 
-                           unsigned char**, int*);
+                           uint8_t**, size_t *);
 
 /**
  * @brief       Functionpointer to a CCN-lite CS-Matching Function
@@ -74,7 +74,7 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  */
 int
 ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                    unsigned char **data, int *datalen);
+                    uint8_t **data, size_t *datalen);
 #endif // USE_SUITE_CCNB
 
 #ifdef USE_SUITE_CCNTLV
@@ -90,7 +90,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  */
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen);
+                      uint8_t **data, size_t *datalen);
 #endif // USE_SUITE_CCNTLV
 
 #ifdef USE_SUITE_NDNTLV
@@ -106,7 +106,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  */
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      uint8_t **data, int *datalen);
+                      uint8_t **data, size_t *datalen);
 #endif // USE_SUITE_NDNTLV
 
 /**

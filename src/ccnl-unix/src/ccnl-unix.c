@@ -677,12 +677,13 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_NDNTLV)
         uint64_t typ;
-        int len;
+        size_t len;
 #endif
         struct ccnl_pkt_s *pk;
 
-        if (de->d_name[0] == '.')
+        if (de->d_name[0] == '.') {
             continue;
+        }
 
         strcpy(fname, path);
         strcat(fname, "/");
@@ -692,11 +693,12 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             perror("stat");
             continue;
         }
-        if (S_ISDIR(s.st_mode))
+        if (S_ISDIR(s.st_mode)) {
             continue;
+        }
 
-        DEBUGMSG(INFO, "loading file %s, %d bytes\n", de->d_name,
-                 (int) s.st_size);
+        DEBUGMSG(INFO, "loading file %s, %zu bytes\n", de->d_name,
+                 s.st_size);
 
         fd = open(fname, O_RDONLY);
         if (!fd) {
@@ -705,10 +707,11 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         }
 
         buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) + s.st_size);
-        if (buf)
-            datalen = read(fd, buf->data, s.st_size);
-        else
+        if (buf) {
+            datalen = read(fd, buf->data, s.st_size);//fixme:type
+        } else {
             datalen = -1;
+        }
         close(fd);
 
         if (!buf || (ssize_t)datalen != s.st_size || datalen < 2) {//fixme:type
@@ -723,13 +726,14 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         switch (suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB: {
-            unsigned char *start;
+            uint8_t *start;
 
             data = start = buf->data + skip;
             datalen -= skip;
 
-            if (data[0] != 0x04 || data[1] != 0x82)
+            if (data[0] != 0x04 || data[1] != 0x82) {
                 goto notacontent;
+            }
             data += 2;
             datalen -= 2;
 
@@ -739,17 +743,19 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV: {
-            int hdrlen;
-            unsigned char *start;
+            size_t hdrlen;
+            uint8_t *start;
 
             data = start = buf->data + skip;
             datalen -=  skip;
 
-            hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+            if (ccnl_ccntlv_getHdrLen(data, datalen, &hdrlen)) {
+                goto notacontent;
+            }
             data += hdrlen;
             datalen -= hdrlen;
 
-            pk = ccnl_ccntlv_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
+            pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
             break;
         }
 #endif
@@ -759,9 +765,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
             data = olddata = buf->data + skip;
             datalen -= skip;
-            if (ccnl_ndntlv_dehead(&data, &datalen, &typ, (size_t*) &len) ||
-                                                         typ != NDN_TLV_Data)
+            if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
+                                                         typ != NDN_TLV_Data) {
                 goto notacontent;
+            }
             pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
             break;
         }

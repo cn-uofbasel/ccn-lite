@@ -182,7 +182,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             {
                 struct ccnl_content_s *c;
                 char uri[50];
-                int contentpos;
+                size_t contentpos;
                 struct ccnl_pkt_s *pkt;
 
                 DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);

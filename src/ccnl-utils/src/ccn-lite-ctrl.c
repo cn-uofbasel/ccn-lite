@@ -630,13 +630,17 @@ getPrefix(uint8_t *data, size_t datalen, int32_t *suite)
         break;
     }
     case CCNL_SUITE_CCNTLV: {
-        unsigned char *start = data;
-        int hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+        uint8_t *start = data;
+        size_t hdrlen;
+        if (ccnl_ccntlv_getHdrLen(data, datalen, &hdrlen)) {
+            DEBUGMSG(ERROR, "Error getting header length\n");
+            return NULL;
+        };
 
         if (hdrlen > 0) {
             data += hdrlen;
             datalen -= hdrlen;
-            pkt = ccnl_ccntlv_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
+            pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
         }
         break;
     }

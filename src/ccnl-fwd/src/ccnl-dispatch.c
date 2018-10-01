@@ -92,7 +92,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, uint8_t *data,
                      "for suite %s does not exist.\n", ccnl_suite2str(suite));
             return;
         }
-        if (dispatch(relay, from, &data, (int*)&datalen) < 0) {//fixme:type
+        if (dispatch(relay, from, &data, &datalen) < 0) {
             break;
         }
         if (datalen > 0) {
@@ -112,7 +112,7 @@ ccnl_core_init(void)
 #endif
 #ifdef USE_SUITE_CCNTLV
     ccnl_core_suites[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder;
-    ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
+    ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch; //fixme: cMatch return value int8_t
 #endif
 #ifdef USE_SUITE_LOCALRPC
     ccnl_core_suites[CCNL_SUITE_LOCALRPC].RX     = ccnl_localrpc_exec;

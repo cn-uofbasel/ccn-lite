@@ -171,13 +171,13 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 int8_t
 ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_ndntlv_interest_opts_s *opts,
-                            size_t *offset, uint8_t *buf);
+                            size_t *offset, uint8_t *buf, size_t *reslen);
 
 int8_t
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            uint8_t *payload, size_t paylen,
                            size_t *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
-                           size_t *offset, uint8_t *buf);
+                           size_t *offset, uint8_t *buf, size_t *reslen);
 
 int8_t
 ccnl_ndntlv_prependTL(uint64_t type, uint64_t len,

@@ -38,7 +38,7 @@
  */
 int
 ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                   unsigned char **buf, int *buflen);
+                   uint8_t **buf, size_t *buflen);
 
 #endif
 

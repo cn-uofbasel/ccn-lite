@@ -382,7 +382,8 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             struct rdr_ds_s *nonce, struct rpc_exec_s *exec,
             struct rdr_ds_s *param)
 {
-    int encoding, len;
+    int encoding;
+    size_t len;
     char *cp;
     unsigned char *ucp;
     (void)exec;
@@ -577,12 +578,12 @@ done:
  
 int
 ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                   unsigned char **buf, int *buflen)
+                   uint8_t **buf, size_t *buflen)
 {
     struct rdr_ds_s *a; // , *fct;
     int rc = 0, type;
 
-    DEBUGMSG(DEBUG, "ccnl_localrpc_exec: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG(DEBUG, "ccnl_localrpc_exec: %zu bytes from face=%p (id=%d.%d)\n",
              *buflen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc == 0 && *buflen > 0) {
@@ -600,11 +601,11 @@ ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         type = ccnl_rdr_getType(a);
         //        fprintf(stderr, "type=%d\n", type);
-        if (type == LRPC_PT_REQUEST)
+        if (type == LRPC_PT_REQUEST) {
             rc = ccnl_localrpc_handleRequest(relay, from, a);
-        else if (type == LRPC_PT_REPLY)
+        } else if (type == LRPC_PT_REPLY) {
             rc = ccnl_localrpc_handleReply(relay, from, a);
-        else {
+        } else {
             DEBUGMSG(DEBUG, "  unserialization error %d\n", type);
             return -1;
         }
@@ -622,6 +623,10 @@ ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
         ccnl_rdr_free(a);
         *buf += a->flatlen;
+        if (a->flatlen > *buflen) {
+            *buflen -= a->flatlen;
+            break;
+        }
         *buflen -= a->flatlen;
     }
 

@@ -52,19 +52,20 @@ ccnl_parse(uint8_t *data, size_t datalen)
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
-        int hdrlen;
+        size_t hdrlen;
 
-        hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+        if (ccnl_ccntlv_getHdrLen(data, datalen, &hdrlen)) {
+            return NULL;
+        }
         data += hdrlen;
         datalen -= hdrlen;
 
-        pkt = ccnl_ccntlv_bytes2pkt(base, &data, (int*)&datalen);//fixme:type
+        pkt = ccnl_ccntlv_bytes2pkt(base, &data, &datalen);
         if (!pkt) {
             DEBUGMSG(FATAL, "ccnx2015: parse error\n");
             return NULL;
         }
-        if (pkt->type != CCNX_TLV_TL_Interest &&
-                                            pkt->type != CCNX_TLV_TL_Object) {
+        if (pkt->type != CCNX_TLV_TL_Interest && pkt->type != CCNX_TLV_TL_Object) {
           DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%lu)\n",
                    pkt->type);
             return pkt;
@@ -108,7 +109,9 @@ int
 main(int argc, char *argv[])
 {
     unsigned char incoming[64*1024];
-    int opt, cnt, rc, len = 0, exitBehavior = 0, signLen = 32;
+    size_t len = 0, signLen = 32;
+    ssize_t rc;
+    int opt, cnt, exitBehavior = 0;
     struct ccnl_pkt_s *pkt;
     unsigned char keyval[64], signature[32];
     char *keyfile = NULL;
@@ -126,10 +129,11 @@ main(int argc, char *argv[])
             break;
         case 'v':
 #ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
+            if (isdigit(optarg[0])) {
                 debug_level = atoi(optarg);
-            else
+            } else {
                 debug_level = ccnl_debug_str2level(optarg);
+            }
 #endif
             break;
         case 'h':
@@ -157,10 +161,15 @@ Usage:
         goto Usage;
     }
 
-    while ((rc = read(0, incoming + len, sizeof(incoming) - len)) > 0)
+    while ((rc = read(0, incoming + len, sizeof(incoming) - len)) > 0) {
+        if (rc < 0) {
+            fprintf(stderr, "read failure, aborting. errno: %d\n", errno);
+        }
         len += rc;
-    if (len <= 0)
+    }
+    if (len <= 0) {
         return 0;
+    }
 
     // parse packet pkt = ccnl_
     pkt = ccnl_parse(incoming, len);
@@ -183,10 +192,8 @@ Usage:
         cnt = 1;
         while (keys) {
             DEBUGMSG(VERBOSE, "trying key #%d\n", cnt);
-            ccnl_hmac256_keyval((unsigned char*) keys->key, keys->keylen,
-                keyval);
-            ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen,
-                signature, &signLen);
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval); //fixme:type
+            ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen, signature, &signLen);
             if (!memcmp(signature, pkt->hmacSignature, 32)) {
                 DEBUGMSG(INFO, "signature is valid (key #%d)\n", cnt);
                 break;
@@ -204,7 +211,7 @@ Usage:
     }
 
     // output packet
-    write(1, pkt->buf->data, pkt->buf->datalen);
+    write(1, pkt->buf->data, pkt->buf->datalen);//fixme:type
 
     return 0;
 }

@@ -39,14 +39,13 @@ char *witness;
 int
 main(int argc, char *argv[])
 {
-    unsigned char body[64*1024];
-    unsigned char out[65*1024];
-    unsigned char *publisher = out;
+    uint8_t body[64*1024];
+    uint8_t out[65*1024];
+    uint8_t *publisher = out;
     char *infname = 0, *outfname = 0;
-    unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
-    int f, opt, plen;
-    size_t len, offs = 0;
-    int contentpos;
+    uint32_t chunknum = UINT32_MAX, lastchunknum = UINT32_MAX;
+    int f, opt;
+    size_t plen, len, offs = 0, contentpos;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
     struct key_s *keys = NULL;
@@ -82,9 +81,7 @@ main(int argc, char *argv[])
             publisher = (unsigned char*) optarg;
             plen = unescape_component((char*) publisher);
             if (plen != 32) {
-                DEBUGMSG(ERROR,
-                  "publisher key digest has wrong length (%d instead of 32)\n",
-                  plen);
+                DEBUGMSG(ERROR, "publisher key digest has wrong length (%zu instead of 32)\n", plen);
                 exit(-1);
             }
             break;
@@ -145,13 +142,14 @@ Usage:
     ssize_t _len = read(f, body, sizeof(body));
     if (_len < 0) {
         DEBUGMSG(ERROR, "read: %d\n", errno);
+        exit(1);
     }
     len = (size_t) _len;
     close(f);
     memset(out, 0, sizeof(out));
 
     name = ccnl_URItoPrefix(argv[optind], suite, 
-                            chunknum == UINT_MAX ? NULL : &chunknum);
+                            chunknum == UINT32_MAX ? NULL : &chunknum);
 
     switch (suite) {
 #ifdef USE_SUITE_CCNB
@@ -164,18 +162,24 @@ Usage:
 
         offs = CCNL_MAX_PACKET_SIZE;
         if (keys) {
-            unsigned char keyval[64];
-            unsigned char keyid[32];
+            uint8_t keyval[64];
+            uint8_t keyid[32];
             // use the first key found in the key file
-            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
-            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
-            len = (size_t) ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,//fixme:type
-                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  NULL, keyval, keyid, (int*) &offs, out);//fixme:type
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);//fixme:type
+            ccnl_hmac256_keyid(keys->key, (size_t) keys->keylen, keyid);
+            if (ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
+                                                        lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
+                                                        NULL, keyval, keyid, &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending signed content.");
+                exit(1);
+            }
         } else {
-            len = (size_t) ccnl_ccntlv_prependContentWithHdr(name, body, len, //fixme:type
-                                                    lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                                                    NULL /* Int *contentpos */, (int*)&offs, out);//fixme:type
+            if (ccnl_ccntlv_prependContentWithHdr(name, body, len,
+                                                  lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
+                                                  NULL /* Int *contentpos */, &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending content.");
+                exit(1);
+            }
         }
         break;
 #endif
@@ -183,24 +187,27 @@ Usage:
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         if (keys) {
-            unsigned char keyval[64];
-            unsigned char keyid[32];
+            uint8_t keyval[64];
+            uint8_t keyid[32];
             // use the first key found in the key file
-            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
-            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
-            len = ccnl_ndntlv_prependSignedContent(name, body, len,
-                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  NULL, keyval, keyid, &offs, out);
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);//fixme:type
+            ccnl_hmac256_keyid(keys->key, (size_t) keys->keylen, keyid);
+            if (ccnl_ndntlv_prependSignedContent(name, body, len,
+                  lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
+                  NULL, keyval, keyid, &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending signed content.");
+                exit(1);
+            }
         } else {
             data_opts.ndntlv.finalblockid = lastchunknum;
-            size_t offz = offs;
-            ccnl_ndntlv_prependContent(name, body, len,
-                  NULL, lastchunknum == UINT_MAX ? NULL : &(data_opts.ndntlv),
-                                             &offz, out);//fixme:type
-                                             //TODO: new implementation of prependContent returns -1 or 0, not length
-            printf("pkt len: %d\n", (int) (offs - offz));
-            len = (offs - offz);
-            offs = offz;
+            if (ccnl_ndntlv_prependContent(name, body, len,
+                  NULL, lastchunknum == UINT32_MAX ? NULL : &(data_opts.ndntlv),
+                                             &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending content.");
+                exit(1);
+            }
+            //TODO: new implementation of prependContent returns -1 or 0, not length
+            printf("pkt len: %zu\n", len);
         }
         break;
 #endif
@@ -210,8 +217,9 @@ Usage:
 
     if (outfname) {
         f = creat(outfname, 0666);
-        if (f < 0)
+        if (f < 0) {
             perror("file open:");
+        }
     } else {
         f = 1;
     }

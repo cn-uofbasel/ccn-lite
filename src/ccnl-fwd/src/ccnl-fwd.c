@@ -329,29 +329,29 @@ Done:
 // loops over a frame until empty or error
 int
 ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                    unsigned char **data, int *datalen)
+                    uint8_t **data, size_t *datalen)
 {
     int rc = 0, num, typ;
-    DEBUGMSG_CFWD(DEBUG, "ccnl_ccnb_forwarder: %dB from face=%p (id=%d.%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ccnb_forwarder: %zuB from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc >= 0 && *datalen > 0) {
-        if (ccnl_ccnb_dehead(data, datalen, &num, &typ) || typ != CCN_TT_DTAG)
+        if (ccnl_ccnb_dehead(data, (int*)datalen, &num, &typ) || typ != CCN_TT_DTAG)//fixme:type
             return -1;
         switch (num) {
         case CCN_DTAG_INTEREST:
         case CCN_DTAG_CONTENTOBJ:
-            rc = ccnl_ccnb_fwd(relay, from, data, datalen, num);
+            rc = ccnl_ccnb_fwd(relay, from, data, (int*)datalen, num);//fixme:type
             continue;
 #ifdef OBSOLETE_BY_2015_06
 #ifdef USE_FRAG
         case CCNL_DTAG_FRAGMENT2012:
             rc = ccnl_frag_RX_frag2012(ccnl_ccnb_forwarder, relay,
-                                       from, data, datalen);
+                                       from, data, (int*)datalen);//fixme:type
             continue;
         case CCNL_DTAG_FRAGMENT2013:
             rc = ccnl_frag_RX_CCNx2013(ccnl_ccnb_forwarder, relay,
-                                       from, data, datalen);
+                                       from, data, (int*)datalen);//fixme:type
             continue;
 #endif
 #endif // OBSOLETE
@@ -372,15 +372,16 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 // process one CCNTLV packet, return <0 if no bytes consumed or error
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen)
+                      uint8_t **data, size_t *datalen)
 {
-    int payloadlen, rc = -1;
-    unsigned short hdrlen;
+    int rc = -1;
+    size_t payloadlen;
+    size_t hdrlen;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
-    unsigned char *start = *data;
+    uint8_t *start = *data;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder: %dB from face=%p (id=%d.%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder: %zuB from face=%p (id=%d.%d)\n",
                   *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if ( (unsigned int) *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s) ||
@@ -392,15 +393,14 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     hp = (struct ccnx_tlvhdr_ccnx2015_s*) *data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
     if (hdrlen > *datalen) { // not enough bytes for a full header
-        DEBUGMSG_CFWD(DEBUG, "  hdrlen too large (%d > %d)\n",
+        DEBUGMSG_CFWD(DEBUG, "  hdrlen too large (%zu > %zu)\n",
                       hdrlen, *datalen);
         return -1;
     }
 
     payloadlen = ntohs(hp->pktlen);
-    if (payloadlen < hdrlen ||
-             payloadlen > *datalen) { // not enough data to reconstruct message
-        DEBUGMSG_CFWD(DEBUG, "  pkt too small or too big (%d < %d < %d)\n",
+    if (payloadlen < hdrlen || payloadlen > *datalen) { // not enough data to reconstruct message
+        DEBUGMSG_CFWD(DEBUG, "  pkt too small or too big (%zu < %zu < %zu)\n",
                  hdrlen, payloadlen, *datalen);
         return -1;
     }
@@ -423,7 +423,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-    DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder (%zu bytes left, hdrlen=%zu)\n",
                   *datalen, hdrlen);
 
 #ifdef USE_FRAG
@@ -460,7 +460,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 
     if (!from) {
-        DEBUGMSG_CFWD(TRACE, "  local data, datalen=%d\n", *datalen);
+        DEBUGMSG_CFWD(TRACE, "  local data, datalen=%zu\n", *datalen);
     }
 
     pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
@@ -497,7 +497,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 Done:
     ccnl_pkt_free(pkt);
 
-    DEBUGMSG_CFWD(TRACE, "  returning %d bytes\n", *datalen);
+    DEBUGMSG_CFWD(TRACE, "  returning %zu bytes\n", *datalen);
     return rc;
 }
 
@@ -510,22 +510,21 @@ Done:
 
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      uint8_t **data, int *datalen)
+                      uint8_t **data, size_t *datalen)
 {
     int rc = -1;
-    size_t len, _datalen;
+    size_t len;
     uint64_t typ;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
-    _datalen = (size_t) *datalen; //fixme:type
 
-    DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%zu bytes left)\n", _datalen);
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%zu bytes left)\n", *datalen);
 
-    if (ccnl_ndntlv_dehead(data, &_datalen, &typ, &len) || len > _datalen) {
+    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
     }
-    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, &_datalen);
+    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
     if (!pkt) {
         DEBUGMSG_CFWD(INFO, "  ndntlv packet coding problem\n");
         goto Done;
@@ -533,17 +532,20 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     pkt->type = typ;
     switch (typ) {
     case NDN_TLV_Interest:
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch))
+        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch)) {
             goto Done;
+        }
         break;
     case NDN_TLV_Data:
-        if (ccnl_fwd_handleContent(relay, from, &pkt))
+        if (ccnl_fwd_handleContent(relay, from, &pkt)) {
             goto Done;
+        }
         break;
 #ifdef USE_FRAG
     case NDN_TLV_Fragment:
-        if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_ndntlv_forwarder))
+        if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_ndntlv_forwarder)) {
             goto Done;
+        }
         break;
 #endif
     default:
@@ -552,7 +554,6 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     rc = 0;
 Done:
-    *datalen = (int) _datalen;//fixme:type
     ccnl_pkt_free(pkt);
     return rc;
 }

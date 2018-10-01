@@ -479,7 +479,6 @@ int8_t
 ccnl_ndntlv_prependBlob(uint64_t type, uint8_t *blob, size_t len,
                         size_t *offset, uint8_t *buf)
 {
-//    size_t oldoffset = *offset;
 
     if (*offset < len) {
         return -1;
@@ -489,7 +488,6 @@ ccnl_ndntlv_prependBlob(uint64_t type, uint8_t *blob, size_t len,
     if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0) {
         return -1;
     }
-    // return oldoffset - *offset;
     return 0;
 }
 
@@ -527,7 +525,7 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 
 int8_t
 ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_ndntlv_interest_opts_s *opts,
-                            size_t *offset, uint8_t *buf)
+                            size_t *offset, uint8_t *buf, size_t *reslen)
 {
     size_t oldoffset = *offset;
 
@@ -574,7 +572,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_n
         return -1;
     }
 
-    // return oldoffset - *offset;
+    *reslen = oldoffset - *offset;
     return 0;
 }
 
@@ -582,7 +580,7 @@ int8_t
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            uint8_t *payload, size_t paylen,
                            size_t *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
-                           size_t *offset, uint8_t *buf)
+                           size_t *offset, uint8_t *buf, size_t *reslen)
 {
     size_t oldoffset = *offset, oldoffset2;
     uint8_t signatureType = NDN_VAL_SIGTYPE_DIGESTSHA256;
@@ -672,7 +670,7 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
         *contentpos -= *offset;
     }
 
-    // return oldoffset - *offset;
+    *reslen = oldoffset - *offset;
     return 0;
 }
 
