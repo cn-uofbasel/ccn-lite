@@ -2,8 +2,8 @@
  * @f ccnl-interest.c
  * @b CCN lite (CCNL), core source file (internal data structures)
  *
- * Copyright (C) 2018    Safety IO 
  * Copyright (C) 2011-18 University of Basel
+ * Copyright (C) 2018    Safety IO 
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,46 +23,58 @@
 
 #ifndef CCNL_LINUXKERNEL
 #include "ccnl-interest.h"
+#include "ccnl-relay.h"
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"
 #include "ccnl-prefix.h"
 #include "ccnl-logging.h"
+#include "ccnl-pkt-util.h"
 #else
+#include <ccnl-relay.h>
 #include <ccnl-interest.h>
 #include <ccnl-malloc.h>
 #include <ccnl-os-time.h>
 #include <ccnl-prefix.h>
 #include <ccnl-logging.h>
+#include <ccnl-pkt-util.h>
 #endif
 
 #ifdef CCNL_RIOT
 #include "ccn-lite-riot.h"
 #endif
 
-//FIXME: RELEAY FUNCTION MUST BE RENAMED!
-
-/*struct ccnl_interest_s*
-ccnl_interest_new(struct ccnl_face_s *from, struct ccnl_pkt_s **pkt)
+struct ccnl_interest_s*
+ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                  struct ccnl_pkt_s **pkt)
 {
+    char s[CCNL_MAX_PREFIX_SIZE];
+    (void) s;
+
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
-    char *s = NULL;
     DEBUGMSG_CORE(TRACE,
                   "ccnl_new_interest(prefix=%s, suite=%s)\n",
-                  (s = ccnl_prefix_to_path((*pkt)->pfx)),
+                  ccnl_prefix_to_str((*pkt)->pfx, s, CCNL_MAX_PREFIX_SIZE),
                   ccnl_suite2str((*pkt)->pfx->suite));
-    ccnl_free(s);
+
     if (!i)
         return NULL;
     i->pkt = *pkt;
+    /* currently, the aging function relies on seconds rather than on milli seconds */
+    i->lifetime = (*pkt)->s.ndntlv.interestlifetime / 1000;
     *pkt = NULL;
     i->flags |= CCNL_PIT_COREPROPAGATES;
     i->from = from;
     i->last_used = CCNL_NOW();
+    DBL_LINKED_LIST_ADD(ccnl->pit, i);
+
+#ifdef CCNL_RIOT
+    ccnl_evtimer_reset_interest_retrans(i);
+    ccnl_evtimer_reset_interest_timeout(i);
+#endif
 
     return i;
 }
-*/
 
 int
 ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)

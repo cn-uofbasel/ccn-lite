@@ -2,8 +2,9 @@
  * @f ccnl-interest.h
  * @b CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011-17, University of Basel
- * Copyright (C) 2018 HAW Hamburg
+ * Copyright (C) 2011-17  University of Basel
+ * Copyright (C) 2018     HAW Hamburg
+ * Copyright (C) 2018     Safety IO
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -54,8 +55,10 @@ struct ccnl_interest_s {
 #endif
 };
 
-//struct ccnl_interest_s*
-//ccnl_interest_new(struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
+
+struct ccnl_interest_s*
+ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                  struct ccnl_pkt_s **pkt);
 
 int
 ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt);
