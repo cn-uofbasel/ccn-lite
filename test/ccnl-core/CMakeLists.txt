@@ -10,7 +10,8 @@ link_directories(
 include_directories(include ../../src/ccnl-pkt/include ../../src/ccnl-fwd/include ../../src/ccnl-core/include ../../src/ccnl-unix/include)
 
 add_executable(test_interest test_interest.c)
-target_link_libraries(test_interest ccnl-core cmocka)
+target_link_libraries(test_interest ccnl-core ccnl-pkt cmocka)
+target_link_libraries(test_interest ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
 add_test(test_interest test_interest)
 
 add_executable(test_producer test_producer.c)
@@ -22,3 +23,8 @@ add_executable(test_prefix test_prefix.c)
 target_link_libraries(test_prefix ccnl-core ccnl-fwd ccnl-pkt ccnl-unix cmocka)
 target_link_libraries(test_prefix ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
 add_test(test_prefix test_prefix)
+
+#add_executable(test_prefix_bug test_prefix_bug.c)
+#target_link_libraries(test_prefix_bug ccnl-core ccnl-fwd ccnl-pkt ccnl-unix cmocka)
+#target_link_libraries(test_prefix_bug ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
+#add_test(test_prefix_bug test_prefix_bug)
