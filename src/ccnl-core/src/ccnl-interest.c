@@ -129,32 +129,51 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *fro
 }
 
 int
-ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face)
+ccnl_interest_remove_pending(struct ccnl_interest_s *interest, struct ccnl_face_s *face)
 {
-    int found = 0;
+    /** set result value to error-case */
+    int result = -1;
     char s[CCNL_MAX_PREFIX_SIZE];
-    struct ccnl_pendint_s *prev = NULL;
-    struct ccnl_pendint_s *pend = i->pending;
-    DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
-    while (pend) {  // TODO: is this really the most elegant solution?
-        if (face->faceid == pend->face->faceid) {
-            DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
-                          ccnl_addr2ascii(&pend->face->peer),
-                          ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE));
-            found++;
-            if (prev) {
-                prev->next = pend->next;
-                ccnl_free(pend);
-                pend = prev->next;
-            } else {
-                i->pending = pend->next;
-                ccnl_free(pend);
-                pend = i->pending;
+
+    /** interest is valid? */
+    if (interest) {
+        /** face is valid? */
+        if (face) {
+            result = 0;
+
+            struct ccnl_pendint_s *prev = NULL;
+            struct ccnl_pendint_s *pend = interest->pending; 
+            
+            DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n"); 
+            
+            while (pend) {  // TODO: is this really the most elegant solution?
+                if (face->faceid == pend->face->faceid) { 
+                    DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
+                        ccnl_addr2ascii(&pend->face->peer), 
+                        ccnl_prefix_to_str(interest->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE)); 
+                    
+                    result++; 
+                    if (prev) { 
+                        prev->next = pend->next;
+                        ccnl_free(pend);
+                        pend = prev->next;
+                    } else {
+                        interest->pending = pend->next;
+                        ccnl_free(pend);
+                        pend = interest->pending;
+                    }
+                } else {
+                    prev = pend;
+                    pend = pend->next; 
+                }
             }
-        } else {
-            prev = pend;
-            pend = pend->next;
+            return result;
         }
+
+        /** face was NULL */
+        result = -2;
     }
-    return found;
+
+    /** interest was NULL */
+    return result;
 }
