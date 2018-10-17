@@ -23,6 +23,17 @@
  
 #include "ccnl-interest.h"
 
+
+void test_ccnl_interest_append_pending_invalid_parameters()
+{
+    int result = ccnl_interest_append_pending(NULL, NULL);
+    assert_int_equal(result, -1); 
+
+    struct ccnl_interest_s interest;
+    result = ccnl_interest_append_pending(&interest, NULL);
+    assert_int_equal(result, -2); 
+}
+
 void test_ccnl_interest_is_same_invalid_parameters() 
 {
     int result = ccnl_interest_isSame(NULL, NULL);
@@ -55,6 +66,7 @@ int main(void)
     unit_test(test1),
     unit_test(test_ccnl_interest_is_same_invalid_parameters),
     unit_test(test_ccnl_interest_remove_pending_invalid_parameters),
+    unit_test(test_ccnl_interest_append_pending_invalid_parameters),
   };
  
   return run_tests(tests);

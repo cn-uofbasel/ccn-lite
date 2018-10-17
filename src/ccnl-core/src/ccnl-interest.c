@@ -118,34 +118,42 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 int
 ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *from)
 {
-    struct ccnl_pendint_s *pi, *last = NULL;
-    char s[CCNL_MAX_PREFIX_SIZE];
-    DEBUGMSG_CORE(TRACE, "ccnl_append_pending\n");
+    if (i) {
+        DEBUGMSG_CORE(TRACE, "ccnl_append_pending\n");
+        if (from) {
+            struct ccnl_pendint_s *pi, *last = NULL;
+            char s[CCNL_MAX_PREFIX_SIZE];
 
-    for (pi = i->pending; pi; pi = pi->next) { // check whether already listed
-        if (pi->face == from) {
-            DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
+            for (pi = i->pending; pi; pi = pi->next) { // check whether already listed
+                    if (pi->face == from) {
+                            DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
+                            pi->last_used = CCNL_NOW();
+                            return 0;
+                    }
+                    last = pi;
+            }
+            pi = (struct ccnl_pendint_s *) ccnl_calloc(1,sizeof(struct ccnl_pendint_s));
+            if (!pi) {
+                    DEBUGMSG_CORE(DEBUG, "  no mem\n");
+                    return -1;
+            }
+
+            DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n",
+                            (void *) pi, ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
+                            (void *) i->pkt->pfx);
+            pi->face = from;
             pi->last_used = CCNL_NOW();
+            if (last)
+                    last->next = pi;
+            else
+                    i->pending = pi;
             return 0;
         }
-        last = pi;
-    }
-    pi = (struct ccnl_pendint_s *) ccnl_calloc(1,sizeof(struct ccnl_pendint_s));
-    if (!pi) {
-        DEBUGMSG_CORE(DEBUG, "  no mem\n");
-        return -1;
+
+        return -2;
     }
 
-    DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n",
-                  (void *) pi, ccnl_prefix_to_str(i->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
-                  (void *) i->pkt->pfx);
-    pi->face = from;
-    pi->last_used = CCNL_NOW();
-    if (last)
-        last->next = pi;
-    else
-        i->pending = pi;
-    return 0;
+    return -1;
 }
 
 int
@@ -153,12 +161,12 @@ ccnl_interest_remove_pending(struct ccnl_interest_s *interest, struct ccnl_face_
 {
     /** set result value to error-case */
     int result = -1;
-    char s[CCNL_MAX_PREFIX_SIZE];
 
     /** interest is valid? */
     if (interest) {
         /** face is valid? */
         if (face) {
+            char s[CCNL_MAX_PREFIX_SIZE];
             result = 0;
 
             struct ccnl_pendint_s *prev = NULL;
