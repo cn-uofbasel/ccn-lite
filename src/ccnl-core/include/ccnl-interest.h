@@ -33,7 +33,8 @@
 #endif
 
 /**
- * ?
+ * Defines if the forwarder should forward/retransmit a packet, otherwise it 
+ * will be handled internally.
  */
 #ifndef CCNL_PIT_COREPROPAGATES
 #define CCNL_PIT_COREPROPAGATES    0x01
@@ -44,7 +45,7 @@
  */
 struct ccnl_pendint_s { 
     struct ccnl_pendint_s *next; /**< pointer to the next list element */
-    struct ccnl_face_s *face;    /** */
+    struct ccnl_face_s *face;    /**< pointer to incoming face  */
     uint32_t last_used;          /** */
 };
 
@@ -60,7 +61,7 @@ struct ccnl_interest_s {
     unsigned short flags;               /**< ? */
     uint32_t lifetime;                  /**< interest lifetime */
     uint32_t last_used;                 /**< last time the entry was used */
-    int retries;                        /**< ? */
+    int retries;                        /**< current number of executed retransmits. */
 #ifdef CCNL_RIOT
     evtimer_msg_event_t evtmsg_retrans; /**< retransmission timer */
     evtimer_msg_event_t evtmsg_timeout; /**< timeout timer for (?) */
@@ -69,13 +70,13 @@ struct ccnl_interest_s {
 
 
 /**
- * ?
+ * Creates a new interest of type \ref ccnl_interest_s 
  * 
  * @param[in] ccnl
  * @param[in] from
  * @param[in] pkt
  *
- * @return 
+ * @return Upon success a new interest of type \ref ccnl_interest_s, otherwise NULL
  */
 struct ccnl_interest_s*
 ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
