@@ -319,38 +319,6 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
     return 0;
 }
 
-struct ccnl_interest_s*
-ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                  struct ccnl_pkt_s **pkt)
-{
-    char s[CCNL_MAX_PREFIX_SIZE];
-    (void) s;
-
-    struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
-                                            sizeof(struct ccnl_interest_s));
-    DEBUGMSG_CORE(TRACE,
-                  "ccnl_new_interest(prefix=%s, suite=%s)\n",
-                  ccnl_prefix_to_str((*pkt)->pfx, s, CCNL_MAX_PREFIX_SIZE),
-                  ccnl_suite2str((*pkt)->pfx->suite));
-
-    if (!i)
-        return NULL;
-    i->pkt = *pkt;
-    /* currently, the aging function relies on seconds rather than on milli seconds */
-    i->lifetime = (*pkt)->s.ndntlv.interestlifetime / 1000;
-    *pkt = NULL;
-    i->flags |= CCNL_PIT_COREPROPAGATES;
-    i->from = from;
-    i->last_used = CCNL_NOW();
-    DBL_LINKED_LIST_ADD(ccnl->pit, i);
-
-#ifdef CCNL_RIOT
-    ccnl_evtimer_reset_interest_retrans(i);
-    ccnl_evtimer_reset_interest_timeout(i);
-#endif
-
-    return i;
-}
 
 struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
