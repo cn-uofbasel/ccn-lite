@@ -33,14 +33,6 @@
 #endif
 
 /**
- * Defines if the forwarder should forward/retransmit a packet, otherwise it 
- * will be handled internally.
- */
-#ifndef CCNL_PIT_COREPROPAGATES
-#define CCNL_PIT_COREPROPAGATES    0x01
-#endif
-
-/**
  * @brief A pending interest linked list element
  */
 struct ccnl_pendint_s { 
@@ -58,7 +50,6 @@ struct ccnl_interest_s {
     struct ccnl_pkt_s *pkt;             /**< the packet the interests originates from (?) */
     struct ccnl_face_s *from;           /**< the face the interest was received from */
     struct ccnl_pendint_s *pending;     /**< linked list of faces wanting that content */
-    unsigned short flags;               /**< ? */
     uint32_t lifetime;                  /**< interest lifetime */
     uint32_t last_used;                 /**< last time the entry was used */
     int retries;                        /**< current number of executed retransmits. */
