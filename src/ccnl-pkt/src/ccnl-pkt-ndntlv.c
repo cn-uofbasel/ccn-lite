@@ -296,9 +296,14 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
         if (p->nameptr)
             p->nameptr = pkt->buf->data + (p->nameptr - start);
     }
-
+#ifdef FUZZING
+    exit(1);
+#endif
     return pkt;
 Bail:
+#ifdef FUZZING
+        exit(0);
+#endif
     ccnl_pkt_free(pkt);
     return NULL;
 }

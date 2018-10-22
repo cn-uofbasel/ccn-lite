@@ -279,8 +279,7 @@ Peter Kietzmann (HAW Hamburg)
 Martine Lenders (FU Berlin)    
 Claudio Marxer (Uni Basel)     
 Dima Mansour (Uni Basel)    
-Urs Schnurrenberger (Uni Basel)    
-Christian Tschudin (Uni Basel)    
+Christian Tschudin (Uni Basel)
 Christopher Scherb (Uni Basel)    
 
 ### [Release 2.0.0 beta](https://github.com/cn-uofbasel/ccn-lite/releases/tag/2.0.0) (Nov 2017)
@@ -315,8 +314,7 @@ Mihai Daniel Rapcea
 Fabian Rauschenbach  
 Yanick Salzmann  
 Maarten Schenk  
-Urs Schnurrenberger  
-Marco Suter  
+Marco Suter
 Marc-Andrea Tarnutzer  
 Marco Dieter Vogt  
 Akan Yilmaz  
@@ -347,8 +345,7 @@ Frank Müller
 Marko Obradovic  
 Michaja Pressmar  
 Mihai D. Rapcea  
-Urs Schnurrenberger  
-Thomas Simonsen  
+Thomas Simonsen
 Alexander Stiemer  
 Ziba Tavassoli  
 Simon Wang  
