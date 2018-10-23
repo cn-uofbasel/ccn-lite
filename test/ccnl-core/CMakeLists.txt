@@ -4,6 +4,12 @@ project(ccnl-core-tests)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test/ccnl-core)
 
+set(CCNL_EXTRA_FLAGS
+        -DUSE_IPV4
+        -DUSE_IPV6
+    )
+add_definitions(${CCNL_EXTRA_FLAGS})
+
 link_directories(
     ${CMAKE_BINARY_DIR}/lib
 )
@@ -13,6 +19,11 @@ add_executable(test_interest test_interest.c)
 target_link_libraries(test_interest ccnl-core ccnl-pkt cmocka)
 target_link_libraries(test_interest ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
 add_test(test_interest test_interest)
+
+add_executable(test_sockunion test_sockunion.c)
+target_link_libraries(test_sockunion ccnl-core cmocka)
+target_link_libraries(test_sockunion${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
+add_test(test_sockunion test_sockunion)
 
 add_executable(test_producer test_producer.c)
 target_link_libraries(test_producer ccnl-core cmocka)
