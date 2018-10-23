@@ -35,12 +35,12 @@ target_link_libraries(test_pkt-util ccnl-core ccnl-pkt ccnl-fwd cmocka)
 target_link_libraries(test_pkt-util ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
 add_test(test_pkt-util test_pkt-util)
 
+add_executable(test_content test_content.c)
+target_link_libraries(test_content ccnl-core ccnl-pkt cmocka)
+target_link_libraries(test_content ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
+add_test(test_content test_content)
+
 add_executable(test_prefix test_prefix.c)
 target_link_libraries(test_prefix ccnl-core ccnl-fwd ccnl-pkt ccnl-unix cmocka)
 target_link_libraries(test_prefix ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
 add_test(test_prefix test_prefix)
-
-#add_executable(test_prefix_bug test_prefix_bug.c)
-#target_link_libraries(test_prefix_bug ccnl-core ccnl-fwd ccnl-pkt ccnl-unix cmocka)
-#target_link_libraries(test_prefix_bug ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
-#add_test(test_prefix_bug test_prefix_bug)

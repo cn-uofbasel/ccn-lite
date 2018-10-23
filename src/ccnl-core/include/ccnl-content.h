@@ -86,7 +86,7 @@ ccnl_content_new(struct ccnl_pkt_s **packet);
 
  * @param[in] content The content object which will be freed 
  */
-void
+int
 ccnl_content_free(struct ccnl_content_s *content);
 
 #endif // EOF

@@ -61,9 +61,18 @@ ccnl_content_new(struct ccnl_pkt_s **pkt)
     return c;
 }
 
-void
+int 
 ccnl_content_free(struct ccnl_content_s *content) 
 {
-    ccnl_pkt_free(content->pkt);
-    ccnl_free(content);
+    if (content) {
+        if (content->pkt) {
+            ccnl_pkt_free(content->pkt);
+        }
+        
+        ccnl_free(content);
+
+        return 0;
+    }
+
+    return -1;
 }
