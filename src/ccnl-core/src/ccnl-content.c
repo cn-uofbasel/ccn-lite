@@ -41,6 +41,10 @@
 struct ccnl_content_s*
 ccnl_content_new(struct ccnl_pkt_s **pkt)
 {
+    if (!pkt) {
+        return NULL;
+    }
+
     struct ccnl_content_s *c;
 
     char s[CCNL_MAX_PREFIX_SIZE];

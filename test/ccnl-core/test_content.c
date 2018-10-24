@@ -21,7 +21,15 @@
 #include <setjmp.h>
 #include <cmocka.h>
  
+#include "ccnl-pkt.h"
+#include "ccnl-malloc.h"
 #include "ccnl-content.h"
+
+void test_ccnl_content_new_invalid()
+{
+    struct ccnl_content_s *content = ccnl_content_new(NULL);
+    assert_null(content);
+}
 
 void test_ccnl_content_free_invalid() 
 {
@@ -29,12 +37,43 @@ void test_ccnl_content_free_invalid()
     assert_int_equal(result, -1);
 }
 
+void test_ccnl_content_new_valid() 
+{
+    struct ccnl_pkt_s *packet = ccnl_malloc(sizeof(struct ccnl_pkt_s));
+    struct ccnl_content_s *content = ccnl_content_new(&packet);
 
+    assert_non_null(content);
+    assert_true(content->last_used != 1);
+    assert_int_equal(content->flags, CCNL_CONTENT_FLAGS_NOT_STALE);
+
+    content->pkt = NULL;
+    ccnl_pkt_free(packet);
+
+    int result = ccnl_content_free(content);
+    assert_int_equal(result, 0);
+}
+
+void test_ccnl_content_free_valid() 
+{
+    struct ccnl_pkt_s *packet = ccnl_malloc(sizeof(struct ccnl_pkt_s));
+    struct ccnl_content_s *content = ccnl_content_new(&packet);
+    
+    assert_non_null(content);
+
+    content->pkt = NULL;
+    ccnl_pkt_free(packet);
+    
+    int result = ccnl_content_free(content); 
+    assert_int_equal(result, 0);
+}
 
 int main(void)
 {
     const UnitTest tests[] = {
+        unit_test(test_ccnl_content_new_invalid),
+        unit_test(test_ccnl_content_new_valid),
         unit_test(test_ccnl_content_free_invalid),
+        unit_test(test_ccnl_content_free_valid),
     };
     
     return run_tests(tests);
