@@ -28,7 +28,7 @@ int
 main(int argc, char *argv[])
 {
 
-    char *minSuffix = 0, *scope = 0;
+    char *minSuffix = 0;
     char *digest = 0, *publisher = 0;
     char *fname = 0;
     int f, opt;
@@ -42,19 +42,15 @@ main(int argc, char *argv[])
     ccnl_interest_opts_u int_opts;
 
     (void) minSuffix;
-    (void) scope;
 
     time(&curtime);
     // Get current time in double to avoid dealing with time_t
     nonce = (uint32_t) difftime(curtime, 0);
 
-    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:d:e:i:ln:o:p:s:v:")) != -1) {
         switch (opt) {
         case 'a':
             minSuffix = optarg;
-            break;
-        case 'c':
-            scope = optarg;
             break;
         case 'd':
             digest = optarg;
@@ -106,8 +102,6 @@ main(int argc, char *argv[])
 Usage:
             fprintf(stderr, "usage: %s [options] URI\n"
             "  -a LEN     miN additional components\n"
-            "  -c SCOPE\n"
-
             "  -d DIGEST  content digest (sets -x to 0)\n"
             "  -e NONCE   random 4 bytes\n"
             "  -l         URI is a Lambda expression\n"
