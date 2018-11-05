@@ -1304,11 +1304,16 @@ help:
 
             //receive request
             memset(out, 0, sizeof(out));
-            if (!use_udp)
-                len = recv(sock, out, sizeof(out), 0);
-            else
-                len = recvfrom(sock, out, sizeof(out), 0,
-                               (struct sockaddr *)&si, &slen);
+            if (!use_udp) {
+                if ((len = recv(sock, out, sizeof(out), 0)) == -1) {
+                    DEBUGMSG(ERROR, "an error occurred on receiving data\n"); 
+                }
+            } else {
+                if ((len = recvfrom(sock, out, sizeof(out), 0,
+                               (struct sockaddr *)&si, &slen)) == -1) {
+                    DEBUGMSG(ERROR, "an error occurred on receiving data\n"); 
+                }
+            }
 
             //send file
             if (!use_udp)
