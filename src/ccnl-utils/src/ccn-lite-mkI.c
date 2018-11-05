@@ -28,7 +28,7 @@ int
 main(int argc, char *argv[])
 {
 
-    char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
+    char *minSuffix = 0, *scope = 0;
     char *digest = 0, *publisher = 0;
     char *fname = 0;
     int f, opt;
@@ -42,14 +42,13 @@ main(int argc, char *argv[])
     ccnl_interest_opts_u int_opts;
 
     (void) minSuffix;
-    (void) maxSuffix;
     (void) scope;
 
     time(&curtime);
     // Get current time in double to avoid dealing with time_t
     nonce = (uint32_t) difftime(curtime, 0);
 
-    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:v:")) != -1) {
         switch (opt) {
         case 'a':
             minSuffix = optarg;
@@ -96,9 +95,6 @@ main(int argc, char *argv[])
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
             break;
-        case 'x':
-            maxSuffix = optarg;
-            break;
         case 's':
             packettype = ccnl_str2suite(optarg);
             if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
@@ -122,7 +118,6 @@ Usage:
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
-            "  -x LEN     maX additional components\n",
             argv[0]);
             exit(1);
         }
