@@ -116,10 +116,10 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         fprintf(out, "%04zx  ", *buf - base);
     }
 
-    for (i = 0; i < lev; i++) {
-        fprintf(out, "  ");
-    }
     if (**buf == 0) {
+        for (i = 0; lev > 0 && i < lev - 1; i++) {
+            fprintf(out, "  ");
+        }
         if (!rawxml) {
             fprintf(out, "00 ");
         }
@@ -127,6 +127,9 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         *buf += 1;
         *len -= 1;
         return 0;
+    }
+    for (i = 0; i < lev; i++) {
+        fprintf(out, "  ");
     }
     for (i = 0; i < (int)sizeof(i) && i < *len; i++) {
         unsigned char c = (*buf)[i];
