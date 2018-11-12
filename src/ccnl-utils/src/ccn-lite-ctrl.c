@@ -1043,7 +1043,7 @@ main(int argc, char *argv[])
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
+                debug_level = (int)strtol(optarg, (char**)NULL, 10);
             else
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
@@ -1186,7 +1186,7 @@ help:
         len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "prefixunreg")) {
         if (argc > 4)
-            suite = atoi(argv[4]);
+            suite = (int)strtol(argv[4], (char**)NULL, 10);
         if (argc < 4)
             goto help;
         len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);

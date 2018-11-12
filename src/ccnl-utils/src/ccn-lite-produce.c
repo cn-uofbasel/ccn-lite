@@ -44,7 +44,7 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:v:")) != -1) {
         switch (opt) {
         case 'c':
-            chunk_size = atoi(optarg);
+            chunk_size = (int)strtol(optarg, (char **)NULL, 10);
             if (chunk_size > CCNL_MAX_CHUNK_SIZE) {
                 DEBUGMSG(WARNING, "max chunk size is %d (%d is to large), using max chunk size\n", CCNL_MAX_CHUNK_SIZE, chunk_size);
                 chunk_size = CCNL_MAX_CHUNK_SIZE;
@@ -83,7 +83,7 @@ main(int argc, char *argv[])
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
+                debug_level =  (int)strtol(optarg, (char **)NULL, 10);
             else
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
