@@ -317,7 +317,7 @@ main(int argc, char *argv[])
 #endif
             break;
         case 'w':
-            wait = atof(optarg);
+            wait = (float)strtof(optarg, (char**) NULL);
             break;
         case 'x':
             ux = optarg;

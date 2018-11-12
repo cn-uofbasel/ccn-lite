@@ -199,7 +199,7 @@ main(int argc, char *argv[])
             udp = optarg;
             break;
         case 'w':
-            wait = atof(optarg);
+            wait = (float)strtof(optarg, (char**) NULL);
             break;
             case 'v':
 #ifdef USE_LOGGING
