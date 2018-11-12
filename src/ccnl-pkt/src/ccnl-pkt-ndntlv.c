@@ -180,10 +180,15 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
                 if (typ == NDN_TLV_NameComponent &&
                             prefix->compcnt < CCNL_MAX_NAME_COMP) {
                     if(cp[0] == NDN_Marker_SegmentNumber) {
-                      prefix->chunknum = (uint32_t *) ccnl_malloc(sizeof(uint32_t));
+                        uint64_t chunknum;
+                        prefix->chunknum = (uint32_t *) ccnl_malloc(sizeof(uint32_t));
                         // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
                         // it is implemented for encode, the decode is not yet implemented
-                        *prefix->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1); //fixme:type
+                        chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
+                        if (chunknum > UINT32_MAX) {
+                            goto Bail;
+                        }
+                        *prefix->chunknum = (uint32_t) chunknum;
                     }
                     prefix->comp[prefix->compcnt] = cp;
                     prefix->complen[prefix->compcnt] = i; //FIXME, what if the len value inside the TLV is wrong -> can this lead to overruns inside
@@ -337,7 +342,7 @@ Bail:
 #ifdef NEEDS_PREFIX_MATCHING
 
 // returns: 0=match, -1=otherwise
-int
+int8_t
 ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
 #ifndef CCNL_LINUXKERNEL
@@ -674,7 +679,7 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
     return 0;
 }
 
-#ifdef USE_FRAG //TODO: #ifdef
+#ifdef USE_FRAG
 
 // produces a full FRAG packet. It does not write, just read the fields in *fr
 struct ccnl_buf_s*

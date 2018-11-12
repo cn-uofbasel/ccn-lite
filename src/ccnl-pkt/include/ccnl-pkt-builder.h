@@ -30,7 +30,7 @@
 #include "ccnl-pkt-localrpc.h"
 
 #ifdef USE_SUITE_CCNB
-int ccnb_isContent(unsigned char *buf, int len);
+int8_t ccnb_isContent(uint8_t *buf, size_t len);
 #endif // USE_SUITE_CCNB
 
 #ifdef USE_SUITE_CCNTLV
@@ -78,7 +78,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts);
 
 int8_t
 ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
-                uint8_t *tmp, size_t *len, size_t *offs);
+                uint8_t *tmp, uint8_t *tmpend, size_t *len, size_t *offs);
 
 #endif
 

@@ -737,7 +737,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             data += 2;
             datalen -= 2;
 
-            pk = ccnl_ccnb_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
+            pk = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
             break;
         }
 #endif

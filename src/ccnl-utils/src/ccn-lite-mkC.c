@@ -154,7 +154,10 @@ Usage:
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = (size_t) ccnl_ccnb_fillContent(name, body, (int) len, NULL, out); //fixme: type
+        if (ccnl_ccnb_fillContent(name, body, len, NULL, out, out + sizeof(out), &len)) {
+            DEBUGMSG(ERROR, "Error: Failed creating content object.");
+            exit(1);
+        }
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV

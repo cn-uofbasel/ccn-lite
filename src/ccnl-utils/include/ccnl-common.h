@@ -112,7 +112,7 @@ const char* ccnl_enc2str(int enc);
 
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-        char *s; unsigned char *valptr; int vallen; \
+        char *s; unsigned char *valptr; size_t vallen; \
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) \
                 goto Bail; \
         s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
@@ -124,7 +124,7 @@ const char* ccnl_enc2str(int enc);
 
 #define extractStr2(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-        char *s; unsigned char *valptr; int vallen; \
+        char *s; unsigned char *valptr; size_t vallen; \
         if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0) \
                 goto Bail; \
         s = ccnl_malloc(vallen+1); if (!s) goto Bail; \

@@ -139,7 +139,7 @@ usage:
             argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
-        int nonce = random();
+        int32_t nonce = (int32_t) random();
         int rc;
         struct ccnl_face_s dummyFace;
         ccnl_interest_opts_u int_opts;
@@ -152,6 +152,10 @@ usage:
         memset(&dummyFace, 0, sizeof(dummyFace));
 
         buf = ccnl_mkSimpleInterest(prefix, &int_opts);
+        if (!buf) {
+            fprintf(stderr, "Failed to create interest.\n");
+            myexit(1);
+        }
 
         DEBUGMSG(DEBUG, "interest has %zd bytes\n", buf->datalen);
 /*

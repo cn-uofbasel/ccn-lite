@@ -27,19 +27,23 @@
 
 // ----------------------------------------------------------------------
 
-int
+size_t
 split_string(char *in, char c, char *out)
 {
 
-    int i = 0, j = 0;
-    if(!in[0]) return 0;
-    if(in[0] == c) ++i;
-    while(in[i] != c)
-    {
-        if(in[i] == 0) break;
+    size_t i = 0, j = 0;
+    if (!in[0]) {
+        return 0;
+    }
+    if (in[0] == c) {
+        ++i;
+    }
+    while (in[i] != c) {
+        if (in[i] == 0) {
+            break;
+        }
         out[j] = in[i];
         ++i; ++j;
-
     }
     out[j] = 0;
     return i;
@@ -56,250 +60,491 @@ get_mtime(const char *path)
     return statbuf.st_mtime;
 }
 
-int
-add_ccnl_name(unsigned char *out, char *ccn_path)
+int8_t
+add_ccnl_name(uint8_t *out, uint8_t *bufend, char *ccn_path, size_t *retlen)
 {
     char comp[256];
-    int len = 0, len2 = 0;
-    int h;
+    size_t len = 0, len2 = 0, h, partlen;
     memset(comp, 0 , 256);
-    len += ccnl_ccnb_mkHeader(out + len, CCN_DTAG_NAME, CCN_TT_DTAG);
-    while( (h = split_string(ccn_path + len2, '/', comp)) )
-    {
+    if (ccnl_ccnb_mkHeader(out + len, bufend, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {
+        return -1;
+    }
+    len += partlen;
+    while ( (h = split_string(ccn_path + len2, '/', comp)) ) {
         len2 += h;
-        len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, comp);
+        if (ccnl_ccnb_mkStrBlob(out + len, bufend, CCN_DTAG_COMPONENT, CCN_TT_DTAG, comp, &partlen)) {
+            return -1;
+        }
+        len += partlen;
         memset(comp, 0 , 256);
     }
+    if (out + len + 1 >= bufend) {
+        return -1;
+    }
     out[len++] = 0;
-    return len;
+    *retlen = len;
+    return 0;
 }
 
-int
-mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
+int8_t
+mkDebugRequest(uint8_t *out, size_t buflen, char *dbg, char *private_key_path, size_t *retlen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char stmt[1000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t stmt[1000];
     (void)private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + buflen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {   // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + buflen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare debug statement
-    len3 = ccnl_ccnb_mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "debug");
-    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, dbg);
+    if (ccnl_ccnb_mkHeader(stmt, stmt + sizeof(stmt), CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(stmt+len3, stmt + sizeof(stmt), CCN_DTAG_ACTION, CCN_TT_DTAG, "debug", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkStrBlob(stmt+len3, stmt + sizeof(stmt), CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, dbg, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (len3 + 1 >= sizeof(stmt)) {
+        return -1;
+    }
     stmt[len3++] = 0; // end-of-debugstmt
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                             (char*) stmt, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj+sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj+sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                         (char*) stmt, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 + 1 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                         (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= buflen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-//    ccnl_prefix_free(p);
-    return len;
+    *retlen = len;
+    return 0;
 }
 
-int
-mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
-           char *frag, char *flags, char *private_key_path)
+int8_t
+mkNewEthDevRequest(uint8_t *out, size_t outlen, char *devname, char *ethtype,
+           char *frag, char *flags, char *private_key_path, size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char faceinst[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t faceinst[2000];
     (void)private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out + len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare DEVINSTANCE
-    len3 = ccnl_ccnb_mkHeader(faceinst, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newdev");
-    if (devname)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_DEVNAME, CCN_TT_DTAG,
-                          devname);
-    if (ethtype)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, ethtype);
-    if (frag)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
-    if (flags)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
+    if (ccnl_ccnb_mkHeader(faceinst, faceinst + sizeof(faceinst), CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_ACTION, CCN_TT_DTAG,
+                            "newdev", &partlen)) {
+
+    }
+    len3 += partlen;
+    if (devname) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_DEVNAME, CCN_TT_DTAG,
+                                devname, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (ethtype) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCN_DTAG_PORT, CCN_TT_DTAG,
+                                ethtype, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (frag) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_FRAG, CCN_TT_DTAG,
+                                frag, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (flags) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG,
+                                flags, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (len3 + 1 >= sizeof(faceinst)) {
+        return -1;
+    }
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ,
+                           CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                         (char*) faceinst, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+
+    if (len2 + 1 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1+sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
+    *reslen = len;
+    return 0;
 }
 
 
 int
-mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *ip6src, char *port,
-           char *frag, char *flags, char *private_key_path)
+mkNewUDPDevRequest(uint8_t *out, size_t outlen, char *ip4src, char *ip6src, char *port,
+           char *frag, char *flags, char *private_key_path, size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char faceinst[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t faceinst[2000];
     (void) private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out + len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare DEVINSTANCE
-    len3 = ccnl_ccnb_mkHeader(faceinst, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newdev");
-    if (ip4src)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
-    if (ip6src)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, ip6src);
-    if (port)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
-    if (frag)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
-    if (flags)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
+    if (ccnl_ccnb_mkHeader(faceinst, faceinst + sizeof(faceinst), CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_ACTION, CCN_TT_DTAG,
+                            "newdev", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ip4src) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_IP4SRC, CCN_TT_DTAG,
+                                ip4src, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (ip6src) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_IP6SRC, CCN_TT_DTAG,
+                                ip6src, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (port) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCN_DTAG_PORT, CCN_TT_DTAG,
+                                port, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (frag) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_FRAG, CCN_TT_DTAG,
+                                frag, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (flags) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG,
+                                flags, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (len3 + 1 >= sizeof(faceinst)) {
+        return -1;
+    }
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) faceinst, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 + 1 >= sizeof(contentobj)) {
+        return  -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                         (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
+    *reslen = len;
+    return 0;
 }
 
-int
-mkDestroyDevRequest(unsigned char *out, char *faceid, char *private_key_path)
+int8_t
+mkDestroyDevRequest(uint8_t *out, size_t outlen, char *faceid, char *private_key_path, size_t *reslen)
 {
     (void) private_key_path;
     (void) faceid;
     (void) out;
+    (void) outlen;
+    *reslen = 0;
     return 0;
 }
 
-int
-mkEchoserverRequest(unsigned char *out, char *path, int suite,
-                    char *private_key_path)
+int8_t
+mkEchoserverRequest(uint8_t *out, size_t outlen, char *path, int suite,
+                    char *private_key_path, size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char fwdentry[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t fwdentry[2000];
     char suite_s[1];
     char *cp;
     (void) private_key_path;
 
     DEBUGMSG(DEBUG, "mkEchoserverRequest uri=%s suite=%d\n", path, suite);
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {   // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "echoserver");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out + outlen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out + outlen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out + outlen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "echoserver", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare FWDENTRY
-    len3 = ccnl_ccnb_mkHeader(fwdentry, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "echoserver");
-    len3 += ccnl_ccnb_mkHeader(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG); // prefix
+    if (ccnl_ccnb_mkHeader(fwdentry, fwdentry + sizeof(fwdentry), CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkStrBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_ACTION, CCN_TT_DTAG, "echoserver", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkHeader(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // prefix
+        return -1;
+    }
+    len3 += partlen;
 
     cp = strtok(path, "/");
     while (cp) {
-        unsigned short cmplen = strlen(cp);
+        size_t cmplen_s = strlen(cp);
+        if (cmplen_s >= UINT16_MAX) {
+            return -1;
+        }
+        uint16_t cmplen = (uint16_t) cmplen_s;
 #ifdef USE_SUITE_CCNTLV
         if (suite == CCNL_SUITE_CCNTLV) {
             char* oldcp = cp;
             cp = malloc( (cmplen + 4) * (sizeof(char)) );
+            if (!cp) {
+                return -1;
+            }
             cp[0] = CCNX_TLV_N_NameSegment >> 8;
             cp[1] = CCNX_TLV_N_NameSegment;
-            cp[2] = cmplen >> 8;
-            cp[3] = cmplen;
+            cp[2] = (char) ((cmplen >> 8) & 0xff);
+            cp[3] = (char) (cmplen & 0xff);
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
         }
 #endif
-        len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
-                       cp, cmplen);
+        if (ccnl_ccnb_mkBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_COMPONENT, CCN_TT_DTAG,
+                       cp, cmplen, &partlen)) {
+            if (cp) {
+                free(cp);
+            }
+            return -1;
+        }
+        len3 += partlen;
 #ifdef USE_SUITE_CCNTLV
-        if (suite == CCNL_SUITE_CCNTLV) free(cp);
+        if (suite == CCNL_SUITE_CCNTLV) {
+            free(cp);
+        }
 #endif
         cp = strtok(NULL, "/");
+    }
+    if (len3 >= sizeof(fwdentry)) {
+        return -1;
     }
     fwdentry[len3++] = 0; // end-of-prefix
 
     suite_s[0] = suite;
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s);
+    if (ccnl_ccnb_mkStrBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (len3 >= sizeof(fwdentry)) {
+        return -1;
+    }
     fwdentry[len3++] = 0; // end-of-fwdentry
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) fwdentry, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &partlen)) {
+        return -1;
+    }   // contentobj
+    len2 += partlen;
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) fwdentry, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if (private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
 
@@ -307,292 +552,574 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
     out[len++] = 0; // end-of-interest
 
 //    ccnl_prefix_free(p);
-    return len;
+    *reslen = len;
+    return 0;
 }
 
-int
-mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *ip6src, char *wpan_addr,
-         char *wpan_panid, char *host, char *port, char *flags, char *private_key_path)
+int8_t
+mkNewFaceRequest(uint8_t *out, size_t outlen, char *macsrc, char *ip4src, char *ip6src, char *wpan_addr,
+         char *wpan_panid, char *host, char *port, char *flags, char *private_key_path, size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char faceinst[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t faceinst[2000];
     (void)private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare FACEINSTANCE
-    len3 = ccnl_ccnb_mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newface");
-    if (macsrc)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, macsrc);
+    if (ccnl_ccnb_mkHeader(faceinst, faceinst + sizeof(faceinst), CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_ACTION, CCN_TT_DTAG, "newface", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (macsrc) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_MACSRC, CCN_TT_DTAG, macsrc, &partlen)) {
+            return -1;
+        }
+        len += partlen;
+    }
     if (ip4src) {
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17", &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
     }
     if (ip6src) {
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, ip6src);
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_IP6SRC, CCN_TT_DTAG, ip6src, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17", &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
     }
-    if (host)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_HOST, CCN_TT_DTAG, host);
-    if (port)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+    if (host) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCN_DTAG_HOST, CCN_TT_DTAG, host, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (port) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCN_DTAG_PORT, CCN_TT_DTAG, port, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
     if (wpan_addr && wpan_panid) {
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_WPANADR, CCN_TT_DTAG, wpan_addr);
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_WPANPANID, CCN_TT_DTAG, wpan_panid);
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_WPANADR, CCN_TT_DTAG, wpan_addr, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_WPANPANID, CCN_TT_DTAG, wpan_panid, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
     }
     /*
-    if (frag)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
+    if (frag) {
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_FRAG, CCN_TT_DTAG, frag, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
     */
-    if (flags)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
+    if (flags) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (len3 >= sizeof(faceinst)) {
+        return -1;
+    }
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) faceinst, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if (private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
+    *reslen = len;
+    return 0;
 }
 
 
-int
-mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_key_path)
+int8_t
+mkNewUNIXFaceRequest(uint8_t *out, size_t outlen, char *path, char *flags, char *private_key_path, size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char faceinst[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t faceinst[2000];
     (void)private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 = ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len1)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare FACEINSTANCE
-    len3 = ccnl_ccnb_mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newface");
-    if (path)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_UNIXSRC, CCN_TT_DTAG, path);
+    if (ccnl_ccnb_mkHeader(faceinst, faceinst + sizeof(faceinst), CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_ACTION, CCN_TT_DTAG, "newface", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (path) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_UNIXSRC, CCN_TT_DTAG, path, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
     /*
-    if (frag)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
+    if (frag) {
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_FRAG, CCN_TT_DTAG, frag, &partlen)) {
+           return -1;
+        }
+        len3 += partlen;
+    }
     */
-    if (flags)
-        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
+    if (flags) {
+        if (ccnl_ccnb_mkStrBlob(faceinst + len3, faceinst + sizeof(faceinst), CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG,
+                                    flags, &partlen)) {
+            return -1;
+        }
+        len3 += partlen;
+    }
+    if (len3 >= sizeof(faceinst)) {
+        return -1;
+    }
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) faceinst, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if (private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
+    *reslen = len;
+    return 0;
 }
 
 
-int
-mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
+int8_t
+mkDestroyFaceRequest(uint8_t *out, size_t outlen, char *faceid, char *private_key_path, size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char faceinst[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t faceinst[2000];
     (void)private_key_path;
 //    char num[20];
 
 //    sprintf(num, "%d", faceID);
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare FACEINSTANCE
-    len3 = ccnl_ccnb_mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "destroyface");
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+    if (ccnl_ccnb_mkHeader(faceinst, faceinst + sizeof(faceinst), CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_ACTION, CCN_TT_DTAG, "destroyface", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_FACEID, CCN_TT_DTAG, faceid, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (len3 >= sizeof(faceinst)) {
+        return -1;
+    }
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) faceinst, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if (private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
+    *reslen = len;
+    return 0;
 }
 
 
-int
-mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *private_key_path)
+int8_t
+mkSetfragRequest(uint8_t *out, size_t outlen, char *faceid, char *frag, char *mtu, char *private_key_path,
+                 size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char faceinst[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t faceinst[2000];
     (void)private_key_path;
 //    char num[20];
 
 //    sprintf(num, "%d", faceID);
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {   // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare FACEINSTANCE
-    len3 = ccnl_ccnb_mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "setfrag");
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
-    len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, mtu);
+    if (ccnl_ccnb_mkHeader(faceinst, faceinst + sizeof(faceinst), CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_ACTION, CCN_TT_DTAG, "setfrag", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCN_DTAG_FACEID, CCN_TT_DTAG, faceid, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_FRAG, CCN_TT_DTAG, frag, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst + sizeof(faceinst), CCNL_DTAG_MTU, CCN_TT_DTAG, mtu, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (len3 >= sizeof(faceinst)) {
+        return -1;
+    }
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                             (char*) faceinst, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &partlen)) {   // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                             (char*) faceinst, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                             (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                             (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
+    *reslen = len;
+    return 0;
 }
 
 
 // ----------------------------------------------------------------------
 
-int
-mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int suite ,char *private_key_path)
+int8_t
+mkPrefixregRequest(uint8_t *out, size_t outlen, char reg, char *path, char *faceid, int suite ,char *private_key_path,
+                   size_t *reslen)
 {
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[2000];
-    unsigned char fwdentry[2000];
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[2000];
+    uint8_t fwdentry[2000];
     char suite_s[2];
     char *cp;
     (void)private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
-                     reg ? "prefixreg" : "prefixunreg");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,
+                     reg ? "prefixreg" : "prefixunreg", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare FWDENTRY
-    len3 = ccnl_ccnb_mkHeader(fwdentry, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCN_DTAG_ACTION, CCN_TT_DTAG,
-                      reg ? "prefixreg" : "prefixunreg");
-    len3 += ccnl_ccnb_mkHeader(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG); // prefix
+    if (ccnl_ccnb_mkHeader(fwdentry, fwdentry + sizeof(fwdentry), CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_ACTION, CCN_TT_DTAG,
+                      reg ? "prefixreg" : "prefixunreg", &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (ccnl_ccnb_mkHeader(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // prefix
+        return -1;
+    }
+    len3 += partlen;
 
     cp = strtok(path, "/");
     while (cp) {
-
-        unsigned short cmplen = strlen(cp);
+        size_t cmplen_s =  strlen(cp);
+        if (cmplen_s > UINT16_MAX) {
+            return -1;
+        }
+        uint16_t cmplen = (uint16_t) cmplen_s;
         if (suite == CCNL_SUITE_CCNTLV) {
             char* oldcp = cp;
             cp = malloc( (cmplen + 4) * (sizeof(char)) );
+            if (!cp) {
+                return -1;
+            }
             cp[0] = CCNX_TLV_N_NameSegment >> 8;
             cp[1] = CCNX_TLV_N_NameSegment;
-            cp[2] = cmplen >> 8;
-            cp[3] = cmplen;
+            cp[2] = (char) ((cmplen >> 8) & 0xff);
+            cp[3] = (char) (cmplen & 0xff);
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
         }
-        len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
-                       cp, cmplen);
-        if (suite == CCNL_SUITE_CCNTLV)
+        if (ccnl_ccnb_mkBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_COMPONENT, CCN_TT_DTAG,
+                       cp, cmplen, &partlen)) {
             free(cp);
+            return -1;
+        }
+        len3 += partlen;
+        if (suite == CCNL_SUITE_CCNTLV) {
+            free(cp);
+        }
         cp = strtok(NULL, "/");
     }
+    if (len3 + 1 >= sizeof(fwdentry)) {
+        return -1;
+    }
     fwdentry[len3++] = 0; // end-of-prefix
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+    if (ccnl_ccnb_mkStrBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCN_DTAG_FACEID, CCN_TT_DTAG, faceid, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
 
     suite_s[0] = suite;
     suite_s[1] = 0;
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s);
+    if (ccnl_ccnb_mkStrBlob(fwdentry+len3, fwdentry + sizeof(fwdentry), CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
+    if (len3 + 1 >= sizeof(fwdentry)) {
+        return -1;
+    }
     fwdentry[len3++] = 0; // end-of-fwdentry
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) fwdentry, len3);
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) fwdentry, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
+    if (len2 + 1 >= sizeof(contentobj)) {
+        return -1;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if (private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
 
@@ -600,7 +1127,8 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
     out[len++] = 0; // end-of-interest
 
 //    ccnl_prefix_free(p);
-    return len;
+    *reslen = len;
+    return 0;
 }
 
 struct ccnl_prefix_s*
@@ -622,11 +1150,11 @@ getPrefix(uint8_t *data, size_t datalen, int32_t *suite)
 
     switch(*suite) {
     case CCNL_SUITE_CCNB: {
-        int num, typ;
-        unsigned char *start = data;
-        if (!ccnl_ccnb_dehead(&data, (int*)&datalen, &num, &typ) &&//fixme:type
-                                                        typ == CCN_TT_DTAG)
-            pkt = ccnl_ccnb_bytes2pkt(start, &data, (int*)&datalen);//fixme:type
+        uint64_t num;
+        uint8_t typ;
+        uint8_t *start = data;
+        if (!ccnl_ccnb_dehead(&data, &datalen, &num, &typ) && typ == CCN_TT_DTAG)
+            pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
         break;
     }
     case CCNL_SUITE_CCNTLV: {
@@ -647,7 +1175,7 @@ getPrefix(uint8_t *data, size_t datalen, int32_t *suite)
     case CCNL_SUITE_NDNTLV: {
         uint64_t typ;
         size_t len;
-        unsigned char *start = data;
+        uint8_t *start = data;
         if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) {
             pkt = ccnl_ndntlv_bytes2pkt(typ, start, &data, &datalen);
         }
@@ -666,28 +1194,40 @@ getPrefix(uint8_t *data, size_t datalen, int32_t *suite)
     return prefix;
 }
 
-int
-mkAddToRelayCacheRequest(unsigned char *out, char *fname,
-                         char *private_key_path, int *suite)
+int8_t
+mkAddToRelayCacheRequest(uint8_t *out, size_t outlen, char *fname,
+                         char *private_key_path, int *suite, size_t *reslen)
 {
-    long len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char *contentobj, *stmt, *out1, h[10], *data;
-    int datalen, chunkflag;
-    struct ccnl_prefix_s *prefix;
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen;
+    uint8_t *contentobj = NULL, *stmt = NULL, *out1 = NULL, h[12] = {0}, *data = NULL;
+    long datalen_l;
+    size_t datalen;
+    uint8_t chunkflag;
+    struct ccnl_prefix_s *prefix = NULL;
     char *prefix_string = NULL;
+    int8_t ret = -1;
     (void)private_key_path;
 
     FILE *file = fopen(fname, "r");
-    if (!file)
-        return 0;
+    if (!file) {
+        goto Bail;
+    }
     //determine size of the file
     fseek(file, 0L, SEEK_END);
-    datalen = ftell(file);
+    datalen_l = ftell(file);
+    if (datalen_l < 0 || (unsigned long) datalen_l > SIZE_MAX) {
+        goto Bail;
+    }
+    datalen = (size_t) datalen_l;
     fseek(file, 0L, SEEK_SET);
-    data = (unsigned char *) ccnl_malloc(sizeof(unsigned char)*datalen+1);
-    memset(data, 0, sizeof(unsigned char)*datalen+1);
+    data = (uint8_t *) ccnl_malloc(sizeof(uint8_t)*datalen+1);
+    if (!data) {
+        goto Bail;
+    }
+    memset(data, 0, sizeof(uint8_t)*datalen+1);
     fread(data, datalen, 1, file);
     fclose(file);
+    file = NULL;
 
     prefix = getPrefix(data, datalen, suite);
     if (!prefix) {
@@ -699,109 +1239,212 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
 
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
-    out1 = (unsigned char *) ccnl_malloc(sizeof(unsigned char) * 5000);
-    contentobj = (unsigned char *) ccnl_malloc(sizeof(unsigned char) * 4000);
-    stmt = (unsigned char *) ccnl_malloc(sizeof(unsigned char)* 1000);
+    out1 = (uint8_t*) ccnl_malloc(sizeof(uint8_t) * 5000);
+    if (!out1) {
+        goto Bail;
+    }
+    contentobj = (uint8_t*) ccnl_malloc(sizeof(uint8_t) * 4000);
+    if (!contentobj) {
+        goto Bail;
+    }
+    stmt = (uint8_t*) ccnl_malloc(sizeof(uint8_t) * 1000);
+    if (!stmt) {
+        goto Bail;
+    }
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        goto Bail;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        goto Bail;
+    }
+    len += partlen;
 
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + 5000, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len1)) {
+        goto Bail;
+    }
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + 5000, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        goto Bail;
+    }
+    len1 += partlen;
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + 5000, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject", &partlen)) {
+        goto Bail;
+    }
+    len1 += partlen;
 
     DEBUGMSG(DEBUG, "NAME:%s\n", prefix_string);
 
-    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
+    if (ccnl_ccnb_mkStrBlob(stmt+len3, stmt + 1000, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string, &len3)) {
+        goto Bail;
+    }
 
 
-    len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    if (ccnl_ccnb_mkHeader(contentobj+len2, contentobj + 4000, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        goto Bail;
+    }
 
     memset(h, '\0', sizeof(h));
     sprintf((char*)h, "%d", *suite);
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
-                             (char*) h, strlen((char*)h));
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
+                             (char*) h, strlen((char*)h), &partlen)) {
+        goto Bail;
+    }
+    len2 += partlen;
 
-    if(!prefix->chunknum){
-      prefix->chunknum = ccnl_malloc(sizeof(int));
-      *prefix->chunknum = 0;
-      chunkflag = 0;
-    }else{
-      chunkflag = 1;
+    if (!prefix->chunknum){
+        prefix->chunknum = ccnl_malloc(sizeof(uint32_t));
+        if (!prefix->chunknum) {
+            goto Bail;
+        }
+        *prefix->chunknum = 0;
+        chunkflag = 0;
+    } else {
+        chunkflag = 1;
     }
 
     memset(h, '\0', sizeof(h));
     sprintf((char*)h, "%d", *prefix->chunknum);
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
-                            (char*) h, strlen((char*)h));
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
+                            (char*) h, strlen((char*)h), &partlen)) {
+        goto Bail;
+    }
+    len2 += partlen;
 
     memset(h, '\0', sizeof(h));
     sprintf((char*)h, "%d", chunkflag);
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKFLAG, CCN_TT_DTAG,  // chunkflag
-                            (char*) h, strlen((char*)h));
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCNL_DTAG_CHUNKFLAG, CCN_TT_DTAG,  // chunkflag
+                            (char*) h, strlen((char*)h), &partlen)) {
+        goto Bail;
+    }
+    len2 += partlen;
 
 
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_NAME, CCN_TT_DTAG,  // content
-                             (char*) stmt, len3);
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCN_DTAG_NAME, CCN_TT_DTAG,  // content
+                             (char*) stmt, len3, &partlen)) {
+        goto Bail;
+    }
+    len2 += partlen;
+    if (len2 + 1 >= 4000) {
+        goto Bail;
+    }
     contentobj[len2++] = 0; // end-of-contentobj
 
 
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                             (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + 5000, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                             (char*) contentobj, len2, &partlen)) {
+        goto Bail;
+    }
+    len1 += partlen;
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) {
+        len += add_signature(out+len, private_key_path, out1, len1);
+    }
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        goto Bail;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; //name end
     out[len++] = 0; //interest end
     // printf("Contentlen %d\n", len1);
-    ccnl_free(data);
-    ccnl_free(contentobj);
-    ccnl_free(stmt);
-    ccnl_free(prefix);
-    return len;
+
+    *reslen = len;
+
+    ret = 0;
+
+Bail:
+    if (file) {
+        fclose(file);
+    }
+    if (data) {
+        ccnl_free(data);
+    }
+    if (out1) {
+        ccnl_free(out1);
+    }
+    if (contentobj) {
+        ccnl_free(contentobj);
+    }
+    if (stmt) {
+        ccnl_free(stmt);
+    }
+    if (prefix) {
+        ccnl_free(prefix);
+    }
+    return ret;
 }
 
-int
-mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_key_path){
+int8_t
+mkRemoveFormRelayCacheRequest(uint8_t *out, size_t outlen, char *ccn_path, char *private_key_path, size_t *reslen){
 
-    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    size_t len = 0, len1 = 0, len2 = 0, len3 = 0, partlen = 0;
 
-    unsigned char out1[CCNL_MAX_PACKET_SIZE];
-    unsigned char contentobj[10000];
-    unsigned char stmt[2000];
+    uint8_t out1[CCNL_MAX_PACKET_SIZE];
+    uint8_t contentobj[10000];
+    uint8_t stmt[2000];
     (void)private_key_path;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out+len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len1 = ccnl_ccnb_mkStrBlob(out1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    if (ccnl_ccnb_mkStrBlob(out1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len1)) {
+        return -1;
+    }
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
     //signatur nach hier, über den rest
-    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
+    if (ccnl_ccnb_mkStrBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject", &partlen)) {
+        return -1;
+    }
+    len1 += partlen;
 
     // prepare debug statement
-    len3 = ccnl_ccnb_mkHeader(stmt, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len3 += add_ccnl_name(stmt+len3, ccn_path);
+    if (ccnl_ccnb_mkHeader(stmt, stmt + sizeof(stmt), CCN_DTAG_CONTENT, CCN_TT_DTAG, &len3)) {
+        return -1;
+    }
+    if (add_ccnl_name(stmt+len3, stmt + sizeof(stmt), ccn_path, &partlen)) {
+        return -1;
+    }
+    len3 += partlen;
 
+    if (len3 + 1 >=sizeof(stmt)) {
+
+    }
     stmt[len3++] = 0; // end-of-debugstmt
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    if (ccnl_ccnb_mkHeader(contentobj, contentobj + sizeof(contentobj), CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len2)) {  // contentobj
+        return -1;
+    }
 
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                             (char*) stmt, len3);
+    if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + sizeof(contentobj), CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                             (char*) stmt, len3, &partlen)) {
+        return -1;
+    }
+    len2 += partlen;
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                             (char*) contentobj, len2);
+    if (ccnl_ccnb_mkBlob(out1+len1, out1 + sizeof(out1), CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                             (char*) contentobj, len2, &partlen)) {
+        return -1;
+    }
 
 #ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
 #endif /*USE_SIGNATURES*/
+    if (len + len1 + 2 >= outlen) {
+        return -1;
+    }
     memcpy(out+len, out1, len1);
     len += len1;
 
@@ -809,21 +1452,22 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     out[len++] = 0; // end-of-interest
 
 //    ccnl_prefix_free(p);
-    return len;
+    *reslen = len;
+    return 0;
 
 }
 
 // ----------------------------------------------------------------------
 
-int udp_open2(int port, struct sockaddr_in *si)
+int udp_open2(uint16_t port, struct sockaddr_in *si)
 {
     int s;
-    unsigned int len;
+    socklen_t len;
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s < 0) {
-    perror("udp socket");
-    return -1;
+        perror("udp socket");
+        return -1;
     }
 
     si->sin_addr.s_addr = htonl(INADDR_ANY);
@@ -831,7 +1475,7 @@ int udp_open2(int port, struct sockaddr_in *si)
     si->sin_family = PF_INET;
     if(bind(s, (struct sockaddr *)si, sizeof(*si)) < 0) {
         perror("udp sock bind");
-    return -1;
+        return -1;
     }
     len = sizeof(*si);
     getsockname(s, (struct sockaddr*) si, &len);
@@ -841,22 +1485,22 @@ int udp_open2(int port, struct sockaddr_in *si)
 int
 ccnl_crypto_ux_open(char *frompath)
 {
-  int sock, bufsize;
+    int sock, bufsize;
     struct sockaddr_un name;
 
     /* Create socket for sending */
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
-    perror("opening datagram socket");
-    exit(1);
+        perror("opening datagram socket");
+        exit(1);
     }
     unlink(frompath);
     name.sun_family = AF_UNIX;
     strcpy(name.sun_path, frompath);
     if (bind(sock, (struct sockaddr *) &name,
-         sizeof(struct sockaddr_un))) {
-    perror("binding name to datagram socket");
-    exit(1);
+            sizeof(struct sockaddr_un))) {
+        perror("binding name to datagram socket");
+        exit(1);
     }
 //    printf("socket -->%s\n", NAME);
 
@@ -868,26 +1512,26 @@ ccnl_crypto_ux_open(char *frompath)
 }
 
 int
-udp_sendto2(int sock, char *address, int port,
-           unsigned char *data, int len)
+udp_sendto2(int sock, char *address, uint16_t port,
+           unsigned char *data, size_t len)
 {
-    int rc;
+    ssize_t rc;
     struct sockaddr_in si_other;
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(port);
     if (inet_aton(address, &si_other.sin_addr)==0) {
-          DEBUGMSG(ERROR, "inet_aton() failed\n");
-          exit(1);
+        DEBUGMSG(ERROR, "inet_aton() failed\n");
+        exit(1);
     }
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &si_other,
                 sizeof(si_other));
     return rc;
 }
 
-int ux_sendto2(int sock, char *topath, unsigned char *data, int len)
+int ux_sendto2(int sock, char *topath, unsigned char *data, size_t len)
 {
     struct sockaddr_un name;
-    int rc;
+    ssize_t rc;
 
     /* Construct name of socket to send to. */
     name.sun_family = AF_UNIX;
@@ -897,61 +1541,80 @@ int ux_sendto2(int sock, char *topath, unsigned char *data, int len)
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
         sizeof(struct sockaddr_un));
     if (rc < 0) {
-      DEBUGMSG(ERROR, "named pipe \'%s\'\n", topath);
-      perror("sending datagram message");
+        DEBUGMSG(ERROR, "named pipe \'%s\'\n", topath);
+        perror("sending datagram message");
     }
     return rc;
 }
 
-int
-make_next_seg_debug_interest(int num, char *out)
+int8_t
+make_next_seg_debug_interest(int num, uint8_t *out, size_t outlen, size_t *reslen)
 {
-    int len = 0;
+    size_t len = 0, partlen;
     unsigned char cp[100];
 
     sprintf((char*)cp, "seqnum-%d", num);
 
-    len = ccnl_ccnb_mkHeader((unsigned char *)out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader((unsigned char *)out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
+        return -1;
+    }
+    if (ccnl_ccnb_mkHeader(out + len, out + outlen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+        return -1;
+    }
+    len += partlen;
 
-    len += ccnl_ccnb_mkStrBlob((unsigned char *)out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt");
-    len += ccnl_ccnb_mkStrBlob((unsigned char *)out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*)cp);
+    if (ccnl_ccnb_mkStrBlob(out + len, out + outlen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt", &partlen)) {
+        return -1;
+    }
+    len += partlen;
+    if (ccnl_ccnb_mkStrBlob(out + len, out + outlen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*)cp, &partlen)) {
+        return -1;
+    }
+    len += partlen;
 
+    if (len + 2 >= outlen) {
+        return -1;
+    }
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;
-
+    *reslen = len;
+    return 0;
 }
 
-int
-handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
+int8_t
+handle_ccn_signature(uint8_t **buf, size_t *buflen, char *relay_public_key)
 {
-   int num, typ, verified = 0, siglen;
-   unsigned char *sigtype = 0, *sig = 0;
-   while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
+    uint64_t num;
+    uint8_t typ;
+    int8_t verified = 0;
+    size_t siglen = 0;
+    uint8_t *sigtype = 0, *sig = 0;
+    while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
 
-        if (num==0 && typ==0)
-        break; // end
+        if (num == 0 && typ == 0) {
+            break; // end
+        }
 
         extractStr2(sigtype, CCN_DTAG_NAME);
         siglen = *buflen;
         extractStr2(sig, CCN_DTAG_SIGNATUREBITS);
 
-        if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0)) {
+            goto Bail;
+        }
     }
     siglen = siglen-((*buflen)+4);
 #ifdef USE_SIGNATURES
     unsigned char *buf2 = *buf;
-    int buflen2 = *buflen - 1;
+    size_t buflen2 = *buflen - 1
 #endif
-    if(relay_public_key)
-    {
+    if (relay_public_key) {
 #ifdef USE_SIGNATURES
         verified = verify(relay_public_key, buf2, buflen2, (unsigned char*)sig, siglen);
 #endif
     }
-    Bail:
+Bail:
     return verified;
 }
 
@@ -961,45 +1624,69 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
  * @param buf
  * @return
  */
-int
-check_has_next(unsigned char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
+int8_t
+check_has_next(uint8_t *buf, size_t len, char **recvbuffer, size_t *recvbufferlen, char *relay_public_key, int8_t *verified){
 
-    int ret = 1;
-    int contentlen = 0;
-    int num, typ;
+    int8_t ret = 1;
+    size_t contentlen = 0;
+    uint64_t num;
+    uint8_t typ;
     char *newbuffer;
 
-    if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) return 0;
-
-    if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
-    if(num == CCN_DTAG_SIGNATURE)
-    {
-        if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) return 0;
-        *verified = handle_ccn_signature(&buf,&len, relay_public_key);
-        if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
+    if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+        return 0;
+    }
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) {
+        return 0;
     }
 
-    if (typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAG) return 0;
+    if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+        return 0;
+    }
+    if (num == CCN_DTAG_SIGNATURE) {
+        if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) {
+            return 0;
+        }
+        *verified = handle_ccn_signature(&buf,&len, relay_public_key);
+        if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+            return 0;
+        }
+    }
+
+    if (typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAG) {
+        return 0;
+    }
 
     //check if there is a marker for the last segment
-    if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
-    if(num == CCN_DTAG_ANY){
+    if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+        return 0;
+    }
+    if (num == CCN_DTAG_ANY) {
         char buf2[5];
-        if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
+        if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+            return 0;
+        }
         memcpy(buf2, buf, num);
         buf2[4] = 0;
-        if(!strcmp(buf2, "last")){
+        if (!strcmp(buf2, "last")) {
             ret = 0;
         }
-        buf+=num+1;
-        len-=(num+1);
-        if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
+        buf += num + 1;
+        len -= (num + 1);
+        if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+            return 0;
+        }
     }
 
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTDIGEST) return 0;
-    if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0;
-    if(typ != CCN_TT_BLOB) return 0;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTDIGEST) {
+        return 0;
+    }
+    if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+        return 0;
+    }
+    if (typ != CCN_TT_BLOB) {
+        return 0;
+    }
     contentlen = num;
 
     newbuffer = realloc(*recvbuffer, (*recvbufferlen+contentlen)*sizeof(char));
@@ -1014,25 +1701,26 @@ int
 main(int argc, char *argv[])
 {
     char mysockname[200];
-    unsigned char *recvbuffer = 0, *recvbuffer2 = 0;
-    int recvbufferlen = 0, recvbufferlen2 = 0;
+    uint8_t *recvbuffer = NULL, *recvbuffer2 = NULL;
+    size_t recvbufferlen = 0, recvbufferlen2 = 0, partlen = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
     char *udp = "0.0.0.0";
-    int port = 0;
-    int use_udp = 0;
+    uint16_t port = 0;
+    int8_t use_udp = 0;
     unsigned char out[CCNL_MAX_PACKET_SIZE];
-    int len;
+    size_t len;
     int sock = 0;
-    int verified_i = 0;
-    int verified = 1;
+    int8_t verified_i = 0;
+    int8_t verified = 1;
     int numOfParts = 1;
-    int msgOnly = 0;
+    int8_t msgOnly = 0;
     int suite = CCNL_SUITE_DEFAULT;
     char *file_uri = NULL;
     char *ccn_path;
-    char *private_key_path = 0, *relay_public_key = 0;
+    char *private_key_path = NULL, *relay_public_key = NULL;
     struct sockaddr_in si;
-    int opt, i = 0;
+    int opt, i = 0, ret = -1;
+    FILE *f = NULL;
 
     while ((opt = getopt(argc, argv, "hk:mp:v:u:x:")) != -1) {
         switch (opt) {
@@ -1047,10 +1735,11 @@ main(int argc, char *argv[])
             break;
         case 'v':
 #ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
+            if (isdigit(optarg[0])) {
                 debug_level = atoi(optarg);
-            else
+            } else {
                 debug_level = ccnl_debug_str2level(optarg);
+            }
 #endif
             break;
         case 'u':
@@ -1058,7 +1747,7 @@ main(int argc, char *argv[])
             udp = strtok(udp, "/");
             port = strtol(strtok(NULL, "/"), NULL, 0);
             use_udp = 1;
-printf("udp: <%s> <%d>\n", udp, port);
+            printf("udp: <%s> <%i>\n", udp, port);
             break;
         case 'x':
             ux = optarg;
@@ -1107,78 +1796,115 @@ help:
         }
     }
 
-    if (!argv[optind])
+    if (!argv[optind]) {
         goto help;
+    }
 
     argv += optind-1;
     argc -= optind-1;
 
     if (!strcmp(argv[1], "debug")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkDebugRequest(out, argv[2], private_key_path);
+        }
+        if (mkDebugRequest(out, sizeof(out), argv[2], private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "newETHdev")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkNewEthDevRequest(out, argv[2],
+        }
+        if (mkNewEthDevRequest(out, sizeof(out), argv[2],
                      argc > 3 ? argv[3] : "0x88b5",
                      argc > 4 ? argv[4] : "0",
-                     argc > 5 ? argv[5] : "0", private_key_path);
+                     argc > 5 ? argv[5] : "0", private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "newUDPdev")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkNewUDPDevRequest(out, argv[2], NULL,
+        }
+        if (mkNewUDPDevRequest(out, sizeof(out), argv[2], NULL,
                  argc > 3 ? argv[3] : "9695",
                  argc > 4 ? argv[4] : "0",
-                 argc > 5 ? argv[5] : "0", private_key_path);
+                 argc > 5 ? argv[5] : "0", private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "newUDP6dev")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkNewUDPDevRequest(out, NULL, argv[2],
+        }
+        if (mkNewUDPDevRequest(out, sizeof(out), NULL, argv[2],
                  argc > 3 ? argv[3] : "9695",
                  argc > 4 ? argv[4] : "0",
-                 argc > 5 ? argv[5] : "0", private_key_path);
+                 argc > 5 ? argv[5] : "0", private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "destroydev")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkDestroyDevRequest(out, argv[2], private_key_path);
+        }
+        if (mkDestroyDevRequest(out, sizeof(out), argv[2], private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "echoserver")) {
         if (argc > 3) {
             suite = ccnl_str2suite(argv[3]);
-            if (!ccnl_isSuite(suite))
+            if (!ccnl_isSuite(suite)) {
                 goto help;
+            }
         }
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkEchoserverRequest(out, argv[2], suite, private_key_path);
+        }
+        if (mkEchoserverRequest(out, sizeof(out), argv[2], suite, private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1],
                 "newUDPface")||!strcmp(argv[1], "newUDP6face")) {
-        if (argc < 5)
+        if (argc < 5) {
             goto help;
-        len = mkNewFaceRequest(out,
+        }
+        if (mkNewFaceRequest(out, sizeof(out),
                        !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
                        !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
                        !strcmp(argv[1], "newUDP6face") ? argv[2] : NULL,
                        NULL, NULL,
                        argv[3], argv[4],
-                       argc > 5 ? argv[5] : "0x0001", private_key_path);
+                       argc > 5 ? argv[5] : "0x0001", private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "newWPANface")) {
-        if (argc < 4)
+        if (argc < 4) {
             goto help;
-        len = mkNewFaceRequest(out, NULL, NULL, NULL, argv[2], argv[3], NULL, NULL, argc > 5 ? argv[5] : "0x0001", private_key_path);
+        }
+        if (mkNewFaceRequest(out, sizeof(out),
+                NULL, NULL, NULL, argv[2], argv[3], NULL, NULL, argc > 5 ? argv[5] : "0x0001", private_key_path,
+                &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "newUNIXface")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkNewUNIXFaceRequest(out, argv[2],
-                   argc > 3 ? argv[3] : "0x0001", private_key_path);
+        }
+        if (mkNewUNIXFaceRequest(out, sizeof(out), argv[2],
+                   argc > 3 ? argv[3] : "0x0001", private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "setfrag")) {
-        if (argc < 5)
+        if (argc < 5) {
             goto help;
-        len = mkSetfragRequest(out, argv[2], argv[3], argv[4], private_key_path);
+        }
+        if (mkSetfragRequest(out, sizeof(out), argv[2], argv[3], argv[4], private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "destroyface")) {
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
-        len = mkDestroyFaceRequest(out, argv[2], private_key_path);
+        }
+        if (mkDestroyFaceRequest(out, sizeof(out), argv[2], private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "prefixreg")) {
         if (argc > 4) {
             suite = ccnl_str2suite(argv[4]);
@@ -1186,93 +1912,151 @@ help:
                 goto help;
             }
         }
-        if (argc < 4)
+        if (argc < 4) {
             goto help;
-        len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);
+        }
+        if (mkPrefixregRequest(out, sizeof(out), 1, argv[2], argv[3], suite, private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "prefixunreg")) {
-        if (argc > 4)
-            suite = atoi(argv[4]);
-        if (argc < 4)
+        if (argc > 4) {
+            suite = atoi(argv[4]); //fixme:error
+        }
+        if (argc < 4) {
             goto help;
-        len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
+        }
+        if (mkPrefixregRequest(out, sizeof(out), 0, argv[2], argv[3], suite, private_key_path, &len)) {
+            goto Bail;
+        }
     } else if (!strcmp(argv[1], "addContentToCache")){
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
+        }
         file_uri = argv[2];
-        len = mkAddToRelayCacheRequest(out, file_uri, private_key_path, &suite);
+        if (mkAddToRelayCacheRequest(out, sizeof(out), file_uri, private_key_path, &suite, &len)) {
+            goto Bail;
+        }
     } else if(!strcmp(argv[1], "removeContentFromCache")){
-        if (argc < 3)
+        if (argc < 3) {
             goto help;
+        }
         ccn_path = argv[2];
-        len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
+        if (mkRemoveFormRelayCacheRequest(out, sizeof(out), ccn_path, private_key_path, &len)) {
+            goto Bail;
+        }
     } else{
         DEBUGMSG(ERROR, "unknown command %s\n", argv[1]);
         goto help;
     }
 
     if (len > 0 && !msgOnly) {
-        unsigned int slen = 0; int num = 1; int len2 = 0;
+        socklen_t slen = 0;
+        size_t len2 = 0;
+        int num = 1;
         int hasNext = 0;
 
         // socket for receiving
         sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
 
-        if (!use_udp)
+        if (!use_udp) {
             sock = ccnl_crypto_ux_open(mysockname);
-        else
-            sock = udp_open2(getpid()%65536+1025, &si);
+        } else {
+            sock = udp_open2((uint16_t) (getpid() % (UINT16_MAX - 1025) + 1025), &si);
+        }
         if (!sock) {
             DEBUGMSG(ERROR, "cannot open UNIX/UDP receive socket\n");
             exit(-1);
         }
 
-        if (!use_udp)
+        if (!use_udp) {
             ux_sendto2(sock, ux, out, len);
-        else
-            udp_sendto2(sock, udp, port, (unsigned char*)out, len);
+        } else {
+            udp_sendto2(sock, udp, port, (uint8_t *) out, len);
+        }
 
 //  sleep(1);
         memset(out, 0, sizeof(out));
-        if (!use_udp)
-            len = recv(sock, out, sizeof(out), 0);
-        else
-            len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
+        if (!use_udp) {
+            ssize_t recvlen;
+            recvlen = recv(sock, out, sizeof(out), 0);
+            if (recvlen < 0) {
+                goto Bail;
+            }
+            len = (size_t) recvlen;
+        } else {
+            ssize_t recvlen;
+            recvlen = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *) &si, &slen);
+            if (recvlen < 0) {
+                goto Bail;
+            }
+            len = (size_t) recvlen;
+        }
         hasNext = check_has_next(out, len, (char**)&recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
-        if (!verified_i)
+        if (!verified_i) {
             verified = 0;
+        }
 
         while (hasNext) {
            //send an interest for debug packets... and store content in a array...
-           unsigned char interest2[100];
-           len2 = make_next_seg_debug_interest(num++, (char*)interest2);
-           if(!use_udp)
-                ux_sendto2(sock, ux, (unsigned char*)interest2, len2);
-           else
-                udp_sendto2(sock, udp, port, interest2, len2);
+           uint8_t interest2[100];
+           if (make_next_seg_debug_interest(num++, interest2, sizeof(interest2), &len2)) {
+               goto Bail;
+           }
+           if (!use_udp) {
+               ux_sendto2(sock, ux, interest2, len2);
+           } else {
+               udp_sendto2(sock, udp, port, interest2, len2);
+           }
            memset(out, 0, sizeof(out));
-           if(!use_udp)
-                len = recv(sock, out, sizeof(out), 0);
-           else
-                len = recvfrom(sock, out, sizeof(out), 0,
-                                (struct sockaddr *)&si, &slen);
+           if (!use_udp) {
+               ssize_t recvlen;
+               recvlen = recv(sock, out, sizeof(out), 0);
+               if (recvlen < 0) {
+                   goto Bail;
+               }
+               len = (size_t) recvlen;
+           } else {
+               ssize_t recvlen;
+               recvlen = recvfrom(sock, out, sizeof(out), 0,
+                              (struct sockaddr *) &si, &slen);
+               if (recvlen < 0) {
+                   goto Bail;
+               }
+               len = (size_t) recvlen;
+           }
            hasNext =  check_has_next(out+2, len-2, (char**)&recvbuffer,
                                 &recvbufferlen, relay_public_key, &verified_i);
-           if (!verified_i)
+           if (!verified_i) {
                verified = 0;
+           }
            ++numOfParts;
         }
-        recvbuffer2 = malloc(sizeof(char)*recvbufferlen +1000);
-        recvbufferlen2 += ccnl_ccnb_mkHeader(recvbuffer2+recvbufferlen2,
-                                             CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+        recvbuffer2 = malloc(sizeof(char) * recvbufferlen +1000);
+        if (!recvbuffer2) {
+            goto Bail;
+        }
+        if (ccnl_ccnb_mkHeader(recvbuffer2+recvbufferlen2, recvbuffer2 + sizeof(char) * recvbufferlen +1000,
+                               CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &partlen)) {
+            goto Bail;
+        }
+        recvbufferlen2 += partlen;
         if (relay_public_key && use_udp) {
             char sigoutput[200];
 
             if (verified) {
                 sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
-                recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+                if (ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, recvbuffer2 + sizeof(char) * recvbufferlen +1000,
+                                        CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput, &partlen)) {
+                    goto Bail;
+                }
+                recvbufferlen2 += partlen;
             } else {
                 sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
-                recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+                if (ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, recvbuffer2 + sizeof(char) * recvbufferlen +1000,
+                                        CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput, &partlen)) {
+                    goto Bail;
+                }
+                recvbufferlen2 += partlen;
             }
         }
         memcpy(recvbuffer2+recvbufferlen2, recvbuffer, recvbufferlen);
@@ -1282,25 +2066,17 @@ help:
         write(1, recvbuffer2, recvbufferlen2);
         printf("\n");
 
-        DEBUGMSG(DEBUG, "received %d bytes.\n", recvbufferlen);
+        DEBUGMSG(DEBUG, "received %zu bytes.\n", recvbufferlen);
 
         if (!strcmp(argv[1], "addContentToCache")) { //read ccnb_file
             unsigned char *ccnb_file;
             long fsize = 0;
-            FILE *f = fopen(file_uri, "r");
-
+            f = fopen(file_uri, "r");
             if (!f) {
-                if (recvbuffer) {
-                    free(recvbuffer);
-                }
-                    
-                if (recvbuffer2) {
-                    free(recvbuffer2);
-                }
-                return 0;
+                goto Bail;
             }
             //determine size of the file
-            fseek(f, 0L, SEEK_END);
+            fseek(f, 0L, SEEK_END); //fixme:error
             fsize = ftell(f);
             fseek(f, 0L, SEEK_SET);
             ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
@@ -1309,17 +2085,29 @@ help:
 
             //receive request
             memset(out, 0, sizeof(out));
-            if (!use_udp)
-                len = recv(sock, out, sizeof(out), 0);
-            else
-                len = recvfrom(sock, out, sizeof(out), 0,
-                               (struct sockaddr *)&si, &slen);
+            if (!use_udp) {
+                ssize_t recvlen;
+                recvlen = recv(sock, out, sizeof(out), 0);
+                if (recvlen < 0) {
+                    goto Bail;
+                }
+                len = (size_t) recvlen;
+            } else {
+                ssize_t recvlen;
+                recvlen = recvfrom(sock, out, sizeof(out), 0,
+                               (struct sockaddr *) &si, &slen);
+                if (recvlen < 0) {
+                    goto Bail;
+                }
+                len = (size_t) recvlen;
+            }
 
             //send file
-            if (!use_udp)
-                i = ux_sendto2(sock, ux, (unsigned char*)ccnb_file, fsize);
-            else
-                i = udp_sendto2(sock, udp, port, (unsigned char*)ccnb_file, fsize);
+            if (!use_udp) {
+                i = ux_sendto2(sock, ux, ccnb_file, fsize);
+            } else {
+                i = udp_sendto2(sock, udp, port, ccnb_file, fsize);
+            }
 
             if (i) {
                 DEBUGMSG(INFO, "Sent file to relay\n");
@@ -1332,12 +2120,13 @@ help:
         DEBUGMSG(ERROR, "nothing to send, program terminates\n");
     }
 
-    if(recvbuffer2)
-        free(recvbuffer2);
-    if(recvbuffer2)
-        free(recvbuffer);
+    ret = 0;
+
+Bail:
+    free(recvbuffer2);
+    free(recvbuffer);
     close(sock);
     unlink(mysockname);
 
-    return 0;
+    return ret;
 }

@@ -44,7 +44,7 @@ hexdump(size_t lev, uint8_t *base, uint8_t *cp, size_t len,
         int8_t rawxml, FILE* out)
 {
     size_t i, maxi, lastlen = 0;
-    unsigned char cmp[8], star = 0;
+    uint8_t cmp[8], star = 0;
 
     while (len > 0) {
         maxi = len > 8 ? 8 : len;
@@ -98,10 +98,10 @@ base64dump(size_t lev, uint8_t *base, uint8_t *cp, size_t len, int8_t rawxml, FI
     size_t i;
     (void)base;
     (void)rawxml;
-    for(i = 0; i < lev + 1; i++) {
+    for (i = 0; i < lev + 1; i++) {
         fprintf(out, "  ");
     }
-    fprintf(out, "%s\n", base64_encode((char*) cp, len, &encodedLen));//fixme:type
+    fprintf(out, "%s\n", base64_encode((char*) cp, len, &encodedLen));
     cp += len;
 }
 
@@ -109,10 +109,11 @@ base64dump(size_t lev, uint8_t *base, uint8_t *cp, size_t len, int8_t rawxml, FI
 // CCNB
 
 int
-ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
-            int *len, int *num, int *typ, int rawxml, FILE* out)
+ccnb_deheadAndPrint(size_t lev, uint8_t *base, uint8_t **buf,
+            size_t *len, uint64_t *num, uint8_t *typ, int8_t rawxml, FILE* out)
 {
-    int i, val = 0;
+    size_t i;
+    uint64_t val = 0;
 
     if (*len <= 0) {
         return -1;
@@ -122,7 +123,7 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         fprintf(out, "%04zx  ", *buf - base);
     }
 
-    for (i = 0; i < lev; i++) {
+    for (i = 0; lev > 0 && i < lev - 1; i++) {
         fprintf(out, "  ");
     }
     if (**buf == 0) {
@@ -134,14 +135,17 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         *len -= 1;
         return 0;
     }
-    for (i = 0; i < (int)sizeof(i) && i < *len; i++) {
-        unsigned char c = (*buf)[i];
+    if (lev > 0) {
+        fprintf(out, "  ");
+    }
+    for (i = 0; i < sizeof(i) && i < *len; i++) {
+        uint8_t c = (*buf)[i];
         if (!rawxml) {
             fprintf(out, "%02x ", c);
         }
         if ( c & 0x80 ) {
             *num = (val << 4) | ((c >> 3) & 0xf);
-            *typ = c & 0x7;
+            *typ = (uint8_t) (c & 0x7);
             *buf += i+1;
             *len -= i+1;
             return 0;
@@ -154,7 +158,7 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
     return -1;
 }
 
-static int
+static int8_t
 ccnb_must_recurse(/* work in progress */)
 {
     return 0;
@@ -224,22 +228,30 @@ ccnb_dtag2name(int num)
 }
 
 static int
-ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
-           int *len, char *cur_tag, int rawxml, FILE* out)
+ccnb_parse_lev(size_t lev, uint8_t *base, uint8_t **buf,
+           size_t *len, char *cur_tag, int8_t rawxml, FILE* out)
 {
-    int num, typ = -1;
+    uint64_t num;
+    uint8_t typ;
+    size_t complen;
     char *next_tag;
 
     while (ccnb_deheadAndPrint(lev, base, buf, len, &num, &typ, rawxml, out) == 0) {
-        if (num > *len) return 0;
         switch (typ) {
         case CCN_TT_BLOB:
         case CCN_TT_UDATA:
+            if (num > SIZE_MAX) {
+                return -1;
+            }
+            complen = (size_t) num;
+            if (complen > *len) {
+                return 0;
+            }
             if (rawxml) {
                 fprintf(out, "<data ");
-                fprintf(out, "size=\"%i\" dt=\"binary.base64\"", num);
+                fprintf(out, "size=\"%zu\" dt=\"binary.base64\"", complen);
             } else {
-                fprintf(out, " -- <data (%d byte%s)", num, num > 1 ? "s" : "");
+                fprintf(out, " -- <data (%lu byte%s)", complen, complen > 1 ? "s" : "");
             }
             if (ccnb_must_recurse(/* work in progress */)) {
                 if (!rawxml) {
@@ -251,9 +263,9 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
             }
             fprintf(out, ">\n");
             if (!rawxml) {
-                hexdump((size_t) lev, base, *buf, (size_t) num, (int8_t) rawxml, out);//fixme:type
+                hexdump(lev, base, *buf, complen, rawxml, out);
             } else {
-                base64dump((size_t) lev, base, *buf, (size_t) num, (int8_t) rawxml, out);//fixme:type
+                base64dump(lev, base, *buf, complen, rawxml, out);
             }
     /*
             for (i = 0; i < num; i++) {
@@ -268,14 +280,18 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
             *buf += num;
             *len -= num;
             if (rawxml) {
-                int i;
-                for(i = 0; i < lev ; i++)
+                size_t i;
+                for (i = 0; i < lev ; i++) {
                     fprintf(out, "  ");
+                }
                 fprintf(out, "</data>\n");
             }
             break;
         case CCN_TT_DTAG:
-            next_tag = ccnb_dtag2name(num);
+            if (num > INT_MAX) {
+                return 0;
+            }
+            next_tag = ccnb_dtag2name((int) num);
             if (next_tag) {
                 if (!rawxml) {
                     fprintf(out, " -- <%s>\n", next_tag);
@@ -285,7 +301,7 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
             }
             else {
                 if (!rawxml) {
-                    fprintf(out, " -- <unknown tt=%d num=%d>\n", typ, num);
+                    fprintf(out, " -- <unknown tt=%u num=%lu>\n", typ, num);
                 } else {
                     fprintf(out, "<unknown>\n");
                 }
@@ -304,16 +320,16 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
                 if (!rawxml) {
                     fprintf(out, " -- </%s>\n", cur_tag);
                 } else {
-                    fprintf(out, "</%s>\n", cur_tag );
+                    fprintf(out, "</%s>\n", cur_tag);
                 }
                 return 0;
             }
                 /* falls through */
         default:
             if (!rawxml) {
-                fprintf(out, "-- tt=%d num=%d not implemented yet\n", typ, num);
+                fprintf(out, "-- tt=%u num=%lu not implemented yet\n", typ, num);
             } else {
-                fprintf(out, "=%d num=%d not implemented yet\n", typ, num);
+                fprintf(out, "=%u num=%lu not implemented yet\n", typ, num);
             }
             break;
         }
@@ -326,13 +342,14 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
 
 
 void
-ccnb_parse(int lev, unsigned char *data, int len, int rawxml, FILE* out)
+ccnb_parse(size_t lev, uint8_t *data, size_t len, int8_t rawxml, FILE* out)
 {
     unsigned char *buf = data;
 
     ccnb_parse_lev(lev, data, &buf, &len, NULL, rawxml, out);
-    if (!rawxml)
+    if (!rawxml) {
         fprintf(out, "%04zx  pkt.end\n", buf - data);
+    }
 }
 
 // ----------------------------------------------------------------------
@@ -1068,7 +1085,7 @@ emit_content_only(uint8_t *start, size_t len, int suite, int format)
         data = start + 2;
         len -= 2;
 
-        pkt = ccnl_ccnb_bytes2pkt(start, &data, (int*)&len); //fixme:type
+        pkt = ccnl_ccnb_bytes2pkt(start, &data, &len);
         break;
     }
     case CCNL_SUITE_CCNTLV: {
@@ -1141,8 +1158,9 @@ dump_content(size_t lev, uint8_t *base, uint8_t *data,
             }
             printf("%04zd", (olddata - base));
             indent(NULL, lev);
-            while (olddata < data)
+            while (olddata < data) {
                 printf("0x%02x ", *(olddata++));
+            }
             printf("-- ignored: switch to %s\n", ccnl_enc2str(enc));
             olddata = data;
         }
@@ -1168,7 +1186,7 @@ dump_content(size_t lev, uint8_t *base, uint8_t *data,
     }
 
     if (format >= 2) {
-        return emit_content_only(data, (int) len, suite, format);//fixme:type
+        return emit_content_only(data, len, suite, format);
     }
 
     switch (suite) {
@@ -1239,18 +1257,20 @@ main(int argc, char *argv[])
         switch (opt) {
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (!ccnl_isSuite(suite))
+            if (!ccnl_isSuite(suite)) {
                 goto help;
+            }
             break;
         case 'f':
             format = atoi(optarg);
             break;
         case 'v':
 #ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
+            if (isdigit(optarg[0])) {
                 debug_level = atoi(optarg);
-            else
+            } else {
                 debug_level = ccnl_debug_str2level(optarg);
+            }
 #endif
             break;
         default:
@@ -1269,8 +1289,9 @@ help:
         }
     }
 
-    if (argv[optind])
+    if (argv[optind]) {
         goto help;
+    }
 
     len = 0;
     maxlen = sizeof(data);

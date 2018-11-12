@@ -112,7 +112,7 @@ ccnl_core_init(void)
 #endif
 #ifdef USE_SUITE_CCNTLV
     ccnl_core_suites[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder;
-    ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch; //fixme: cMatch return value int8_t
+    ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     ccnl_core_suites[CCNL_SUITE_LOCALRPC].RX     = ccnl_localrpc_exec;

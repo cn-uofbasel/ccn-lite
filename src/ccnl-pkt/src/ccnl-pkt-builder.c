@@ -23,12 +23,13 @@
 
 #ifdef USE_SUITE_CCNB
 
-int ccnb_isContent(unsigned char *buf, int len)
+int8_t ccnb_isContent(unsigned char *buf, size_t len)
 {
-    int num, typ;
+    uint64_t num;
+    uint8_t typ;
 
-    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
-        return -1;
+    if (ccnl_ccnb_dehead(&buf, &len, &num, &typ)) {
+        return 0;
     }
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) {
         return 0;
@@ -103,7 +104,7 @@ ccnl_isContent(uint8_t *buf, size_t len, int suite)
     switch(suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        return (int8_t) ccnb_isContent(buf, (int) len);//fixme:type
+        return ccnb_isContent(buf, len);
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
@@ -185,7 +186,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
     }
     offs = CCNL_MAX_PACKET_SIZE;
 
-    if (ccnl_mkInterest(name, opts, tmp, &len, &offs)) {
+    if (ccnl_mkInterest(name, opts, tmp, tmp + CCNL_MAX_PACKET_SIZE, &len, &offs)) {
         ccnl_free(tmp);
         return NULL;
     }
@@ -200,13 +201,13 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 
 int8_t
 ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
-                uint8_t *tmp, size_t *len, size_t *offs) {
+                uint8_t *tmp, uint8_t *tmpend, size_t *len, size_t *offs) {
     ccnl_interest_opts_u default_opts;
 
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            (*len) = (size_t) ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);//fixme:type
+            ccnl_ccnb_fillInterest(name, NULL, tmp, tmpend, CCNL_MAX_PACKET_SIZE, len);
             (*offs) = 0;
             break;
 #endif
@@ -313,7 +314,7 @@ ccnl_mkContent(struct ccnl_prefix_s *name, uint8_t *payload, size_t paylen, uint
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            *len = (size_t) ccnl_ccnb_fillContent(name, payload, (int) paylen, (int*)contentpos, tmp);//fixme:type
+            ccnl_ccnb_fillContent(name, payload, paylen, contentpos, tmp, tmp + *len, len);
             *offs = 0;
             break;
 #endif

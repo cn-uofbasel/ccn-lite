@@ -179,7 +179,7 @@ ccnl_ccntlv_dehead(uint8_t **buf, size_t *len,
 struct ccnl_pkt_s*
 ccnl_ccntlv_bytes2pkt(uint8_t *start, uint8_t **data, size_t *datalen);
 
-int
+int8_t
 ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 int8_t

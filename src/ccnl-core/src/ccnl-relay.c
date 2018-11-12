@@ -147,7 +147,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     }
     DEBUGMSG_CORE(TRACE, "face_remove: cleaning fwd table\n");
     for (ppfwd = &ccnl->fib; *ppfwd;) {
-        if ((*ppfwd)->face == f) {
+        if ((*ppfwd)->face == f) { //FIXME(s3lph): SEGFAULT!!!
             struct ccnl_forward_s *pfwd = *ppfwd;
             ccnl_prefix_free(pfwd->prefix);
             *ppfwd = pfwd->next;
@@ -406,7 +406,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // CCNL strategy: we forward on all FWD entries with a prefix match
 
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-        if (!fwd->prefix)
+        printf("fwd: %p\n", (void*)fwd);
+        if (!fwd->prefix) //FIXME(s3lph): SEGFAULT!!!
             continue;
 
         //Only for matching suite

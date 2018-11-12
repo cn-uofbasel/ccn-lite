@@ -284,7 +284,7 @@ Bail:
 #ifdef NEEDS_PREFIX_MATCHING
 
 // returns: 0=match, -1=otherwise
-int
+int8_t
 ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
 #ifndef CCNL_LINUXKERNEL
@@ -423,7 +423,7 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
                         size_t *offset, uint8_t *buf,
                         const uint32_t *lastchunknum) {
 
-    int cnt;
+    size_t cnt;
     size_t nameend;
 
     if (lastchunknum) {
@@ -444,12 +444,12 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
     // optional: (not used)
     // CCNX_TLV_N_Meta
 
-    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {//fixme:type iterator
-        if (*offset < name->complen[cnt]) {
+    for (cnt = name->compcnt; cnt > 0; cnt--) {
+        if (*offset < name->complen[cnt-1]) {
             return -1;
         }
-        *offset -= name->complen[cnt];
-        memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
+        *offset -= name->complen[cnt-1];
+        memcpy(buf + *offset, name->comp[cnt-1], name->complen[cnt-1]);
     }
     if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, nameend - *offset,
                               offset, buf)) {
@@ -571,7 +571,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
     return 0;
 }
 
-#ifdef USE_FRAG //fixme:ifdef
+#ifdef USE_FRAG
 
 //TODO(s3lph)
 
