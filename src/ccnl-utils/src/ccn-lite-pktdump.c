@@ -225,10 +225,12 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
     char *next_tag;
 
     while (ccnb_deheadAndPrint(lev, base, buf, len, &num, &typ, rawxml, out) == 0) {
-        if (num > *len) return 0;
         switch (typ) {
         case CCN_TT_BLOB:
         case CCN_TT_UDATA:
+            if (num > *len) {
+                return 0;
+            }
             if (rawxml) {
                 fprintf(out, "<data ");
                 fprintf(out, "size=\"%i\" dt=\"binary.base64\"", num);
