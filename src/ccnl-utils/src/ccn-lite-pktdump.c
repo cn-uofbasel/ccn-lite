@@ -116,10 +116,10 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         fprintf(out, "%04zx  ", *buf - base);
     }
 
-    for (i = 0; i < lev; i++) {
-        fprintf(out, "  ");
-    }
     if (**buf == 0) {
+        for (i = 0; lev > 0 && i < lev - 1; i++) {
+            fprintf(out, "  ");
+        }
         if (!rawxml) {
             fprintf(out, "00 ");
         }
@@ -127,6 +127,9 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         *buf += 1;
         *len -= 1;
         return 0;
+    }
+    for (i = 0; i < lev; i++) {
+        fprintf(out, "  ");
     }
     for (i = 0; i < (int)sizeof(i) && i < *len; i++) {
         unsigned char c = (*buf)[i];
@@ -225,10 +228,12 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
     char *next_tag;
 
     while (ccnb_deheadAndPrint(lev, base, buf, len, &num, &typ, rawxml, out) == 0) {
-        if (num > *len) return 0;
         switch (typ) {
         case CCN_TT_BLOB:
         case CCN_TT_UDATA:
+            if (num > *len) {
+                return 0;
+            }
             if (rawxml) {
                 fprintf(out, "<data ");
                 fprintf(out, "size=\"%i\" dt=\"binary.base64\"", num);
