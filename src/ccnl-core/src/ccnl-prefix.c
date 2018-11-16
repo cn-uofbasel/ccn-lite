@@ -408,23 +408,22 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     if ( (prefix->compcnt + minsuffix) > (p->compcnt + 1) ||
          (prefix->compcnt + maxsuffix) < (p->compcnt + 1)) {
         DEBUGMSG(TRACE, "  mismatch in # of components\n");
-        return 0;
+        return -2;
     }
 
+    unsigned char *md = NULL;
+
     if ((prefix->compcnt - p->compcnt) == 1) {
-        unsigned char *md = compute_ccnx_digest(c->pkt->buf); 
+        md = compute_ccnx_digest(c->pkt->buf);
 
         /* computing the ccnx digest failed */
         if (!md) {
             DEBUGMSG(TRACE, "computing the digest failed\n");
             return -3;
         }
-        
-        return (ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt);
     }
 
-    DEBUGMSG(TRACE, "mismatch in expected number of components between prefix and content\n");
-    return -2;
+    return (ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt);
 }
 
 #endif // NEEDS_PREFIX_MATCHING
