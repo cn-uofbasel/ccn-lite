@@ -40,12 +40,27 @@ typedef enum {
     CS_DO_NOT_USE = INT_MAX          /**< set the enum to a fixed width, do not use! */
 } ccnl_cs_status_t;
 
+typedef struct {
+    unsigned char **components; /**< the components of the prefix without '\0' at the end */
+    size_t count;               /**< the number of components */
+    size_t *length;             /**< the actual length of the name components */
+} ccnl_cs_component_t;
+
 /**
  * @brief An abstract representation of an ICN name 
  */
 typedef struct {
-    uint8_t *name;    /**< The name itself */
-    uint32_t length;  /**< The length of the name */
+    uint8_t *name;         /**< the name itself */
+    size_t length;         /**< the length of the name (formerly known as complen) */
+
+    unsigned char **comp; /**< name components of the prefix without '\0' at the end */
+    
+    size_t componentcount; /**< the number of components of the name (formerly known as compcnt) */
+    
+    int *componentlength;  /**< length of the name components */
+
+    ccnl_cs_component_t component; /**< */
+    int *chunknum;         /**< if defined, number of the chunk else -1 */
 } ccnl_cs_name_t;
 
 /**
@@ -54,6 +69,7 @@ typedef struct {
 typedef struct {
     uint8_t *content; /**< A byte representation of the content */
     uint32_t length;  /**< The size of the content */
+    uint32_t served;  /**< denotes how often the content has been served */
 } ccnl_cs_content_t;
 
 /**
@@ -77,6 +93,11 @@ typedef int (*ccnl_cs_op_remove_t)(const ccnl_cs_name_t *name);
 typedef int (*ccnl_cs_op_clear_t)(void);
 
 /**
+ * Type definition for the function pointer to the print function
+ */
+typedef int (*ccnl_cs_op_print_t)(void);
+
+/**
  * @brief Holds function pointers to concrete implementations of a content store
  */
 typedef struct {
@@ -84,6 +105,7 @@ typedef struct {
     ccnl_cs_op_lookup_t lookup; /**< Function pointer to the lookup function */
     ccnl_cs_op_remove_t remove; /**< Function pointer to the remove function */
     ccnl_cs_op_clear_t clear;   /**< Function pointer to the clear function */
+    ccnl_cs_op_print_t print;   /**< Function pointer to the print function */
 } ccnl_cs_ops_t;
 
 /**
@@ -98,8 +120,9 @@ void
 ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_add_t add_fun,
              ccnl_cs_op_lookup_t lookup_fun,
-             ccnl_cs_op_remove_t remove_fun
-             ccnl_cs_op_clear_t clear_fun
+             ccnl_cs_op_remove_t remove_fun,
+             ccnl_cs_op_clear_t clear_fun,
+             ccnl_cs_op_print_t print_fun
              );
 
 /**
@@ -153,5 +176,8 @@ ccnl_cs_remove(ccnl_cs_ops_t *ops,
 
 ccnl_cs_status_t
 ccnl_cs_clear(ccnl_cs_ops_t *ops);
+
+ccnl_cs_status_t
+ccnl_cs_print(ccnl_cs_ops_t *ops);
 
 #endif //CCNL_CS

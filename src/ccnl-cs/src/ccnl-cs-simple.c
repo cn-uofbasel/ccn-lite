@@ -39,10 +39,20 @@ static int remove(const ccnl_cs_name_t *name) {
     return 0;
 }
 
+static int clear(void) {
+    return 0;
+}
+
+static int print(void) {
+    return 0;
+}
+
 void ccnl_cs_init_simple(void) {
     ccnl_cs_init(&ccnl_cs_ops_simple,
                  add,
                  lookup,
-                 remove);
+                 remove,
+                 clear,
+                 print);
     return;
 }

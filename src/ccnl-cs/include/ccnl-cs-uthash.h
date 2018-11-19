@@ -52,10 +52,5 @@ void ccnl_cs_init_uthash(ccnl_cs_ops_t *ops);
  */
 bool ccnl_cs_uthash_exists(ccnl_cs_name_t *name);
 
-/**
- * @brief Prints the content of the content store to the command line
- */
-void ccnl_cs_uthash_dump(void);
-
 
 #endif //CCNL_CS_UTHASH
