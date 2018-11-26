@@ -184,7 +184,7 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
         if (buf) { 
             DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
                   (void*)ifc, (void*)buf,
-                  buf ? buf->datalen : -1, ifc ? ifc->qlen : -1);
+                  buf ? buf->datalen : 0, ifc ? ifc->qlen : -1);
         }
 
         if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
@@ -288,7 +288,7 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
         return -1;
     }
     DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%zd\n",
-             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
+             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : 0);
 
     for (msg = to->outq; msg; msg = msg->next) // already in the queue?
         if (buf_equal(msg, buf)) {

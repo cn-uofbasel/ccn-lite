@@ -40,7 +40,7 @@
 #endif
 
 struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
+ccnl_buf_new(void *data, size_t len)
 {
     struct ccnl_buf_s *b = (struct ccnl_buf_s*) ccnl_malloc(sizeof(*b) + len);
 

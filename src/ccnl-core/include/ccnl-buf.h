@@ -30,7 +30,7 @@ struct ccnl_relay_s;
 
 struct ccnl_buf_s {
     struct ccnl_buf_s *next;
-    ssize_t datalen;
+    size_t datalen;
     unsigned char data[1];
 };
 
@@ -38,7 +38,7 @@ struct ccnl_buf_s {
  * 
  */
 struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len);
+ccnl_buf_new(void *data, size_t len);
 
 #define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
