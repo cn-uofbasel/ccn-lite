@@ -45,9 +45,8 @@ static void
 blob(struct ccnl_buf_s *buf)
 {
     unsigned char *cp = buf->data;
-    int i;
 
-    for (i = 0; i < buf->datalen; i++, cp++)
+    for (size_t i = 0; i < buf->datalen; i++, cp++)
         CONSOLE("%02x", *cp);
 }
 
