@@ -35,6 +35,7 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include <inttypes.h>
+#include <limits.h>
 #else
 #include <ccnl-pkt-ccnb.h>
 #include <ccnl-pkt-ccntlv.h>
@@ -97,9 +98,9 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     c = ccnl_content_new(pkt);
-    DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", (unsigned)c->pkt->contlen, c->pkt->content);//fixme:type
-    if (!c)
+    if (!c) {
         return 0;
+    }
 
     if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
         // CONFORM: "A node MUST NOT forward unsolicited data [...]"
@@ -108,14 +109,15 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-        if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-            DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
-            ccnl_content_add2cache(relay, c);
-            DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", (unsigned)c->pkt->contlen, c->pkt->content);//fixme:type
-        } else {
-            DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
-            ccnl_content_free(c);
-        }
+    if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
+        DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
+        ccnl_content_add2cache(relay, c);
+        int contlen = (int) (c->pkt->contlen > INT_MAX ? INT_MAX : c->pkt->contlen);
+        DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", contlen, c->pkt->content);
+    } else {
+        DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
+        ccnl_content_free(c);
+    }
 
 #ifdef USE_RONR
     /* if we receive a chunk, we assume more chunks of this content may be
@@ -350,14 +352,35 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             continue;
 #ifdef OBSOLETE_BY_2015_06
 #ifdef USE_FRAG
-        case CCNL_DTAG_FRAGMENT2012:
+        // FIXME: Propagate size_t through to frag functions
+        case CCNL_DTAG_FRAGMENT2012: {
+            int dlen;
+            if (datalen > INT_MAX) {
+                return -1;
+            }
+            dlen = (int) *datalen;
             rc = ccnl_frag_RX_frag2012(ccnl_ccnb_forwarder, relay,
-                                       from, data, (int*)datalen);//fixme:type
+                                       from, data, &dlen);
+            if (dlen < 0) {
+                return -1;
+            }
+            *datalen = (size_t) dlen;
             continue;
-        case CCNL_DTAG_FRAGMENT2013:
+        }
+        case CCNL_DTAG_FRAGMENT2013: {
+            int dlen;
+            if (datalen > INT_MAX) {
+                return -1;
+            }
+            dlen = (int) *datalen;
             rc = ccnl_frag_RX_CCNx2013(ccnl_ccnb_forwarder, relay,
-                                       from, data, (int*)datalen);//fixme:type
+                                       from, data, &dlen);
+            if (dlen < 0) {
+                return -1;
+            }
+            *datalen = (size_t) dlen;
             continue;
+        }
 #endif
 #endif // OBSOLETE
         default:

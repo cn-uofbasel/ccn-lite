@@ -215,10 +215,7 @@ Usage:
     }
 
     // output packet
-    if (pkt->buf->datalen < 0) {
-        return -1;
-    }
-    write(1, pkt->buf->data, (size_t) pkt->buf->datalen);
+    write(1, pkt->buf->data, pkt->buf->datalen);
 
     return 0;
 }

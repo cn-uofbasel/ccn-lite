@@ -30,7 +30,7 @@ struct ccnl_relay_s;
 
 struct ccnl_buf_s {
     struct ccnl_buf_s *next;
-    ssize_t datalen;
+    size_t datalen;
     unsigned char data[1];
 };
 

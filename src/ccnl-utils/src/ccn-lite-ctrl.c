@@ -1491,7 +1491,7 @@ handle_ccn_signature(uint8_t **buf, size_t *buflen, char *relay_public_key)
     siglen = siglen-((*buflen)+4);
 #ifdef USE_SIGNATURES
     unsigned char *buf2 = *buf;
-    size_t buflen2 = *buflen - 1
+    size_t buflen2 = *buflen - 1;
 #endif
     if (relay_public_key) {
 #ifdef USE_SIGNATURES

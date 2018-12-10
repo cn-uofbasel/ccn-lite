@@ -72,7 +72,6 @@ ccnl_ndntlv_nonNegInt(uint8_t *cp, size_t len)
 {
     uint64_t val = 0;
 
-    //FIXME: What if len > 8?
     while (len-- > 0) {
         val = (val << 8U) | *cp;
         cp++;
@@ -503,7 +502,7 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
     size_t oldoffset = *offset;
     uint64_t cnt;
 
-    if (name->chunknum) { // TODO: 0 or -1 ???
+    if (name->chunknum) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
                                                  *name->chunknum,
                                                  NDN_Marker_SegmentNumber,
@@ -551,7 +550,6 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_n
         }
     }
 
-    // FIXME: Nonce sign?
     if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Nonce, (uint64_t) opts->nonce, offset, buf) < 0) {
         return -1;
     }

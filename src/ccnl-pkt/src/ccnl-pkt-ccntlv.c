@@ -575,8 +575,6 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
 #ifdef USE_FRAG
 
-//TODO(s3lph)
-
 // produces a full FRAG packet. It does not write, just read the fields in *fr
 struct ccnl_buf_s*
 ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
@@ -589,8 +587,8 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_mkFrag seqno=%u\n", fr->sendseq);
 
     datalen = fr->mtu - sizeof(*fp) - 4;
-    if (datalen > (fr->bigpkt->datalen - fr->sendoffs)) {//fixme:type
-        datalen = fr->bigpkt->datalen - fr->sendoffs;//fixme:type
+    if (datalen > (fr->bigpkt->datalen - fr->sendoffs)) {
+        datalen = fr->bigpkt->datalen - fr->sendoffs;
     }
     if (datalen > UINT16_MAX) {
         return NULL;
@@ -614,7 +612,7 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     memcpy((char*)(fp+1) + 4, fr->bigpkt->data + fr->sendoffs, datalen);
 
     tmp = fr->sendseq & 0x03fff;
-    if ((int) datalen >= fr->bigpkt->datalen) {   // single
+    if (datalen >= fr->bigpkt->datalen) {   // single
         tmp |= CCNL_BEFRAG_FLAG_SINGLE << 14;
     } else if (fr->sendoffs == 0) {          // start
         tmp |= CCNL_BEFRAG_FLAG_FIRST  << 14;

@@ -350,17 +350,12 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf)
 {
     ssize_t rc = -1;
-    size_t datalen = 0;
-    if (buf->datalen < 0) {
-        return;
-    }
-    datalen = (size_t) buf->datalen;
     (void) ccnl;
     switch(dest->sa.sa_family) {
 #ifdef USE_IPV4
     case AF_INET:
         rc = sendto(ifc->sock,
-                    buf->data, datalen, 0,
+                    buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ip4, sizeof(struct sockaddr_in));
         DEBUGMSG(DEBUG, "udp sendto %s/%d returned %zd\n",
                  inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
@@ -377,7 +372,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 #ifdef USE_IPV6
     case AF_INET6:
         rc = sendto(ifc->sock,
-                    buf->data, datalen, 0,
+                    buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ip6, sizeof(struct sockaddr_in6));
 	{
 #ifdef USE_LOGGING
@@ -396,7 +391,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         rc = ccnl_eth_sendto(ifc->sock,
                              dest->linklayer.sll_addr,
                              ifc->addr.linklayer.sll_addr,
-                             buf->data, datalen);
+                             buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %zd\n",
                  ll2ascii(dest->linklayer.sll_addr, dest->linklayer.sll_halen), rc);
         break;
@@ -409,7 +404,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
         rc = sendto(ifc->sock,
-                    buf->data, datalen, 0,
+                    buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ux, sizeof(struct sockaddr_un));
         DEBUGMSG(DEBUG, "unix sendto %s returned %zd\n",
                  dest->ux.sun_path, rc);

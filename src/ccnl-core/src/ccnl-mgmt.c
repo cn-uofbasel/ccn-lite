@@ -129,6 +129,25 @@ get_num_contents(void *p)
     return num;
 }
 
+
+int8_t
+ccnl_mgmt_parse_eth_address(uint8_t *sll_addr, const char *str) {
+    char *endptr;
+    unsigned long octet_l;
+    for (size_t i = 0; i < 6; ++i) {
+        errno = 0;
+        octet_l = strtoul(str + 3*i, &endptr, 16);
+        if (errno || octet_l > UINT8_MAX || (i != 5 && *endptr != ':')) {
+            DEBUGMSG(ERROR, "Could not parse ethernet address: %s\n", str);
+            return -1;
+        }
+        sll_addr[i] = (uint8_t) octet_l;
+    }
+    sll_addr[6] = 0;
+    sll_addr[7] = 0;
+}
+
+
 // ----------------------------------------------------------------------
 
 int8_t
@@ -1325,14 +1344,11 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
         su.linklayer.sll_family = AF_PACKET;
         su.linklayer.sll_protocol = htons((uint16_t) lport);
-        // FIXME:sscanf
-        if (sscanf((const char*) host, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                   su.linklayer.sll_addr,   su.linklayer.sll_addr+1,
-                   su.linklayer.sll_addr+2, su.linklayer.sll_addr+3,
-                   su.linklayer.sll_addr+4, su.linklayer.sll_addr+5) == 6) {
-        // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.linklayer));
+        if (ccnl_mgmt_parse_eth_address(su.linklayer.sll_addr, (const char*) host)) {
+            goto SoftBail;
         }
+        // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
+        f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.linklayer));
     } else
 #endif
 #endif
