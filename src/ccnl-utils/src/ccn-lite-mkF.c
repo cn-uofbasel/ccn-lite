@@ -86,10 +86,10 @@ main(int argc, char *argv[])
         case 'a':
             seqnr = strtol(optarg, &cp, 0);
             if (cp && cp[0]== '/' && isdigit(cp[1]))
-                seqnrlen = atoi(cp+1);
+                seqnrlen = (int)strtol(cp+1, (char**)NULL, 10);
             break;
         case 'b':
-            bytelimit = atoi((char*) optarg);
+            bytelimit = (int)strtol(optarg, (char**)NULL, 10);
             break;
         case 'f':
             fileprefix = optarg;

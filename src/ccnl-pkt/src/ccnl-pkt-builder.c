@@ -161,12 +161,6 @@ ccnl_mkInterestObject(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
         return NULL;
     }
     i->pkt->pfx = ccnl_prefix_dup(name);
-    if (!i->pkt->pfx) {
-        ccnl_pkt_free(i->pkt);
-        ccnl_free(i);
-        return NULL;
-    }
-    i->flags |= CCNL_PIT_COREPROPAGATES;
     i->from = NULL;
     return i;
 }

@@ -189,15 +189,14 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     struct ccnl_buf_s *pkt;
     struct rdr_ds_s *seq, *element;
-    size_t len, switchlen, partlen;
+    size_t len = 0, switchlen = 0;
     unsigned char tmp[10];
 
     len = strlen(reason) + 50; // add some headroom
     if (content) {
-        if (ccnl_rdr_getFlatLen(content, &partlen)) {
+        if (ccnl_rdr_getFlatLen(content, &len)) {
             return -1;
         }
-        len += partlen;
     }
     pkt = ccnl_buf_new(NULL, len);
     if (!pkt) {

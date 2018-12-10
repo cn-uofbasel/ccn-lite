@@ -31,6 +31,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <limits.h>
 #else
 #include <ccnl-mgmt.h>
 #include <ccnl-core.h>
@@ -138,7 +139,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     size_t it, size = CCNL_MAX_PACKET_SIZE / 2;
     size_t numPackets = len/(size/2) + 1;
-    uint8_t *packet = NULL, *buf2 = NULL, *packetend, *buf2end;
+    uint8_t *packet = NULL, *buf2 = NULL, *packetend = NULL, *buf2end = NULL;
     struct ccnl_pkt_s *pkt = NULL;
     struct ccnl_content_s *c = NULL;
     (void) orig;
@@ -147,22 +148,20 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
              len, numPackets);
 
     for (it = 0; it < numPackets; ++it) {
-        size_t packetsize = size/2, len4 = 0, len5, partlen;
+        size_t packetsize = size/2, len4 = 0, len5 = 0;
         packet = (uint8_t*) ccnl_malloc(sizeof(uint8_t) * packetsize * 2);
         if (!packet) {
             goto Bail;
         }
         packetend = packet + sizeof(uint8_t) * packetsize * 2;
 
-        if (ccnl_ccnb_mkHeader(packet+len4, packetend, CCNL_DTAG_FRAG, CCN_TT_DTAG, &partlen) != 0) {
+        if (ccnl_ccnb_mkHeader(packet+len4, packetend, CCNL_DTAG_FRAG, CCN_TT_DTAG, &len4)) {
             goto Bail;
         }
-        len4 += partlen;
         if (it == numPackets - 1) {
-            if (ccnl_ccnb_mkStrBlob(packet+len4, packetend, CCN_DTAG_ANY, CCN_TT_DTAG, "last", &partlen) != 0) {
+            if (ccnl_ccnb_mkStrBlob(packet+len4, packetend, CCN_DTAG_ANY, CCN_TT_DTAG, "last", &len4)) {
                 goto Bail;
             }
-            len4 += partlen;
         }
         len5 = len - it * packetsize;
         if (len5 > packetsize) {
@@ -170,10 +169,9 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
         if (ccnl_ccnb_mkBlob(packet+len4, packetend, CCN_DTAG_CONTENTDIGEST,
                              CCN_TT_DTAG, (char*) buf + it*packetsize,
-                             len5, &partlen) != 0) {
+                             len5, &len4)) {
             goto Bail;
         }
-        len4 += partlen;
         if (packet + len4 + 1 >= packetend) {
             goto Bail;
         }
@@ -196,14 +194,16 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 goto Bail;
             }
             buf2end = buf2 + CCNL_MAX_PACKET_SIZE*sizeof(char);
-            if (ccnl_ccnb_mkHeader(buf2, buf2end, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len5) != 0) {   // content
+            // Reset len5 and reuse it for the packet buffer buf2
+            len5 = 0;
+            if (ccnl_ccnb_mkHeader(buf2, buf2end, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len5)) {   // content
                 goto Bail;
             }
             if (buf2 + len5 + len4 + 1 >= buf2end) {
                 goto Bail;
             }
             memcpy(buf2+len5, packet, len4);
-            len5 +=len4;
+            len5 += len4;
             buf2[len5++] = 0; // end-of-interest
 
             if (it == 0) {
@@ -345,24 +345,21 @@ ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                          struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
                          char *component_type, char* answer)
 {
-    size_t len = 0, len3 = 0, partlen = 0;
+    size_t len = 0, len3 = 0;
 
     if (ccnl_ccnb_mkHeader(out1+len, out1 + OUT1_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {
         return -1;
     }
 
-    if (ccnl_ccnb_mkStrBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         return -1;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         return -1;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, component_type, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, component_type, &len)) {
         return -1;
     }
-    len += partlen;
     if (len + 1 >= OUT1_SIZE) {
         return -1;
     }
@@ -374,10 +371,9 @@ ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 
     if (ccnl_ccnb_mkBlob(out1+len, out1 + OUT1_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                         (char*) out3, len3, &partlen)) {
+                         (char*) out3, len3, &len)) {
         return -1;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char *) out1)) {
         return -1;
@@ -391,59 +387,52 @@ ccnl_mgmt_create_interface_stmt(size_t num_interfaces, int *interfaceifndx, long
         int *interfacedevtype, int *interfacereflect, char **interfaceaddr, uint8_t *stmt, const uint8_t *stmtend,
         size_t *len3)
 {
-    size_t it, partlen;
+    size_t it;
     int ret;
     char str[100];
     for (it = 0; it < num_interfaces; ++it) {  // interface content
-        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCNL_DTAG_INTERFACE, CCN_TT_DTAG, &partlen)) {
+        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCNL_DTAG_INTERFACE, CCN_TT_DTAG, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         sprintf(str, "%d", interfaceifndx[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         ret = snprintf(str, sizeof(str), "%s", interfaceaddr[it]);
         if (ret < 0 || (unsigned) ret >= sizeof(str)) {
             return -1;
         }
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         if (interfacedevtype[it] == 1) {
             sprintf(str, "%p", (void *) interfacedev[it]);
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ETH, CCN_TT_DTAG, str, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ETH, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
-            *len3 += partlen;
         } else if(interfacedevtype[it] == 2) {
             sprintf(str, "%p", (void *) interfacedev[it]);
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SOCK, CCN_TT_DTAG, str, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SOCK, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
-            *len3 += partlen;
         } else {
             sprintf(str, "%p", (void *) interfacedev[it]);
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SOCK, CCN_TT_DTAG, str, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SOCK, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
-            *len3 += partlen;
         }
 
         memset(str, 0, sizeof(str));
         sprintf(str, "%d", interfacereflect[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         if (stmt + *len3 + 1 >= stmtend) {
             return -1;
@@ -459,76 +448,66 @@ ccnl_mgmt_create_faces_stmt(size_t num_faces, int *faceid, long *facenext,
                       int *facetype, char **facepeer, char **facefrag,
                       unsigned char *stmt, const uint8_t *stmtend, size_t *len3)
 {
-    size_t it, partlen;
+    size_t it;
     char str[100];
     (void) facefrag;
     for (it = 0; it < num_faces; ++it) {  //FACES CONTENT
-        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &partlen)) {
+        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         sprintf(str, "%d", faceid[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCN_DTAG_FACEID, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCN_DTAG_FACEID, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) facenext[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         sprintf(str,"%p", (void *)faceprev[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         sprintf(str,"%d", faceifndx[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         memset(str, 0, sizeof(str));
         sprintf(str,"%02x", faceflags[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         if(facetype[it] == AF_INET) {
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it], &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it], len3)) {
                 return -1;
             }
-            *len3 += partlen;
 #ifdef USE_LINKLAYER
 #if !(defined(__FreeBSD__) || defined(__APPLE__))
         } else if(facetype[it] == AF_PACKET) {
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it], &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it], len3)) {
                 return -1;
             }
-            *len3 += partlen;
 #endif
 #endif
         } else if(facetype[it] == AF_UNIX) {
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it], &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it], len3)) {
                 return -1;
             }
-            *len3 += partlen;
         } else {
             sprintf(str,"peer=?");
-            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PEER, CCN_TT_DTAG, str, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PEER, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
-            *len3 += partlen;
         }
         // FIXME: dump frag information if present
 
@@ -545,54 +524,47 @@ static int8_t
 ccnl_mgmt_create_fwds_stmt(size_t num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwdfaceid, int *suite,
         int *fwdprefixlen, char **fwdprefix, uint8_t *stmt, const uint8_t *stmtend, size_t *len3)
 {
-    size_t it, partlen;
+    size_t it;
     char str[100];
     (void) fwdprefixlen;
     for (it = 0; it < num_fwds; ++it) {  //FWDS content
-         if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG, &partlen)) {
+         if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG, len3)) {
              return -1;
          }
-         *len3 += partlen;
 
          memset(str, 0, sizeof(str));
          sprintf(str, "%p", (void *)fwd[it]);
-         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FWD, CCN_TT_DTAG, str, &partlen)) {
+         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FWD, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
-         *len3 += partlen;
 
          memset(str, 0, sizeof(str));
          sprintf(str, "%p", (void *)fwdnext[it]);
-         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, &partlen)) {
+         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
-         *len3 += partlen;
 
          memset(str, 0, sizeof(str));
          sprintf(str, "%p", (void *)fwdface[it]);
-         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FACE, CCN_TT_DTAG, str, &partlen)) {
+         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FACE, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
-         *len3 += partlen;
 
          memset(str, 0, sizeof(str));
          sprintf(str, "%d", fwdfaceid[it]);
-         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCN_DTAG_FACEID, CCN_TT_DTAG, str, &partlen)) {
+         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCN_DTAG_FACEID, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
-         *len3 += partlen;
 
          memset(str, 0, sizeof(str));
          sprintf(str, "%d", suite[it]);
-         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SUITE, CCN_TT_DTAG, str, &partlen)) {
+         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SUITE, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
-         *len3 += partlen;
 
-         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it], &partlen)) {
+         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it], len3)) {
              return -1;
          }
-         *len3 += partlen;
 
          if (stmt + *len3 + 1 >= stmtend) {
              return -1;
@@ -609,75 +581,65 @@ ccnl_mgmt_create_interest_stmt(size_t num_interests, long *interest, long *inter
         long *interestpublisher, int* interestprefixlen, char **interestprefix,
         uint8_t *stmt, const uint8_t *stmtend, size_t *len3)
 {
-    size_t it, partlen;
+    size_t it;
     char str[100];
     (void) interestprefixlen;
     for (it = 0; it < num_interests; ++it) {  // interest content
-        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_INTEREST, CCN_TT_DTAG, &partlen)) {
+        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_INTEREST, CCN_TT_DTAG, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) interest[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) interestnext[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) interestprev[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%d", interestlast[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_LAST, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_LAST, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%d", interestmin[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_MIN, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_MIN, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%d", interestmax[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_MAX, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_MAX, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%d", interestretries[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) interestpublisher[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it], &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it], len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         if (stmt + *len3 + 1 >= stmtend) {
             return -1;
@@ -692,54 +654,47 @@ ccnl_mgmt_create_content_stmt(size_t num_contents, long *content, long *contentn
         long *contentprev, int *contentlast_use, int *contentserved_cnt,
         char **ccontents, char **cprefix, uint8_t *stmt, const uint8_t *stmtend, size_t *len3)
 {
-    size_t it, partlen;
+    size_t it;
     char str[100];
     (void) ccontents;
     for (it = 0; it < num_contents; ++it) {  // content content
-        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_CONTENT, CCN_TT_DTAG, &partlen)) {
+        if (ccnl_ccnb_mkHeader(stmt+*len3, stmtend, CCN_DTAG_CONTENT, CCN_TT_DTAG, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) content[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) contentnext[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%p", (void *) contentprev[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%d", contentlast_use[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        memset(str, 0, 100);
+        memset(str, 0, sizeof(str));
         sprintf(str, "%d", contentserved_cnt[it]);
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
-        *len3 += partlen;
 
-        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it], &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it], len3)) {
             return -1;
         }
-        *len3 += partlen;
 
         if (stmt + *len3 + 1 >= stmtend) {
             return -1;
@@ -755,8 +710,6 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     unsigned char *buf = NULL, *action = NULL, *debugaction = NULL;
     size_t it;
-
-    //FIXME(s3lph): types
 
     int *faceid = NULL, *faceifndx = NULL, *faceflags = NULL, *facetype = NULL; //store face-info
     long *facenext = NULL, *faceprev = NULL;
@@ -788,7 +741,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //variables for answer
     size_t stmt_length, object_length, contentobject_length;
     uint8_t *out = NULL, *contentobj = NULL, *stmt = NULL;
-    size_t len = 0, len3 = 0, partlen = 0;
+    size_t len = 0, len3 = 0;
 
     //Alloc memory storage for face answer
     num_faces = (size_t) get_num_faces(ccnl);
@@ -1109,22 +1062,18 @@ SoftBail:
         goto Bail;
     }
 
-    if (ccnl_ccnb_mkHeader(out+len, out + object_length, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {
+    if (ccnl_ccnb_mkHeader(out+len, out + object_length, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out+len, out + object_length, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out+len, out + object_length, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out+len, out + object_length, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out+len, out + object_length, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out+len, out + object_length, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out+len, out + object_length, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= object_length) {
         goto Bail;
     }
@@ -1135,55 +1084,48 @@ SoftBail:
         goto Bail;
     }
     if (ccnl_ccnb_mkStrBlob(stmt+len3, stmt + stmt_length, CCN_DTAG_ACTION, CCN_TT_DTAG,
-            (char*) debugaction, &partlen)) {
+            (char*) debugaction, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(stmt+len3, stmt + stmt_length, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(stmt+len3, stmt + stmt_length, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (len3 + 1 >= stmt_length) {
         goto Bail;
     }
     stmt[len3++] = 0; //end-of-debugstmt
 
     if (!strcmp((char*) debugaction, "dump") || !strcmp((char*) debugaction, "dump+halt")) {  //halt returns no content
-        if (ccnl_ccnb_mkHeader(stmt+len3, stmt+stmt_length, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG, &partlen)) {
+        if (ccnl_ccnb_mkHeader(stmt+len3, stmt+stmt_length, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
         //len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
 
         if (ccnl_mgmt_create_interface_stmt(num_interfaces, interfaceifndx, interfacedev,
-                interfacedevtype, interfacereflect, interfaceaddr, stmt, stmt+stmt_length, &partlen)) {
+                interfacedevtype, interfacereflect, interfaceaddr, stmt, stmt+stmt_length, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
 
         if (ccnl_mgmt_create_faces_stmt(num_faces, faceid, facenext, faceprev, faceifndx,
-                        faceflags, facetype, facepeer, facefrag, stmt, stmt+stmt_length, &partlen)) {
+                        faceflags, facetype, facepeer, facefrag, stmt, stmt+stmt_length, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
 
         if (ccnl_mgmt_create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, suite,
-                fwdprefixlen, fwdprefix, stmt, stmt+stmt_length, &partlen)) {
+                fwdprefixlen, fwdprefix, stmt, stmt+stmt_length, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
 
         if (ccnl_mgmt_create_interest_stmt(num_interests, interest, interestnext, interestprev,
                 interestlast, interestmin, interestmax, interestretries,
-                interestpublisher, interestprefixlen, interestprefix, stmt, stmt+stmt_length, &partlen)) {
+                interestpublisher, interestprefixlen, interestprefix, stmt, stmt+stmt_length, &len3)) {
             goto Bail;
         }
 
         if (ccnl_mgmt_create_content_stmt(num_contents, content, contentnext, contentprev,
-                contentlast_use, contentserved_cnt, ccontents, cprefix, stmt, stmt+stmt_length, &partlen)) {
+                contentlast_use, contentserved_cnt, ccontents, cprefix, stmt, stmt+stmt_length, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
 
     if (len3 + 1 >= stmt_length) {
@@ -1192,7 +1134,7 @@ SoftBail:
     stmt[len3++] = 0; //end of debug reply
 
     if (ccnl_ccnb_mkBlob(out+len, out+object_length, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                         (char*) stmt, len3, &partlen)) {
+                         (char*) stmt, len3, &len)) {
         goto Bail;
     }
 
@@ -1304,7 +1246,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int8_t rc = -1;
     struct ccnl_face_s *f = NULL;
     //varibales for answer
-    size_t len = 0, len3 = 0, partlen = 0;
+    size_t len = 0, len3 = 0;
     //    unsigned char contentobj[2000];
     //    unsigned char faceinst[2000];
     unsigned char faceidstr[100];
@@ -1513,18 +1455,15 @@ SoftBail:
     if (ccnl_ccnb_mkHeader(out_buf, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= OUT_BUF_SIZE) {
         goto Bail;
     }
@@ -1538,77 +1477,65 @@ SoftBail:
     if (ret < 0 || (unsigned) ret >= sizeof(retstr)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (macsrc) {
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char *) macsrc, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char *) macsrc, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     if (ip4src) {
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17", &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17", &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     if (ip6src) {
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, (char*) ip6src, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, (char*) ip6src, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17", &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17", &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     if (host) {
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_HOST, CCN_TT_DTAG, (char *) host, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_HOST, CCN_TT_DTAG, (char *) host, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     if (port) {
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_PORT, CCN_TT_DTAG, (char *) port, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_PORT, CCN_TT_DTAG, (char *) port, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     /*
     if (frag) {
-        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     */
     if (flags) {
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
     if (f) {
         sprintf((char *)faceidstr,"%i",f->faceid);
-        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr, &partlen)) {
+        if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
 
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
     if (ccnl_ccnb_mkBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst_buf, len3, &partlen)) {
+                   (char*) faceinst_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf)) {
         goto Bail;
@@ -1646,7 +1573,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     char *cp = "setfrag cmd failed";
     int8_t rc = -1;
     struct ccnl_face_s *f;
-    size_t len = 0, len3, partlen;
+    size_t len = 0, len3 = 0;
 
     DEBUGMSG(TRACE, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
              (void*) from, from->ifndx);
@@ -1729,7 +1656,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
         errno = 0;
         lmtu = strtol((const char*) mtu, NULL, 0);
-        if (errno != 0 || lmtu < 0 || lmtu >= UINT16_MAX) { //fixme:type
+        if (errno != 0 || lmtu < 0 || lmtu >= UINT16_MAX) {
             goto SoftBail;
         }
         f->frag = ccnl_frag_new(e, (int) lmtu);
@@ -1745,22 +1672,18 @@ Error:
 
 SoftBail:
 
-    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= OUT_BUF_SIZE) {
         goto Bail;
     }
@@ -1770,32 +1693,27 @@ SoftBail:
     if (ccnl_ccnb_mkHeader(faceinst_buf, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &len3)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_MTU, CCN_TT_DTAG, (char*) mtu, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_MTU, CCN_TT_DTAG, (char*) mtu, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (len3 + 1 >= FACEINST_BUF_SIZE) {
         goto Bail;
     }
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
     if (ccnl_ccnb_mkBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst_buf, len3, &partlen)) {
+                   (char*) faceinst_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf)) {
         goto Bail;
@@ -1826,7 +1744,7 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     char *cp = "destroyface cmd failed";
     int8_t rc = -1;
 
-    size_t len = 0, len3, partlen;
+    size_t len = 0, len3 = 0;
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
 
@@ -1905,22 +1823,18 @@ SoftBail:
         goto Bail;
     }
 
-    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= OUT_BUF_SIZE) {
         goto Bail;
     }
@@ -1930,24 +1844,21 @@ SoftBail:
     if (ccnl_ccnb_mkHeader(faceinst_buf, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, &len3)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (len3 + 1 >= FACEINST_BUF_SIZE) {
         goto Bail;
     }
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
     if (ccnl_ccnb_mkBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                         (char*) faceinst_buf, len3, &partlen)) {
+                         (char*) faceinst_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf)) {
         goto Bail;
@@ -1977,7 +1888,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int8_t rc = -1;
 
     //variables for answer
-    size_t len = 0, len3, partlen;
+    size_t len = 0, len3 = 0;
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
     struct ccnl_if_s *i = NULL;
@@ -2110,15 +2021,21 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if ((ip4src || ip6src) && port) {
 #ifdef USE_IPV4
         if (ip4src) {
+            unsigned long lport;
             cp = "newUDPdev cmd worked";
             DEBUGMSG(TRACE, "  adding UDP device ip4src=%s, port=%s\n",
                      ip4src, port);
 
+            errno = 0;
+            lport = strtoul((char*)port, NULL, 0);
+            if (errno || lport > UINT16_MAX) {
+                goto SoftBail;
+            }
             // check if it already exists, bail
 
             // create a new ifs-entry
             i = &ccnl->ifs[ccnl->ifcount];
-            i->sock = ccnl_open_udpdev(strtol((char*)port, NULL, 0), &i->addr.ip4);  // fixme:error
+            i->sock = ccnl_open_udpdev((uint16_t) lport, &i->addr.ip4);
             if (!i->sock) {
                 DEBUGMSG(TRACE, "  could not open UDP device %s/%s\n", ip4src, port);
                 goto SoftBail;
@@ -2128,6 +2045,13 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_IPV6
 #ifndef CCNL_ANDROID
         if (ip6src) {
+            unsigned long port_l;
+            errno = 0;
+            port_l = strtoul((char*)port, NULL, 0);
+            if (errno || port_l > UINT16_MAX) {
+                DEBUGMSG(TRACE, "  could not parse UDP port: %s\n", port);
+                goto SoftBail;
+            }
             cp = "newUDPdev cmd worked";
             DEBUGMSG(TRACE, "  adding UDP device ip6src=%s, port=%s\n",
                      ip6src, port);
@@ -2136,7 +2060,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
             // create a new ifs-entry
             i = &ccnl->ifs[ccnl->ifcount];
-            i->sock = ccnl_open_udp6dev(strtol((char*)port, NULL, 0), &i->addr.ip6);  // fixme:error
+            i->sock = ccnl_open_udp6dev((uint16_t) port_l, &i->addr.ip6);
             if (!i->sock) {
                 DEBUGMSG(TRACE, "  could not open UDP device %s/%s\n", ip6src, port);
                 goto SoftBail;
@@ -2214,22 +2138,18 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 SoftBail:
 
-    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= OUT_BUF_SIZE) {
         goto Bail;
     }
@@ -2239,36 +2159,31 @@ SoftBail:
     if (ccnl_ccnb_mkHeader(faceinst_buf, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG, &len3)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (devname) {
         if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_DEVNAME,
-                                    CCN_TT_DTAG, (char *) devname, &partlen)) {
+                                    CCN_TT_DTAG, (char *) devname, &len3)) {
             goto Bail;
         }
-        len3 += partlen;
     }
 
     if (devname && port) {
         if (port) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_PORT, CCN_TT_DTAG, (char *) port, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_PORT, CCN_TT_DTAG, (char *) port, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (frag) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char *) frag, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char *) frag, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (flags) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char *) flags, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char *) flags, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (len3 + 1 >= FACEINST_BUF_SIZE) {
             goto Bail;
@@ -2277,34 +2192,29 @@ SoftBail:
     }
     else if ((ip4src && port) || (ip6src && port)) {
         if (ip4src) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char *) ip4src, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char *) ip4src, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (ip6src) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, (char *) ip6src, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, (char *) ip6src, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (port) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_PORT, CCN_TT_DTAG, (char *) port, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_PORT, CCN_TT_DTAG, (char *) port, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (frag) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char *) frag, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char *) frag, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (flags) {
-            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char *) flags, &partlen)) {
+            if (ccnl_ccnb_mkStrBlob(faceinst_buf + len3, faceinst_buf + FACEINST_BUF_SIZE, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char *) flags, &len3)) {
                 goto Bail;
             }
-            len3 += partlen;
         }
         if (len3 + 1 >= FACEINST_BUF_SIZE) {
             goto Bail;
@@ -2313,10 +2223,9 @@ SoftBail:
     }
 
     if (ccnl_ccnb_mkBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst_buf, len3, &partlen)) {
+                   (char*) faceinst_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf)) {
         goto Bail;
@@ -2365,7 +2274,7 @@ ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int8_t rc = -1;
     char s[CCNL_MAX_PREFIX_SIZE];
 
-    size_t len = 0, len3, partlen;
+    size_t len = 0, len3 = 0;
 
     DEBUGMSG(TRACE, "ccnl_mgmt_echo\n");
     action = NULL;
@@ -2468,22 +2377,18 @@ SoftBail:
             goto Bail;
         }
     }
-    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action, &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= OUT_BUF_SIZE) {
         goto Bail;
     }
@@ -2493,32 +2398,28 @@ SoftBail:
     if (ccnl_ccnb_mkHeader(fwdentry_buf, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_PREFIX, CCN_TT_DTAG, &len3)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE, &partlen))) { // prefix
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE, &len3))) { // prefix
         goto Bail;
     }
-    len3 += partlen;
 
     //    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
     sprintf((char*)h, "%d", (int)suite[0]);
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (len3 + 1 >= FWDENTRY_BUF_SIZE) {
         goto Bail;
     }
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
     if (ccnl_ccnb_mkBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) fwdentry_buf, len3, &partlen)) {
+                   (char*) fwdentry_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf)) {
         goto Bail;
@@ -2555,7 +2456,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     char s[CCNL_MAX_PREFIX_SIZE];
     struct ccnl_forward_s *fwd = NULL;
 
-    size_t len = 0, len3, partlen;
+    size_t len = 0, len3 = 0;
 
     DEBUGMSG(TRACE, "ccnl_mgmt_prefixreg\n");
     action = faceid = NULL;
@@ -2642,7 +2543,15 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (faceid && p->compcnt > 0) {
         struct ccnl_face_s *f = NULL;
         struct ccnl_forward_s **fwd2 = NULL;
-        int fi = strtol((const char*)faceid, NULL, 0);  //fixme:error
+        long faceid_l;
+
+        errno = 0;
+        faceid_l = strtol((const char*)faceid, NULL, 0);
+        if (errno || faceid_l < INT_MIN || faceid_l > INT_MAX) {
+            DEBUGMSG(WARNING, "mgmt: could not parse faceid: %s\n", faceid);
+            goto SoftBail;
+        }
+        int fi = (int) faceid_l;
 
         p->suite = suite[0];
 
@@ -2681,22 +2590,18 @@ SoftBail:
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "prefixreg", cp);
         goto Bail;
     }
-    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) { // name
+    if (ccnl_ccnb_mkHeader(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) { // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action, &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= OUT_BUF_SIZE) {
         goto Bail;
     }
@@ -2706,32 +2611,27 @@ SoftBail:
     if (ccnl_ccnb_mkHeader(fwdentry_buf, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_PREFIX, CCN_TT_DTAG, &len3)) {
         goto Bail;
     }
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_ACTION, CCN_TT_DTAG, cp, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE), &partlen)) { // prefix
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_str(p,s,CCNL_MAX_PREFIX_SIZE), &len3)) { // prefix
         goto Bail;
     }
-    len3 += partlen;
 
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     memset(h,0,sizeof(h));
     sprintf((char*)h, "%d", (int)suite[0]);
-    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
     if (ccnl_ccnb_mkBlob(out_buf+len, out_buf + OUT_BUF_SIZE, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) fwdentry_buf, len3, &partlen)) {
+                   (char*) fwdentry_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf)) {
         goto Bail;
@@ -2747,7 +2647,9 @@ Bail:
     ccnl_free(faceid);
     ccnl_free(action);
     ccnl_prefix_free(p);
-    ccnl_free(fwd);
+    if (rc) {
+        ccnl_free(fwd);
+    }
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
@@ -2763,7 +2665,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     uint32_t chunknum = 0, chunkflag = 0;
     uint64_t num;
     uint8_t typ;
-    int suite = 2, ret;
+    char suite = 2;
+    int ret;
     struct ccnl_prefix_s *prefix_new;
     char s[CCNL_MAX_PREFIX_SIZE];
 
@@ -2785,20 +2688,41 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         extractStr(h2, CCNL_DTAG_CHUNKNUM);
         extractStr(h3, CCNL_DTAG_CHUNKFLAG);
         if (h) {
-            suite = strtol((const char*)h, NULL, 0);  //fixme:error
+            long suite_l;
+            errno = 0;
+            suite_l = strtol((const char*)h, NULL, 0);
+            if (errno || suite_l < CHAR_MIN || suite_l > CHAR_MAX) {
+                DEBUGMSG(WARNING, "mgmt: cannot parse suite: %s\n", h);
+                goto Bail;
+            }
+            suite = (char) suite_l;
             ccnl_free(h);
             h=0;
         }
-        if(h2){
-           chunknum = strtol((const char*)h2, NULL, 0);
-           ccnl_free(h2);
-           h2=0;
+        if (h2) {
+            unsigned long chunknum_l;
+            errno = 0;
+            chunknum_l = strtoul((const char*) h2, NULL, 0);
+            if (errno || chunknum_l > UINT32_MAX) {
+                DEBUGMSG(WARNING, "mgmt: cannot parse chunknum: %s\n", h2);
+                goto Bail;
+            }
+            chunknum = (uint32_t) chunknum_l;
+            ccnl_free(h2);
+            h2=0;
         }
-        if(h3){
-           chunkflag = strtol((const char*)h3, NULL, 0);
-           ccnl_free(h3);
-           h3=0;
-           break;
+        if (h3) {
+            unsigned long chunkflag_l;
+            errno = 0;
+            chunkflag_l = strtoul((const char*) h3, NULL, 0);
+            if (errno || chunkflag_l > UINT32_MAX) {
+                DEBUGMSG(WARNING, "mgmt: cannot parse chunkflag: %s\n", h2);
+                goto Bail;
+            }
+            chunkflag = (uint32_t) chunkflag_l;
+            ccnl_free(h3);
+            h3=0;
+            break;
         }
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0)) {
             goto Bail;

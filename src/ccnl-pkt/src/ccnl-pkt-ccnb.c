@@ -60,7 +60,7 @@ ccnl_ccnb_dehead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ)
         *len -= 1;
         return 0;
     }
-    for (i = 0; i < sizeof(i) && i < *len; i++) { //TODO(s3lph): Directly check for uint max
+    for (i = 0; i < sizeof(i) && i < *len; i++) {
         uint8_t c = (*buf)[i];
         if ( c & 0x80 ) {
             *num = (val << 4) | ((c >> 3) & 0xf);
@@ -396,14 +396,14 @@ ccnl_ccnb_mkHeader(uint8_t *buf, const uint8_t *bufend, uint64_t num, uint8_t tt
     for (i = len; i > 0; i--) {
         *buf++ = tmp[i-1];
     }
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
 int8_t
 ccnl_ccnb_addBlob(uint8_t *buf, const uint8_t *bufend, char *cp, size_t cnt, size_t *retlen)
 {
-    size_t len;
+    size_t len = 0;
 
     if (ccnl_ccnb_mkHeader(buf, bufend, cnt, CCN_TT_BLOB, &len)) {
         return -1;
@@ -414,7 +414,7 @@ ccnl_ccnb_addBlob(uint8_t *buf, const uint8_t *bufend, char *cp, size_t cnt, siz
     memcpy(buf+len, cp, cnt);
     len += cnt;
 
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
@@ -422,15 +422,14 @@ int8_t
 ccnl_ccnb_mkField(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t typ,
                   uint8_t *data, size_t datalen, size_t *retlen)
 {
-    size_t len, partlen;
+    size_t len = 0;
 
     if (ccnl_ccnb_mkHeader(out, bufend, num, CCN_TT_DTAG, &len)) {
         return -1;
     }
-    if (ccnl_ccnb_mkHeader(out + len, bufend, datalen, typ, &partlen)) {
+    if (ccnl_ccnb_mkHeader(out + len, bufend, datalen, typ, &len)) {
         return -1;
     }
-    len += partlen;
     if (out + len + 1 >=bufend) {
         return -1;
     }
@@ -438,7 +437,7 @@ ccnl_ccnb_mkField(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t typ
     len += datalen;
     out[len++] = 0; // end-of-field
 
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
@@ -464,7 +463,7 @@ int8_t
 ccnl_ccnb_mkBinaryInt(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t tt,
                       uint64_t val, uint64_t bytes, size_t *retlen)
 {
-    size_t len, partlen;
+    size_t len = 0;
     if (ccnl_ccnb_mkHeader(out, bufend, num, tt, &len)) {
         return -1;
     }
@@ -477,10 +476,9 @@ ccnl_ccnb_mkBinaryInt(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t
         }
         bytes++;
     }
-    if (ccnl_ccnb_mkHeader(out+len, bufend, bytes, CCN_TT_BLOB, &partlen)) {
+    if (ccnl_ccnb_mkHeader(out+len, bufend, bytes, CCN_TT_BLOB, &len)) {
         return -1;
     }
-    len += partlen;
 
     if (out + len + bytes + 1 >= bufend) {
         return -1;
@@ -492,22 +490,21 @@ ccnl_ccnb_mkBinaryInt(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t
     }
 
     out[len++] = 0; // end-of-entry
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
 int8_t
 ccnl_ccnb_mkComponent(uint8_t *val, size_t vallen, uint8_t *out, const uint8_t *bufend, size_t *retlen)
 {
-    size_t len, partlen;
+    size_t len = 0;
 
     if (ccnl_ccnb_mkHeader(out, bufend, CCN_DTAG_COMPONENT, CCN_TT_DTAG, &len)) {  // comp
         return -1;
     }
-    if (ccnl_ccnb_mkHeader(out+len, bufend, vallen, CCN_TT_BLOB, &partlen)) {
+    if (ccnl_ccnb_mkHeader(out+len, bufend, vallen, CCN_TT_BLOB, &len)) {
         return -1;
     }
-    len += partlen;
 
     if (out + len + vallen + 1 >= bufend) {
         return -1;
@@ -517,23 +514,22 @@ ccnl_ccnb_mkComponent(uint8_t *val, size_t vallen, uint8_t *out, const uint8_t *
     len += vallen;
     out[len++] = 0; // end-of-component
 
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
 int8_t
 ccnl_ccnb_mkName(struct ccnl_prefix_s *name, uint8_t *out, const uint8_t *bufend, size_t *retlen)
 {
-    size_t len, partlen, i;
+    size_t len = 0, i;
 
     if (ccnl_ccnb_mkHeader(out, bufend, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         return -1;
     }
-    for (i = 0; i < name->compcnt; i++) {//fixme:type compcnt as size_t?
-        if (ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len, bufend, &partlen)) {
+    for (i = 0; i < name->compcnt; i++) {
+        if (ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len, bufend, &len)) {
             return -1;
         }
-        len += partlen;
     }
 
     if (out + len + 1 >= bufend) {
@@ -542,7 +538,7 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, uint8_t *out, const uint8_t *bufend
 
     out[len++] = 0; // end-of-name
 
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
@@ -552,25 +548,22 @@ int8_t
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, uint32_t *nonce,
                        uint8_t *out, const uint8_t *bufend, size_t outlen, size_t *retlen)
 {
-     size_t len, partlen;
+     size_t len = 0;
     (void) outlen;
 
     if (ccnl_ccnb_mkHeader(out, bufend, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
         return -1;
     }
-    if (ccnl_ccnb_mkName(name, out+len, bufend, &partlen)) {
+    if (ccnl_ccnb_mkName(name, out+len, bufend, &len)) {
         return -1;
     }
-    len += partlen;
     if (nonce) {
-        if (ccnl_ccnb_mkHeader(out+len, bufend, CCN_DTAG_NONCE, CCN_TT_DTAG, &partlen)) {
+        if (ccnl_ccnb_mkHeader(out+len, bufend, CCN_DTAG_NONCE, CCN_TT_DTAG, &len)) {
             return -1;
         }
-        len += partlen;
-        if (ccnl_ccnb_mkHeader(out+len, bufend, sizeof(uint32_t), CCN_TT_BLOB, &partlen)) {
-
+        if (ccnl_ccnb_mkHeader(out+len, bufend, sizeof(uint32_t), CCN_TT_BLOB, &len)) {
+            return -1;
         }
-        len += partlen;
 
         if (out + len + sizeof(uint32_t) >= bufend) {
             return -1;
@@ -584,7 +577,7 @@ ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, uint32_t *nonce,
     }
     out[len++] = 0; // end-of-interest
 
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 
@@ -592,23 +585,20 @@ int8_t
 ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, uint8_t *data, size_t datalen,
                       size_t *contentpos, uint8_t *out, const uint8_t *bufend, size_t *retlen)
 {
-    size_t len, partlen;
+    size_t len = 0;
 
     if (ccnl_ccnb_mkHeader(out, bufend, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG, &len)) {
         return -1;
     }
-    if (ccnl_ccnb_mkName(name, out+len, bufend, &partlen)) {
+    if (ccnl_ccnb_mkName(name, out+len, bufend, &len)) {
         return -1;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkHeader(out+len, bufend, CCN_DTAG_CONTENT, CCN_TT_DTAG, &partlen)) {
+    if (ccnl_ccnb_mkHeader(out+len, bufend, CCN_DTAG_CONTENT, CCN_TT_DTAG, &len)) {
         return -1;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkHeader(out+len, bufend, datalen, CCN_TT_BLOB, &partlen)) {
+    if (ccnl_ccnb_mkHeader(out+len, bufend, datalen, CCN_TT_BLOB, &len)) {
         return -1;
     }
-    len += partlen;
     if (contentpos) {
         *contentpos = len;
     }
@@ -624,7 +614,7 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, uint8_t *data, size_t datalen,
 
     out[len++] = 0; // end-of-content obj
 
-    *retlen = len;
+    *retlen += len;
     return 0;
 }
 

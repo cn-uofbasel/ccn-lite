@@ -182,9 +182,9 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
         struct ccnl_txrequest_s *r;
         
         if (buf) { 
-            DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
+            DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%zd)\n",
                   (void*)ifc, (void*)buf,
-                  buf ? buf->datalen : -1, ifc ? ifc->qlen : -1);
+                  buf ? (ssize_t) buf->datalen : -1, ifc ? (ssize_t) ifc->qlen : -1);
         }
 
         if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
@@ -246,9 +246,10 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
 
     if (!f->frag || f->frag->protocol == CCNL_FRAG_NONE) {
         buf = ccnl_face_dequeue(ccnl, f);
-        if (buf)
+        if (buf) {
             ccnl_interface_enqueue(ccnl_face_CTS_done, f,
                                    ccnl, ccnl->ifs + f->ifndx, buf, &f->peer);
+        }
     }
 #ifdef USE_FRAG
     else {
@@ -290,17 +291,19 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
     DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%zd\n",
              (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
 
-    for (msg = to->outq; msg; msg = msg->next) // already in the queue?
+    for (msg = to->outq; msg; msg = msg->next) { // already in the queue?
         if (buf_equal(msg, buf)) {
             DEBUGMSG_CORE(VERBOSE, "    not enqueued because already there\n");
             ccnl_free(buf);
             return -1;
         }
+    }
     buf->next = NULL;
-    if (to->outqend)
+    if (to->outqend) {
         to->outqend->next = buf;
-    else
+    } else {
         to->outq = buf;
+    }
     to->outqend = buf;
 #ifdef USE_SCHEDULER
     if (to->sched) {
@@ -319,38 +322,6 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
     return 0;
 }
 
-struct ccnl_interest_s*
-ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                  struct ccnl_pkt_s **pkt)
-{
-    char s[CCNL_MAX_PREFIX_SIZE];
-    (void) s;
-
-    struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
-                                            sizeof(struct ccnl_interest_s));
-    DEBUGMSG_CORE(TRACE,
-                  "ccnl_new_interest(prefix=%s, suite=%s)\n",
-                  ccnl_prefix_to_str((*pkt)->pfx, s, CCNL_MAX_PREFIX_SIZE),
-                  ccnl_suite2str((*pkt)->pfx->suite));
-
-    if (!i)
-        return NULL;
-    i->pkt = *pkt;
-    /* currently, the aging function relies on seconds rather than on milli seconds */
-    i->lifetime = (*pkt)->s.ndntlv.interestlifetime / 1000;
-    *pkt = NULL;
-    i->flags |= CCNL_PIT_COREPROPAGATES;
-    i->from = from;
-    i->last_used = CCNL_NOW();
-    DBL_LINKED_LIST_ADD(ccnl->pit, i);
-
-#ifdef CCNL_RIOT
-    ccnl_evtimer_reset_interest_retrans(i);
-    ccnl_evtimer_reset_interest_timeout(i);
-#endif
-
-    return i;
-}
 
 struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
@@ -442,10 +413,12 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                                     : "<tap>");
 
             // DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
-            if (fwd->tap)
+            if (fwd->tap) {
                 (fwd->tap)(ccnl, i->from, i->pkt->pfx, i->pkt->buf);
-            if (fwd->face)
+            }
+            if (fwd->face) {
                 ccnl_send_pkt(ccnl, fwd->face, i->pkt);
+            }
 #if defined(USE_RONR)
             matching_face = 1;
 #endif
@@ -973,11 +946,12 @@ ccnl_interface_CTS(void *aux1, void *aux2)
     struct ccnl_if_s *ifc = (struct ccnl_if_s *)aux2;
     struct ccnl_txrequest_s *r, req;
 
-    DEBUGMSG_CORE(TRACE, "interface_CTS interface=%p, qlen=%d, sched=%p\n",
+    DEBUGMSG_CORE(TRACE, "interface_CTS interface=%p, qlen=%zu, sched=%p\n",
              (void*)ifc, ifc->qlen, (void*)ifc->sched);
 
-    if (ifc->qlen <= 0)
+    if (ifc->qlen <= 0) {
         return;
+    }
 
 #ifdef USE_STATS
     ifc->tx_cnt++;

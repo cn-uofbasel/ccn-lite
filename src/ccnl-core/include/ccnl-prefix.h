@@ -51,8 +51,8 @@ struct ccnl_prefix_s {
  *
  * @return The created Prefix
 */
-struct ccnl_prefix_s* 
-ccnl_prefix_new(int suite, int cnt);
+struct ccnl_prefix_s*
+ccnl_prefix_new(char suite, uint32_t cnt);
 
 /**
  * @brief Frees CCNL_Prefix datastructure

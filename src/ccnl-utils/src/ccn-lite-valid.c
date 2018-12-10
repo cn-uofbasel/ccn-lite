@@ -122,7 +122,7 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "e:hk:v:")) != -1) {
         switch (opt) {
         case 'e':
-            exitBehavior = atoi(optarg);
+            exitBehavior = (int)strtol(optarg, (char**)NULL, 10);
             break;
         case 'k':
             keyfile = optarg;
@@ -130,7 +130,7 @@ main(int argc, char *argv[])
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0])) {
-                debug_level = atoi(optarg);
+                debug_level = (int) strtol(optarg, (char **) NULL, 10);
             } else {
                 debug_level = ccnl_debug_str2level(optarg);
             }
@@ -192,7 +192,11 @@ Usage:
         cnt = 1;
         while (keys) {
             DEBUGMSG(VERBOSE, "trying key #%d\n", cnt);
-            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval); //fixme:type
+            if (keys->keylen < 0) {
+                DEBUGMSG(ERROR, "invalid key length, packet dropped: %d\n", keys->keylen);
+                return -1;
+            }
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);
             ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen, signature, &signLen);
             if (!memcmp(signature, pkt->hmacSignature, 32)) {
                 DEBUGMSG(INFO, "signature is valid (key #%d)\n", cnt);
@@ -211,7 +215,10 @@ Usage:
     }
 
     // output packet
-    write(1, pkt->buf->data, pkt->buf->datalen);//fixme:type
+    if (pkt->buf->datalen < 0) {
+        return -1;
+    }
+    write(1, pkt->buf->data, (size_t) pkt->buf->datalen);
 
     return 0;
 }

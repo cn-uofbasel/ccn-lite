@@ -122,9 +122,6 @@ int
 ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                  struct ccnl_buf_s *buf);
 
-struct ccnl_interest_s*
-ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                  struct ccnl_pkt_s **pkt);
 
 struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);

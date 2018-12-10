@@ -79,7 +79,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
 int
 ccnl_extractDataAndChunkInfo(uint8_t **data, size_t *datalen,
                              int suite, struct ccnl_prefix_s **prefix,
-                             uint32_t *lastchunknum,
+                             int64_t *lastchunknum,
                              uint8_t **content, size_t *contentlen)
 {
     struct ccnl_pkt_s *pkt = NULL;
@@ -135,7 +135,7 @@ ccnl_extractDataAndChunkInfo(uint8_t **data, size_t *datalen,
         return -1;
     }
     *prefix = ccnl_prefix_dup(pkt->pfx);
-    *lastchunknum = pkt->val.final_block_id; //fixme:type
+    *lastchunknum = pkt->val.final_block_id;
     *content = pkt->content;
     *contentlen = pkt->contlen;
     ccnl_pkt_free(pkt);
@@ -200,12 +200,12 @@ main(int argc, char *argv[])
             udp = optarg;
             break;
         case 'w':
-            wait = atof(optarg);
+            wait = (float)strtof(optarg, (char**) NULL);
             break;
             case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
+                debug_level = (int)strtol(optarg, (char**)NULL, 10);
             else
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
@@ -314,7 +314,7 @@ usage:
             DEBUGMSG(WARNING, "timeout\n");//, retry number %d of %d\n", retry, maxretry);
         } else {
 
-            uint32_t lastchunknum;
+            int64_t lastchunknum;
             uint8_t *t = &out[0];
             struct ccnl_prefix_s *nextprefix = 0;
 
@@ -355,11 +355,11 @@ usage:
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
                     if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
-                        DEBUGMSG(DEBUG, "Found chunk %d with contlen=%zu, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
+                        DEBUGMSG(DEBUG, "Found chunk %d with contlen=%zu, lastchunk=%ld\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if ((int)lastchunknum != -1 && lastchunknum == chunknum) {//fixme:type
+                        if (lastchunknum != -1 && lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;
@@ -368,7 +368,7 @@ usage:
                     } else {
                         // retry if the fetched chunk
                         retry++;
-                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d (lastchunk=%d)\n", *curchunknum, chunknum, lastchunknum);
+                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d (lastchunk=%ld)\n", *curchunknum, chunknum, lastchunknum);
                     }
                 }
             }

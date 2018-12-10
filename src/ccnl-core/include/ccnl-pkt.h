@@ -61,9 +61,9 @@ typedef union {
 } ccnl_data_opts_u;
 
 struct ccnl_pktdetail_ccnb_s {
-    uint32_t minsuffix, maxsuffix;//fixme:type?
+    uint32_t minsuffix, maxsuffix;
     uint16_t aok;
-    int scope;//fixme:type
+    int scope;
     struct ccnl_buf_s *nonce;
     struct ccnl_buf_s *ppkd;        /**< publisher public key digest */
 };

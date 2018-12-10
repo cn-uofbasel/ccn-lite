@@ -45,7 +45,7 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:v:")) != -1) {
         switch (opt) {
         case 'c':
-            chunk_size = (size_t) atoi(optarg);//fixme:type
+            chunk_size = (size_t) strtol(optarg, (char **) NULL, 10);
             if (chunk_size > CCNL_MAX_CHUNK_SIZE) {
                 DEBUGMSG(WARNING, "max chunk size is %d (%zu is to large), using max chunk size\n", CCNL_MAX_CHUNK_SIZE, chunk_size);
                 chunk_size = CCNL_MAX_CHUNK_SIZE;
@@ -83,7 +83,7 @@ main(int argc, char *argv[])
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
+                debug_level =  (int)strtol(optarg, (char **)NULL, 10);
             else
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
@@ -212,7 +212,12 @@ Usage:
     rewind(fp);
     fclose(fp);
 
-    uint32_t lastchunknum = (uint32_t) (isz / chunk_size);//fixme:type
+    size_t lastchunknum_s = (isz / chunk_size);
+    if (lastchunknum_s > UINT32_MAX) {
+        DEBUGMSG(ERROR, "lastchunknum exceeds bounds: %zu", lastchunknum_s);
+        exit(1);
+    }
+    uint32_t lastchunknum = (uint32_t) lastchunknum_s;
     if (sz % chunk_size == 0) {
         --lastchunknum;
     }

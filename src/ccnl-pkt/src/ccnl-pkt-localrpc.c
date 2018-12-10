@@ -537,17 +537,15 @@ int8_t ccnl_rdr_getFlatLen(struct rdr_ds_s *ds, size_t *flatlen) // incl TL head
     }
     aux = ds->aux;
     while (aux) {
-        size_t partlen;
-        if (ccnl_rdr_getFlatLen(aux, &partlen)) {
+        if (ccnl_rdr_getFlatLen(aux, &len)) {
             return -1;
         }
-        len += partlen;
         aux = aux->nextinseq;
     }
     len = ccnl_lrpc_TLVlen(ds->type, len);
 done:
     ds->flatlen = len;
-    *flatlen = len;
+    *flatlen += len;
     return 0;
 }
 
@@ -669,11 +667,9 @@ static int8_t ccnl_rdr_serialize_fill(struct rdr_ds_s *ds, uint8_t *at)
 
     aux = ds->aux;
     while (aux) {
-        size_t partlen;
-        if (ccnl_rdr_getFlatLen(aux, &partlen)) {
+        if (ccnl_rdr_getFlatLen(aux, &len)) {
             return -1;
         }
-        len += partlen;
         aux = aux->nextinseq;
     }
     at += ccnl_rdr_serialize_fillTandL(ds->type, len, at);

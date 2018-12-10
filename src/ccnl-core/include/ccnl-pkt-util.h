@@ -1,7 +1,9 @@
 /*
  * @f ccnl-pkt-util.h
+ * @b Helper functions for identifying packets
  *
- * Copyright (C) 2011-15, University of Basel
+ * Copyright (C) 2011-18 University of Basel
+ * Copyright (C) 2018    Safety IO
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +16,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-20 created
  */
 
 
@@ -42,7 +41,16 @@ ccnl_str2suite(char *cp);
 int
 ccnl_pkt2suite(uint8_t *data, size_t len, size_t *skip);
 
+/**
+ * Returns the integer representation of a string
+ *
+ * @param[in] cmp The string representation of a number
+ * @param[in] cmplen The length of the string
+ *
+ * @return Upon success returns the converted integral number as a long int value
+ * @return Upon failure the function returns 0 (e.g. if no valid conversion could be performed)
+ */
 int
-ccnl_cmp2int(unsigned char *cmp, int cmplen);
+ccnl_cmp2int(unsigned char *cmp, size_t cmplen);
 
 #endif

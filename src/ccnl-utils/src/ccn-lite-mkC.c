@@ -69,10 +69,10 @@ main(int argc, char *argv[])
             keys = load_keys_from_file(optarg);
             break;
         case 'l':
-            lastchunknum = atoi(optarg);
+            lastchunknum = (int)strtol(optarg, (char**)NULL, 10);
             break;
         case 'n':
-            chunknum = atoi(optarg);
+            chunknum = (int)strtol(optarg, (char**)NULL, 10);
             break;
         case 'o':
             outfname = optarg;
@@ -95,7 +95,7 @@ main(int argc, char *argv[])
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
+                debug_level = (int)strtol(optarg, (char**)NULL, 10);
             else
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
@@ -168,7 +168,11 @@ Usage:
             uint8_t keyval[64];
             uint8_t keyid[32];
             // use the first key found in the key file
-            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);//fixme:type
+            if (keys->keylen < 0) {
+                DEBUGMSG(ERROR, "Error: Invalid key length: %d", keys->keylen);
+                exit(1);
+            }
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);
             ccnl_hmac256_keyid(keys->key, (size_t) keys->keylen, keyid);
             if (ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
                                                         lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
@@ -193,7 +197,11 @@ Usage:
             uint8_t keyval[64];
             uint8_t keyid[32];
             // use the first key found in the key file
-            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);//fixme:type
+            if (keys->keylen < 0) {
+                DEBUGMSG(ERROR, "Error: Invalid key length: %d", keys->keylen);
+                exit(1);
+            }
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);
             ccnl_hmac256_keyid(keys->key, (size_t) keys->keylen, keyid);
             if (ccnl_ndntlv_prependSignedContent(name, body, len,
                   lastchunknum == UINT32_MAX ? NULL : &lastchunknum,

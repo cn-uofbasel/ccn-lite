@@ -39,7 +39,7 @@
 
 
 struct ccnl_prefix_s*
-ccnl_prefix_new(int suite, int cnt)
+ccnl_prefix_new(char suite, uint32_t cnt)
 {
     struct ccnl_prefix_s *p;
 
@@ -53,7 +53,6 @@ ccnl_prefix_new(int suite, int cnt)
         ccnl_prefix_free(p);
         return NULL;
     }
-    //FIXME: Types
     p->compcnt = cnt;
     p->suite = suite;
     p->chunknum = NULL;

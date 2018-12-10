@@ -196,17 +196,27 @@ ccnl_pkt2suite(uint8_t *data, size_t len, size_t *skip)
 }
 
 int
-ccnl_cmp2int(unsigned char *cmp, int cmplen)
+ccnl_cmp2int(unsigned char *cmp, size_t cmplen)
 {
-    long int i;
-    char *str = (char *)ccnl_malloc(cmplen+1);
-    DEBUGMSG(DEBUG, "  inter a: %i\n", cmplen);
-    DEBUGMSG(DEBUG, "  inter b\n");
-    memcpy(str, (char *)cmp, cmplen);
-    str[cmplen] = '\0';
-    DEBUGMSG(DEBUG, "  inter c: %s\n", str);
-    i = strtol(str, NULL, 0);
-    DEBUGMSG(DEBUG, "  inter d\n");
-    ccnl_free(str);
-    return (int)i;
+    if (cmp) {
+        long int i;
+        char *str = (char *)ccnl_malloc(cmplen+1);
+
+        DEBUGMSG(DEBUG, "  inter a: %zd\n", cmplen);
+        DEBUGMSG(DEBUG, "  inter b\n");
+
+        memcpy(str, (char *)cmp, cmplen);
+        str[cmplen] = '\0';
+        
+        DEBUGMSG(DEBUG, "  inter c: %s\n", str);
+        
+        i = strtol(str, NULL, 0);
+        
+        DEBUGMSG(DEBUG, "  inter d\n");
+
+        ccnl_free(str);
+        return (int)i;
+    }
+
+    return 0;
 }

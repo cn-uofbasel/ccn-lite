@@ -212,13 +212,15 @@ ccnl_ccntlv_bytes2pkt(uint8_t *start, uint8_t **data, size_t *datalen)
             }
             p->namelen = *data - p->nameptr;
             break;
-        case CCNX_TLV_M_ENDChunk:
-            if (ccnl_ccnltv_extractNetworkVarInt(cp, len,
-                              (unsigned int*) &(pkt->val.final_block_id)) < 0) {//fixme:type
+        case CCNX_TLV_M_ENDChunk: {
+            uint32_t final_block_id;
+            if (ccnl_ccnltv_extractNetworkVarInt(cp, len, &final_block_id) < 0) {
                 DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
                 goto Bail;
             }
+            pkt->val.final_block_id = final_block_id;
             break;
+        }
         case CCNX_TLV_M_Payload:
             pkt->content = *data;
             pkt->contlen = len;

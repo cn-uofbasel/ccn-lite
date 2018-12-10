@@ -195,24 +195,27 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
 char*
 ll2ascii(unsigned char *addr, size_t len)
 {
-    size_t i;
-    static char out[CCNL_LLADDR_STR_MAX_LEN + 1];
+    if (addr) {
+        size_t i;
+        static char out[CCNL_LLADDR_STR_MAX_LEN + 1] = { 0 };
 
-    out[0] = '\0';
+        out[0] = '\0';
 
-    for (i = 0; i < len; i++) {
-        out[(3 * i)] = _half_byte_to_char(addr[i] >> 4);
-        out[(3 * i) + 1] = _half_byte_to_char(addr[i] & 0xf);
+        for (i = 0; i < len; i++) {
+            out[(3 * i)] = _half_byte_to_char(addr[i] >> 4);
+            out[(3 * i) + 1] = _half_byte_to_char(addr[i] & 0xf);
 
-        if (i != (len - 1)) {
-            out[(3 * i) + 2] = ':';
+            if (i != (len - 1)) {
+                out[(3 * i) + 2] = ':';
+            } else {
+                out[(3 * i) + 2] = '\0';
+            }
         }
-        else {
-            out[(3 * i) + 2] = '\0';
-        }
+
+        return out;
     }
 
-    return out;
+    return NULL;
 }
 
 char

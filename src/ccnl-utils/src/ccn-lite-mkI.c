@@ -2,7 +2,7 @@
  * @f util/ccn-lite-mkI.c
  * @b CLI mkInterest, write to Stdout
  *
- * Copyright (C) 2013-15, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-18, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,8 +16,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * File history:
- * 2013-07-06  created
  */
 
 #include "ccnl-common.h"
@@ -28,7 +26,6 @@ int
 main(int argc, char *argv[])
 {
 
-    char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
     char *digest = 0, *publisher = 0;
     char *fname = 0;
     int f, opt;
@@ -41,22 +38,12 @@ main(int argc, char *argv[])
     unsigned int chunknum = UINT_MAX;
     ccnl_interest_opts_u int_opts;
 
-    (void) minSuffix;
-    (void) maxSuffix;
-    (void) scope;
-
     time(&curtime);
     // Get current time in double to avoid dealing with time_t
     nonce = (uint32_t) difftime(curtime, 0);
 
-    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hd:e:i:ln:o:p:s:v:")) != -1) {
         switch (opt) {
-        case 'a':
-            minSuffix = optarg;
-            break;
-        case 'c':
-            scope = optarg;
-            break;
         case 'd':
             digest = optarg;
             dlen = unescape_component(digest);
@@ -67,13 +54,13 @@ main(int argc, char *argv[])
             }
             break;
         case 'e':
-            nonce = atoi(optarg);
+            nonce = (int)strtol(optarg, (char**)NULL, 10);
             break;
         case 'l':
             isLambda = 1 - isLambda;
             break;
         case 'n':
-            chunknum = atoi(optarg);
+            chunknum = (int)strtol(optarg, (char**)NULL, 10);
             break;
         case 'o':
             fname = optarg;
@@ -91,13 +78,10 @@ main(int argc, char *argv[])
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
+                debug_level = (int)strtol(optarg, (char**)NULL, 10);
             else
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
-            break;
-        case 'x':
-            maxSuffix = optarg;
             break;
         case 's':
             packettype = ccnl_str2suite(optarg);
@@ -109,20 +93,16 @@ main(int argc, char *argv[])
         default:
 Usage:
             fprintf(stderr, "usage: %s [options] URI\n"
-            "  -a LEN     miN additional components\n"
-            "  -c SCOPE\n"
-
             "  -d DIGEST  content digest (sets -x to 0)\n"
             "  -e NONCE   random 4 bytes\n"
             "  -l         URI is a Lambda expression\n"
             "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
-            "  -s SUITE   (ccnb, ccnx2015, ndn2013)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
-            "  -x LEN     maX additional components\n",
+            "  -s SUITE   (ccnb, ccnx2015, ndn2013)\n",
             argv[0]);
             exit(1);
         }

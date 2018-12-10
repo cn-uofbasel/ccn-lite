@@ -96,9 +96,9 @@ handle_verify(uint8_t **buf, size_t *buflen, int sock, char *callback){
     uint64_t num;
     uint8_t typ;
     int8_t verified = 0;
-    size_t contentlen = 0, siglen = 0, partlen = 0;
+    size_t contentlen = 0, siglen = 0;
     uint8_t *txid_s = 0, *sig = 0, *content = 0;
-    size_t len = 0, len3 = 0, msglen, complen;
+    size_t len = 0, len3 = 0, msglen = 0, complen = 0;
     uint8_t *component_buf = 0, *msg = 0;
     char h[1024];
 
@@ -144,51 +144,42 @@ handle_verify(uint8_t **buf, size_t *buflen, int sock, char *callback){
         goto Bail;
     }
 
-    if (ccnl_ccnb_mkHeader(msg+len, msg + msglen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+    if (ccnl_ccnb_mkHeader(msg+len, msg + msglen, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(msg+len, msg + msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(msg+len, msg + msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(msg+len, msg + msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(msg+len, msg + msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= 1000) {
         goto Bail;
     }
     msg[len++] = 0; // end-of-name
 
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_TYPE, CCN_TT_DTAG, "verify", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_TYPE, CCN_TT_DTAG, "verify", &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     memset(h,0,sizeof(h));
     sprintf(h,"%d", verified);
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_VERIFIED, CCN_TT_DTAG, h, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_VERIFIED, CCN_TT_DTAG, h, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkBlob(component_buf + len3, component_buf + complen, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, (char*) content, contentlen, &partlen)) {
+    if (ccnl_ccnb_mkBlob(component_buf + len3, component_buf + complen, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, (char*) content, contentlen, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
 
     if (ccnl_ccnb_mkBlob(msg+len, msg + msglen, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                            (char*) component_buf, len3, &partlen)) {
+                            (char*) component_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (len + 1 >= msglen) {
         goto Bail;
@@ -222,9 +213,9 @@ handle_sign(uint8_t **buf, size_t *buflen, int sock, char *callback){
     uint8_t typ;
     int ret = 0;
     size_t contentlen = 0;
-    size_t siglen = 0, msglen, complen;
+    size_t siglen = 0, msglen = 0, complen = 0;
     uint8_t *txid_s = 0, *sig = 0, *content = 0;
-    size_t len = 0, len3 = 0, partlen;
+    size_t len = 0, len3 = 0;
     uint8_t *component_buf = 0, *msg = 0;
     char h[1024];
 
@@ -271,52 +262,43 @@ handle_sign(uint8_t **buf, size_t *buflen, int sock, char *callback){
         goto Bail;
     }
 
-    if (ccnl_ccnb_mkHeader(msg+len, msg+msglen, CCN_DTAG_NAME, CCN_TT_DTAG, &partlen)) {  // name
+    if (ccnl_ccnb_mkHeader(msg+len, msg+msglen, CCN_DTAG_NAME, CCN_TT_DTAG, &len)) {  // name
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(msg+len, msg+msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(msg+len, msg+msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx", &len)) {
         goto Bail;
     }
-    len += partlen;
-    if (ccnl_ccnb_mkStrBlob(msg+len, msg+msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(msg+len, msg+msglen, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto", &len)) {
         goto Bail;
     }
-    len += partlen;
     if (len + 1 >= msglen) {
         goto Bail;
     }
     msg[len++] = 0; // end-of-name
 
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_TYPE, CCN_TT_DTAG, "sign", &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_TYPE, CCN_TT_DTAG, "sign", &len3)) {
         goto Bail;
     }
-    len3 += partlen;
-    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s, &partlen)) {
+    if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
 
     if (ccnl_ccnb_mkBlob(component_buf+len3, component_buf + complen, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // signature
-                   (char*) sig, siglen, &partlen)) {
+                   (char*) sig, siglen, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
     if (ccnl_ccnb_mkBlob(component_buf + len3, component_buf + complen, CCN_DTAG_CONTENTDIGEST,
-                             CCN_TT_DTAG, (char*) content, contentlen, &partlen)) {
+                             CCN_TT_DTAG, (char*) content, contentlen, &len3)) {
         goto Bail;
     }
-    len3 += partlen;
 
     if (ccnl_ccnb_mkBlob(msg+len, msg + msglen, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                            (char*) component_buf, len3, &partlen)) {
+                            (char*) component_buf, len3, &len)) {
         goto Bail;
     }
-    len += partlen;
 
     if (len + 1 >= msglen) {
         goto Bail;

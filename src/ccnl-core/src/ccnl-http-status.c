@@ -292,7 +292,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 #ifdef USE_STATS
         len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
-                       "qlen=%d/%d"
+                       "qlen=%zu/%d"
                        "&nbsp;&nbsp;rx=%u&nbsp;&nbsp;tx=%u"
                        "\n",
                        i, ccnl_addr2ascii(&ccnl->ifs[i].addr),

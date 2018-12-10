@@ -59,10 +59,10 @@ struct ccnl_if_s { // interface for packet IO
 #endif
     int reflect; // whether to reflect I packets on this interface
     int fwdalli; // whether to forward all I packets rcvd on this interface
-    int mtu;
+    uint32_t mtu;
 
-    int qlen;  // number of pending sends
-    int qfront; // index of next packet to send
+    size_t qlen;  // number of pending sends
+    size_t qfront; // index of next packet to send
     struct ccnl_txrequest_s queue[CCNL_MAX_IF_QLEN];
     struct ccnl_sched_s *sched;
 
