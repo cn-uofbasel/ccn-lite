@@ -36,8 +36,16 @@ void test_ll2ascii_valid()
     const char *address = "ffffffffffff";
     char *result = ll2ascii((unsigned char*)address, 6);
     assert_true(result != NULL);
-    // shouldn't it be ff:ff:ff:ff:ff:ff?
-    assert_true(memcmp("66:66:66:66:66:66", result, 17) == 0);
+
+    /**
+     * The test will actually fail at the above "assert_true" statement if 'result'
+     * is null - however, the static code analyzer of LLVM does not recognize this
+     * behavior, hence, the actual check if 'result' is not NULL
+     */
+    if (result) { 
+        // shouldn't it be ff:ff:ff:ff:ff:ff? 
+         assert_true(memcmp("66:66:66:66:66:66", result, 17) == 0);
+    }
 }
 
 void test_half_byte_to_char() 
