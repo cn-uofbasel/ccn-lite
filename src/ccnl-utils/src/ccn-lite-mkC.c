@@ -28,6 +28,13 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-ext-hmac.h"
 
+#ifndef CCN_LITE_MKC_OUT_SIZE
+#define CCN_LITE_MKC_OUT_SIZE (65 * 1024)
+#endif
+
+#ifndef CCN_LITE_MKC_BODY_SIZE
+#define CCN_LITE_MKC_BODY_SIZE (64 * 1024)
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -39,9 +46,9 @@ char *witness;
 int
 main(int argc, char *argv[])
 {
-    unsigned char body[64*1024];
-    unsigned char out[65*1024];
-    unsigned char *publisher = out;
+    unsigned char body[CCN_LITE_MKC_BODY_SIZE];
+    unsigned char out[CCN_LITE_MKC_OUT_SIZE];
+    unsigned char *publisher = NULL;
     char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
@@ -49,16 +56,13 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
     struct key_s *keys = NULL;
-    struct ccnl_prefix_s *prefix;
-    struct ccnl_buf_s *buf;
     ccnl_data_opts_u data_opts;
-    (void)prefix;
-    (void)buf;
-    (void) contentpos;
+
+    (void)contentpos;
     (void)keys;
     (void)lastchunknum;
     (void)chunknum;
-    (void) data_opts;
+    (void)data_opts;
 
     while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
