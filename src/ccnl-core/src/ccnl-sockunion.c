@@ -195,7 +195,7 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
 char*
 ll2ascii(unsigned char *addr, size_t len)
 {
-    if (addr) {
+    if ((len <= CCNL_LLADDR_STR_MAX_LEN) && (addr)) {
         size_t i;
         static char out[CCNL_LLADDR_STR_MAX_LEN + 1] = { 0 };
 
