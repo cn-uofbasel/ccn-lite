@@ -134,7 +134,8 @@ int8_t
 ccnl_mgmt_parse_eth_address(uint8_t *sll_addr, const char *str) {
     char *endptr;
     unsigned long octet_l;
-    for (size_t i = 0; i < 6; ++i) {
+    size_t i;
+    for (i = 0; i < 6; ++i) {
         errno = 0;
         octet_l = strtoul(str + 3*i, &endptr, 16);
         if (errno || octet_l > UINT8_MAX || (i != 5 && *endptr != ':')) {
