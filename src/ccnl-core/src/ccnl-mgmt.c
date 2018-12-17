@@ -145,6 +145,7 @@ ccnl_mgmt_parse_eth_address(uint8_t *sll_addr, const char *str) {
     }
     sll_addr[6] = 0;
     sll_addr[7] = 0;
+    return 0;
 }
 
 
