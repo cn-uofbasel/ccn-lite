@@ -141,7 +141,7 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
         break;
 #endif
     default:
-        DEBUGMSG(INFO, "  ndntlv: unknown packet type %llu\n", pkttype);
+        DEBUGMSG(INFO, "  ndntlv: unknown packet type %llu\n", (unsigned long long)pkttype);
         goto Bail;
     }
 
