@@ -270,7 +270,7 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
             break;
         case NDN_TLV_Frag_BeginEndFields:
             pkt->val.seqno = ccnl_ndntlv_nonNegInt(*data, len);
-            DEBUGMSG(TRACE, "  frag: %04llux\n", pkt->val.seqno);
+            DEBUGMSG(TRACE, "  frag: %04llux\n", (unsigned long long)pkt->val.seqno);
             if (pkt->val.seqno & 0x4000) {
                 pkt->flags |= CCNL_PKT_FRAG_BEGIN;
             }
