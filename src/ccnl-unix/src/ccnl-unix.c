@@ -736,7 +736,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
         if (!buf || recvlen < 0 || (datalen = (size_t) recvlen) != flen || datalen < 2) {
             DEBUGMSG(WARNING, "size mismatch for file %s, %ld/%lld bytes\n",
-                     de->d_name, datalen, s.st_size);
+                     de->d_name, datalen, (long long) s.st_size);
             continue;
         }
         buf->datalen = datalen;
