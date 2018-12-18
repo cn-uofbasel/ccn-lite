@@ -37,12 +37,12 @@
 // Header
 
 struct ccnx_tlvhdr_ccnx2015_s {
-    unsigned char  version;
-    unsigned char  pkttype;
-    uint16_t       pktlen;
-    unsigned char  hoplimit;  // not used for data
-    unsigned char  fill[2];   // fill[0] is errcode, Frag: flagsAndSeqNr
-    unsigned char  hdrlen;
+    uint8_t  version;
+    uint8_t  pkttype;
+    uint16_t pktlen;
+    uint8_t  hoplimit;  // not used for data
+    uint8_t  fill[2];   // fill[0] is errcode, Frag: flagsAndSeqNr
+    uint16_t hdrlen;
 } __attribute__((packed));
 
 /*
@@ -172,48 +172,48 @@ struct ccnx_tlvhdr_ccnx201409_s {
  * @param vallen return value via pointer: length value of the tlv
  * @return 0 on success, -1 on failure.
  */
-int
-ccnl_ccntlv_dehead(unsigned char **buf, int *len,
-                   unsigned int *typ, unsigned int *vallen);
+int8_t
+ccnl_ccntlv_dehead(uint8_t **buf, size_t *len,
+                   uint16_t *typ, size_t *vallen);
 
 struct ccnl_pkt_s*
-ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
+ccnl_ccntlv_bytes2pkt(uint8_t *start, uint8_t **data, size_t *datalen);
 
-int
+int8_t
 ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
-int
-ccnl_ccntlv_getHdrLen(unsigned char *data, int len);
+int8_t
+ccnl_ccntlv_getHdrLen(uint8_t *data, size_t datalen, size_t *hdrlen);
 
-int
+int8_t
 ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
-                                   int *offset, unsigned char *buf);
+                                   size_t *offset, uint8_t *buf, size_t *len);
 
-int
-ccnl_ccntlv_prependTL(unsigned short type, unsigned short len,
-                      int *offset, unsigned char *buf);
+int8_t
+ccnl_ccntlv_prependTL(uint16_t type, size_t len,
+                      size_t *offset, uint8_t *buf);
 
-int
+int8_t
 ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
-                                  unsigned char *payload, int paylen,
-                                  unsigned int *lastchunknum, int *contentpos,
-                                  int *offset, unsigned char *buf);
+                                  uint8_t *payload, size_t paylen,
+                                  uint32_t *lastchunknum, size_t *contentpos,
+                                  size_t *offset, uint8_t *buf, size_t *reslen);
 
-int
+int8_t
 ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
-                                        int *offset, unsigned char *buf);
+                                        size_t *offset, uint8_t *buf, size_t *reslen);
 
-int
+int8_t
 ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
-                           unsigned int *lastchunknum, int *contentpos,
-                           int *offset, unsigned char *buf);
+                           uint8_t *payload, size_t paylen,
+                           uint32_t *lastchunknum, size_t *contentpos,
+                           size_t *offset, uint8_t *buf, size_t *reslen);
 
-int
-ccnl_ccntlv_prependFixedHdr(unsigned char ver,
-                            unsigned char packettype,
-                            unsigned short payloadlen,
-                            unsigned char hoplimit,
-                            int *offset, unsigned char *buf);
+int8_t
+ccnl_ccntlv_prependFixedHdr(uint8_t ver,
+                            uint8_t packettype,
+                            size_t payloadlen,
+                            uint8_t hoplimit,
+                            size_t *offset, uint8_t *buf);
 
 #endif // eof

@@ -123,20 +123,23 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
     return ret;
 }
 
-int
-ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
+size_t
+ccnl_pkt_mkComponent(int suite, uint8_t *dst, char *src, size_t srclen)
 {
-    int len = 0;
+    size_t len = 0;
 
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
-        unsigned short *sp = (unsigned short*) dst;
+        if (srclen > UINT16_MAX) {
+            return 0;
+        }
+        uint16_t *sp = (uint16_t*) dst;
         *sp++ = htons(CCNX_TLV_N_NameSegment);
         len = srclen;
-        *sp++ = htons(len);
+        *sp++ = htons((uint16_t) len);
         memcpy(sp, src, len);
-        len += 2*sizeof(unsigned short);
+        len += 2*sizeof(uint16_t);
         break;
     }
 #endif

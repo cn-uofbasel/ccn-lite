@@ -24,6 +24,7 @@
 #define CCNL_PKT_NDNTLV_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 #include "ccnl-content.h"
@@ -142,11 +143,11 @@ struct ccnl_ndntlv_data_opts_s {
 };
 
 #ifdef USE_SUITE_NDNTLV
-int
-ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val);
+int8_t
+ccnl_ndntlv_varlenint(uint8_t **buf, size_t *len, uint64_t *val);
 
-unsigned long int
-ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
+uint64_t
+ccnl_ndntlv_nonNegInt(uint8_t *cp, size_t len);
 #endif // USE_SUITE_NDNTLV
 
 /**
@@ -157,45 +158,45 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
  * @param vallen return value via pointer: length value of the tlv
  * @return 0 on success, -1 on failure.
  */
-int
-ccnl_ndntlv_dehead(unsigned char **buf, int *len,
-                   int *typ, int *vallen);
+int8_t
+ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
+                   uint64_t *typ, size_t *vallen);
 
 struct ccnl_pkt_s*
-ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
-                      unsigned char **data, int *datalen);
+ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
+                      uint8_t **data, size_t *datalen);
 
-int
+int8_t
 ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
-int
+int8_t
 ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_ndntlv_interest_opts_s *opts,
-                            int *offset, unsigned char *buf);
+                            size_t *offset, uint8_t *buf, size_t *reslen);
 
-int
+int8_t
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
-                           int *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
-                           int *offset, unsigned char *buf);
+                           uint8_t *payload, size_t paylen,
+                           size_t *contentpos, struct ccnl_ndntlv_data_opts_s *opts,
+                           size_t *offset, uint8_t *buf, size_t *reslen);
 
-int
-ccnl_ndntlv_prependTL(int type, unsigned int len,
-                      int *offset, unsigned char *buf);
+int8_t
+ccnl_ndntlv_prependTL(uint64_t type, uint64_t len,
+                      size_t *offset, uint8_t *buf);
 
-int
-ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf);
+int8_t
+ccnl_ndntlv_prependTLval(uint64_t val, size_t *offset, uint8_t *buf);
 
-int
-ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
-                        int *offset, unsigned char *buf);
+int8_t
+ccnl_ndntlv_prependBlob(uint64_t type, uint8_t *blob, size_t len,
+                        size_t *offset, uint8_t *buf);
 
-int
-ccnl_ndntlv_prependIncludedNonNegInt(int type, unsigned int val,
-                                     char marker,
-                                     int *offset, unsigned char *buf);
+int8_t
+ccnl_ndntlv_prependIncludedNonNegInt(uint64_t type, uint64_t val,
+                                     uint8_t marker,
+                                     size_t *offset, uint8_t *buf);
 
-int
+int8_t
 ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf);
+                        size_t *offset, uint8_t *buf);
 
 #endif // EOF

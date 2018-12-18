@@ -118,7 +118,8 @@ ux_open()
     return sock;
 }
 
-int ux_sendto(int sock, char *topath, unsigned char *data, int len)
+ssize_t
+ux_sendto(int sock, char *topath, uint8_t *data, size_t len)
 {
     struct sockaddr_un name;
 

@@ -22,8 +22,9 @@
 #ifndef CCNL_PKT_UTIL_H
 #define CCNL_PKT_UTIL_H
 
-#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 bool
 ccnl_isSuite(int suite);
@@ -38,7 +39,7 @@ int
 ccnl_str2suite(char *cp);
 
 int
-ccnl_pkt2suite(unsigned char *data, int len, int *skip);
+ccnl_pkt2suite(uint8_t *data, size_t len, size_t *skip);
 
 /**
  * Returns the integer representation of a string

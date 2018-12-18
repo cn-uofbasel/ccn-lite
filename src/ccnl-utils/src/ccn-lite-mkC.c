@@ -50,6 +50,9 @@ main(int argc, char *argv[])
     unsigned char out[CCN_LITE_MKC_OUT_SIZE];
     unsigned char *publisher = NULL;
     char *infname = 0, *outfname = 0;
+    uint32_t chunknum = UINT32_MAX, lastchunknum = UINT32_MAX;
+    int f, opt;
+    size_t plen, len, offs = 0, contentpos;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     int contentpos;
@@ -85,9 +88,7 @@ main(int argc, char *argv[])
             publisher = (unsigned char*) optarg;
             plen = unescape_component((char*) publisher);
             if (plen != 32) {
-                DEBUGMSG(ERROR,
-                  "publisher key digest has wrong length (%d instead of 32)\n",
-                  plen);
+                DEBUGMSG(ERROR, "publisher key digest has wrong length (%zu instead of 32)\n", plen);
                 exit(-1);
             }
             break;
@@ -133,26 +134,37 @@ Usage:
         }
     }
 
-    if (!argv[optind])
+    if (!argv[optind]) {
         goto Usage;
+    }
 
     if (infname) {
         f = open(infname, O_RDONLY);
-        if (f < 0)
+        if (f < 0) {
             perror("file open:");
-    } else
+        }
+    } else {
         f = 0;
-    len = read(f, body, sizeof(body));
+    }
+    ssize_t _len = read(f, body, sizeof(body));
+    if (_len < 0) {
+        DEBUGMSG(ERROR, "read: %d\n", errno);
+        exit(1);
+    }
+    len = (size_t) _len;
     close(f);
     memset(out, 0, sizeof(out));
 
     name = ccnl_URItoPrefix(argv[optind], suite, 
-                            chunknum == UINT_MAX ? NULL : &chunknum);
+                            chunknum == UINT32_MAX ? NULL : &chunknum);
 
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
+        if (ccnl_ccnb_fillContent(name, body, len, NULL, out, out + sizeof(out), &len)) {
+            DEBUGMSG(ERROR, "Error: Failed creating content object.");
+            exit(1);
+        }
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
@@ -160,37 +172,60 @@ Usage:
 
         offs = CCNL_MAX_PACKET_SIZE;
         if (keys) {
-            unsigned char keyval[64];
-            unsigned char keyid[32];
+            uint8_t keyval[64];
+            uint8_t keyid[32];
             // use the first key found in the key file
-            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
-            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
-            len = ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
-                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  NULL, keyval, keyid, &offs, out);
-        } else
-            len = ccnl_ccntlv_prependContentWithHdr(name, body, len,
-                          lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                          NULL /* Int *contentpos */, &offs, out);
+            if (keys->keylen < 0) {
+                DEBUGMSG(ERROR, "Error: Invalid key length: %d", keys->keylen);
+                exit(1);
+            }
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);
+            ccnl_hmac256_keyid(keys->key, (size_t) keys->keylen, keyid);
+            if (ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
+                                                        lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
+                                                        NULL, keyval, keyid, &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending signed content.");
+                exit(1);
+            }
+        } else {
+            if (ccnl_ccntlv_prependContentWithHdr(name, body, len,
+                                                  lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
+                                                  NULL /* Int *contentpos */, &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending content.");
+                exit(1);
+            }
+        }
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         if (keys) {
-            unsigned char keyval[64];
-            unsigned char keyid[32];
+            uint8_t keyval[64];
+            uint8_t keyid[32];
             // use the first key found in the key file
-            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
-            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
-            len = ccnl_ndntlv_prependSignedContent(name, body, len,
-                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  NULL, keyval, keyid, &offs, out);
+            if (keys->keylen < 0) {
+                DEBUGMSG(ERROR, "Error: Invalid key length: %d", keys->keylen);
+                exit(1);
+            }
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);
+            ccnl_hmac256_keyid(keys->key, (size_t) keys->keylen, keyid);
+            if (ccnl_ndntlv_prependSignedContent(name, body, len,
+                  lastchunknum == UINT32_MAX ? NULL : &lastchunknum,
+                  NULL, keyval, keyid, &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending signed content.");
+                exit(1);
+            }
         } else {
             data_opts.ndntlv.finalblockid = lastchunknum;
-            len = ccnl_ndntlv_prependContent(name, body, len,
-                  NULL, lastchunknum == UINT_MAX ? NULL : &(data_opts.ndntlv),
-                  &offs, out);
+            if (ccnl_ndntlv_prependContent(name, body, len,
+                  NULL, lastchunknum == UINT32_MAX ? NULL : &(data_opts.ndntlv),
+                                             &offs, out, &len)) {
+                DEBUGMSG(ERROR, "Error: Failed prepending content.");
+                exit(1);
+            }
+            //TODO: new implementation of prependContent returns -1 or 0, not length
+            printf("pkt len: %zu\n", len);
         }
         break;
 #endif
@@ -200,10 +235,12 @@ Usage:
 
     if (outfname) {
         f = creat(outfname, 0666);
-        if (f < 0)
+        if (f < 0) {
             perror("file open:");
-    } else
+        }
+    } else {
         f = 1;
+    }
     write(f, out + offs, len);
     close(f);
 

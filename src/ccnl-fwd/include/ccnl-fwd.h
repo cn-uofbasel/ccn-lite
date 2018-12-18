@@ -29,13 +29,13 @@
 /**
  * @brief       Functionpointer to a CCN-lite Forwarder Function
  */
-typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*, 
-                           unsigned char**, int*);
+typedef int8_t (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
+                           uint8_t**, size_t *);
 
 /**
  * @brief       Functionpointer to a CCN-lite CS-Matching Function
  */
-typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
+typedef int8_t (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 /**
  * @brief       Defines for every Packet format the Forwarding and CS-Matching function
@@ -58,9 +58,9 @@ struct ccnl_suite_s {
  *
  * @return      < 0 if no bytes consumed or error
  */
-int
+int8_t
 ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-              unsigned char **data, int *datalen, int typ);
+              uint8_t **data, size_t *datalen, uint64_t typ);
 
 /**
  * @brief       process one CCNB packet (CCNB forwarding pipeline)
@@ -72,9 +72,9 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  *
  * @return      < 0 if no bytes consumed or error
  */
-int
+int8_t
 ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                    unsigned char **data, int *datalen);
+                    uint8_t **data, size_t *datalen);
 #endif // USE_SUITE_CCNB
 
 #ifdef USE_SUITE_CCNTLV
@@ -88,9 +88,9 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  *
  * @return      < 0 if no bytes consumed or error
  */
-int
+int8_t
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen);
+                      uint8_t **data, size_t *datalen);
 #endif // USE_SUITE_CCNTLV
 
 #ifdef USE_SUITE_NDNTLV
@@ -104,9 +104,9 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
  *
  * @return      < 0 if no bytes consumed or error
  */
-int
+int8_t
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen);
+                      uint8_t **data, size_t *datalen);
 #endif // USE_SUITE_NDNTLV
 
 /**

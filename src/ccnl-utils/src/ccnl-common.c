@@ -77,7 +77,7 @@ int debug_level = WARNING;
 #endif //USE_DEBUG_MALLOC
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
-struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
+struct ccnl_prefix_s* ccnl_prefix_new(char suite, uint32_t cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
 
 //#include "../ccnl-pkt-switch.c"

@@ -23,12 +23,14 @@
 
 #ifdef USE_MGMT
 
+#include <stdint.h>
+
 struct ccnl_buf_s;
 struct ccnl_relay_s;
 struct ccnl_prefix_s;
 struct ccnl_face_s;
 
-int
+int8_t
 ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
           struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
