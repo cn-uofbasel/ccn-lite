@@ -384,7 +384,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 #endif // OBSOLETE
         default:
-            DEBUGMSG_CFWD(DEBUG, "  unknown datagram type %llu\n", num);
+            DEBUGMSG_CFWD(DEBUG, "  unknown datagram type %llu\n", (unsigned long long) num);
             return -1;
         }
     }
@@ -509,7 +509,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 goto Done;
         } else {
             DEBUGMSG_CFWD(WARNING, "  ccntlv: interest pkt type mismatch %d %lld\n",
-                          hp->pkttype, pkt->type);
+                          hp->pkttype, (unsigned long long) pkt->type);
         }
     } else if (hp->pkttype == CCNX_PT_Data) {
         if (pkt->type == CCNX_TLV_TL_Object) {
@@ -517,7 +517,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
             DEBUGMSG_CFWD(WARNING, "  ccntlv: data pkt type mismatch %d %lld\n",
-                     hp->pkttype, pkt->type);
+                     hp->pkttype, (unsigned long long) pkt->type);
         }
     } // else ignore
     rc = 0;
@@ -576,7 +576,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         break;
 #endif
     default:
-        DEBUGMSG_CFWD(INFO, "  unknown packet type %llu, dropped\n", typ);
+        DEBUGMSG_CFWD(INFO, "  unknown packet type %llu, dropped\n", (unsigned long long) typ);
         break;
     }
     rc = 0;
