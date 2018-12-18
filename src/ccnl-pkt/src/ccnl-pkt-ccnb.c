@@ -272,7 +272,7 @@ ccnl_ccnb_bytes2pkt(uint8_t *start, uint8_t **data, size_t *datalen)
                     DEBUGMSG(WARNING, "ccnb 'exclude' field ignored\n");
                     break;
                 default:
-                    DEBUGMSG(WARNING, "ccnb: unexpected DTAG: %llu\n", num);
+                    DEBUGMSG(WARNING, "ccnb: unexpected DTAG: %llu\n", (unsigned long long)num);
                     break;
                 }
                 break;
