@@ -26,7 +26,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 #include "ccnl-buf.h"
 #include "ccnl-prefix.h"
@@ -78,7 +77,7 @@ struct ccnl_pktdetail_ccntlv_s {
 struct ccnl_pktdetail_ndntlv_s {
     /* Interest */
     uint64_t minsuffix, maxsuffix, scope;
-    bool mbf;
+    uint8_t mbf;
     struct ccnl_buf_s *nonce;      /**< nonce */
     struct ccnl_buf_s *ppkl;       /**< publisher public key locator */
     uint64_t interestlifetime;     /**< interest lifetime */

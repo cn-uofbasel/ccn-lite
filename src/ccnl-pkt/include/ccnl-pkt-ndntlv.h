@@ -25,7 +25,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <stdbool.h>
 
 #include "ccnl-content.h"
 
@@ -126,7 +125,7 @@ Values          Designation
 struct ccnl_ndntlv_interest_opts_s {
     int32_t nonce;              /**< Nonce value */
     /* Selectors */
-    bool mustbefresh;           /**< MustBeFresh Selector */
+    uint8_t mustbefresh;           /**< MustBeFresh Selector */
     /* Guiders */
     uint32_t interestlifetime;  /**< Interest Lifetime Guider */
 };

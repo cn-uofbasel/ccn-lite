@@ -104,7 +104,7 @@ ccnl_suite2defaultPort(int suite)
     return NDN_UDP_PORT;
 }
 
-bool
+uint8_t
 ccnl_isSuite(int suite)
 {
 #ifdef USE_SUITE_CCNB

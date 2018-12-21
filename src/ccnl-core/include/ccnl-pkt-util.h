@@ -23,10 +23,9 @@
 #define CCNL_PKT_UTIL_H
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <stddef.h>
 
-bool
+uint8_t
 ccnl_isSuite(int suite);
 
 int

@@ -153,7 +153,7 @@ is_ccn_blob(uint64_t tag)
 }
 
 int8_t
-lookahead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ, bool ignoreBlobTag, int depth)
+lookahead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ, uint8_t ignoreBlobTag, int depth)
 {
     int8_t rc, rc2;
     uint64_t look_num;
@@ -181,7 +181,7 @@ lookahead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ, bool ignoreBl
 }
 
 int8_t
-dehead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ, bool ignoreBlobTag, int depth)
+dehead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ, uint8_t ignoreBlobTag, int depth)
 {
     uint64_t look_num;
     uint8_t look_typ;
@@ -230,7 +230,7 @@ print_value(size_t offset, uint8_t *valptr, size_t vallen, int depth)
 }
 
 void
-print_tag(size_t offset, uint64_t typ, uint64_t num, bool openTag, bool withNewlines, int depth)
+print_tag(size_t offset, uint64_t typ, uint64_t num, uint8_t openTag, uint8_t withNewlines, int depth)
 {
     if (depth > MAX_DEPTH){
         return;
@@ -252,7 +252,7 @@ print_tag(size_t offset, uint64_t typ, uint64_t num, bool openTag, bool withNewl
 }
 
 void
-print_blob(uint8_t **buf, size_t *len, uint8_t typ, uint64_t num, size_t offset, bool ignoreBlobTag, int depth)
+print_blob(uint8_t **buf, size_t *len, uint8_t typ, uint64_t num, size_t offset, uint8_t ignoreBlobTag, int depth)
 {
     size_t vallen;
     uint8_t *valptr;
@@ -274,7 +274,7 @@ print_blob(uint8_t **buf, size_t *len, uint8_t typ, uint64_t num, size_t offset,
 }
 
 void
-print_ccnb(uint8_t **buf, size_t *len, size_t offset, bool ignoreBlobTag, int depth)
+print_ccnb(uint8_t **buf, size_t *len, size_t offset, uint8_t ignoreBlobTag, int depth)
 {
     uint64_t num, look_num;
     uint8_t typ, look_typ;
@@ -294,7 +294,7 @@ print_ccnb(uint8_t **buf, size_t *len, size_t offset, bool ignoreBlobTag, int de
             print_blob(buf, len, typ, num, offset, ignoreBlobTag, depth+1);
         }
         else {
-            bool withNewlines = true;
+            uint8_t withNewlines = true;
             if (ignoreBlobTag && rc == 0 && is_ccn_blob(look_typ)) {
                 withNewlines = false;
             }
@@ -314,7 +314,7 @@ main(int argc, char *argv[])
     size_t len;
     ssize_t len_s;
     int opt;
-    bool ignoreBlobTag = true;
+    uint8_t ignoreBlobTag = true;
 
     while ((opt = getopt(argc, argv, "hb")) != -1) {
         switch (opt) {
