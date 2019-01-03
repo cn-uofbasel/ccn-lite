@@ -51,7 +51,8 @@ main(int argc, char *argv[])
     unsigned char *publisher = NULL;
     char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
-    int f, len, opt, plen, offs = 0;
+    int f, opt;
+    size_t  plen, len, offs = 0;
     int contentpos;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
