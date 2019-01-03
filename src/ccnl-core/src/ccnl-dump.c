@@ -254,8 +254,8 @@ ccnl_dump(int lev, int typ, void *p)
                 case CCNL_SUITE_NDNTLV:
                     INDENT(lev + 1);
                     CONSOLE("minsfx=%llu maxsfx=%llu mbf=%d scope=%llu",
-                            pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix,
-                            pkt->s.ndntlv.mbf, pkt->s.ndntlv.scope);
+                            (unsigned long long) pkt->s.ndntlv.minsuffix, (unsigned long long) pkt->s.ndntlv.maxsuffix,
+                            pkt->s.ndntlv.mbf, (unsigned long long) pkt->s.ndntlv.scope);
                     if (pkt->s.ndntlv.nonce) {
                         CONSOLE(" nonce=");
                         blob(pkt->s.ndntlv.nonce);
