@@ -50,9 +50,6 @@ main(int argc, char *argv[])
     unsigned char out[CCN_LITE_MKC_OUT_SIZE];
     unsigned char *publisher = NULL;
     char *infname = 0, *outfname = 0;
-    uint32_t chunknum = UINT32_MAX, lastchunknum = UINT32_MAX;
-    int f, opt;
-    size_t plen, len, offs = 0, contentpos;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     int contentpos;
