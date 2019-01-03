@@ -217,7 +217,7 @@ ccnl_dump(int lev, int typ, void *p)
             INDENT(lev);
             CONSOLE("%p PACKET %s typ=%llu cont=%p contlen=%zd finalBI=%lld flags=0x%04x\n",
                     (void *) pkt, ccnl_suite2str(pkt->suite), (unsigned long long) pkt->type,
-                    (void *) pkt->content, pkt->contlen, pkt->val.final_block_id,
+                    (void *) pkt->content, pkt->contlen, (long long)pkt->val.final_block_id,
                     pkt->flags);
             ccnl_dump(lev + 1, CCNL_PREFIX, pkt->pfx);
             switch (pkt->suite) {
