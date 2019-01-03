@@ -445,7 +445,7 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> ",
              ccnl_prefix_to_str(prefix, s, CCNL_MAX_PREFIX_SIZE));
     DEBUGMSG(VERBOSE, "content=<%s> min=%llu max=%llu\n",
-             ccnl_prefix_to_str(p, s, CCNL_MAX_PREFIX_SIZE), minsuffix, maxsuffix);
+             ccnl_prefix_to_str(p, s, CCNL_MAX_PREFIX_SIZE), (unsigned long long) minsuffix, (unsigned long long)maxsuffix);
     //
     // CONFORM: we do prefix match, honour min. and maxsuffix,
 
