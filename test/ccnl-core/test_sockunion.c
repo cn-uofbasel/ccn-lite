@@ -29,6 +29,11 @@ void test_ll2ascii_invalid()
 {
     char *result = ll2ascii(NULL, 1);
     assert_true(result == NULL);
+
+    const char *address = "deadbeef";
+    /** size (second parameter) should be larger than the array which stores the result (in order to fail) */
+    result = ll2ascii(NULL, CCNL_LLADDR_STR_MAX_LEN + 1);
+    assert_true(result == NULL);
 }
 
 void test_ll2ascii_valid()
@@ -43,20 +48,25 @@ void test_ll2ascii_valid()
      * behavior, hence, the actual check if 'result' is not NULL
      */
     if (result) { 
-        // shouldn't it be ff:ff:ff:ff:ff:ff? 
-         assert_true(memcmp("66:66:66:66:66:66", result, 17) == 0);
+        /**
+         * This caused some confusion, but "f" is a numerical 102 in ASCII and
+         * (102 >> 4) => 6 and (also 102 & 0xF) => 6, so the result is '66'. Writing
+         * something alike "fff...fff" in order to retrieve "ff:ff ... ff" does
+         * not work.
+         */
+        assert_true(memcmp("66:66:66:66:66:66", result, 17) == 0);
     }
 }
 
 void test_half_byte_to_char() 
 {
-    uint8_t half_byte = 9;
+    uint8_t half_byte = 0x9;
     char result = _half_byte_to_char(half_byte);
     assert_true(result == '9');
 
-    half_byte = 11;
+    half_byte = 0xB;
     result = _half_byte_to_char(half_byte);
-    assert_true(result == ('a' + 1));
+    assert_true(result == 'b');
 }
     
 void test_ccnl_is_local_addr_invalid() 
