@@ -40,7 +40,7 @@
 #ifdef USE_LINKLAYER
 #if !(defined(__FreeBSD__) || defined(__APPLE__))
 int
-ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);
+ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, uint16_t ethtype);
 #endif
 #endif
 
@@ -56,18 +56,18 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux);
 
 #ifdef USE_IPV4
 int
-ccnl_open_udpdev(int port, struct sockaddr_in *si);
+ccnl_open_udpdev(uint16_t port, struct sockaddr_in *si);
 #endif
 
 #ifdef USE_IPV6
 int
-ccnl_open_udp6dev(int port, struct sockaddr_in6 *sin);
+ccnl_open_udp6dev(uint16_t port, struct sockaddr_in6 *sin);
 #endif
 
 #ifdef USE_LINKLAYER
-int
-ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
-                unsigned char *data, int datalen);
+ssize_t
+ccnl_eth_sendto(int sock, uint8_t *dst, uint8_t *src,
+				uint8_t *data, size_t datalen);
 #endif
 
 #ifdef USE_WPAN
@@ -90,7 +90,7 @@ ccnl_ageing(void *relay, void *aux);
 
 #if defined(USE_IPV4) || defined(USE_IPV6)
 void
-ccnl_relay_udp(struct ccnl_relay_s *relay, int port, int af, int suite);
+ccnl_relay_udp(struct ccnl_relay_s *relay, int32_t port, int af, int suite);
 #endif
 
 void
@@ -99,8 +99,8 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
-                  int udpport1, int udpport2,
-		  int udp6port1, int udp6port2, int httpport,
+                  int32_t udpport1, int32_t udpport2,
+                  int32_t udp6port1, int32_t udp6port2, int32_t httpport,
                   char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path);
 

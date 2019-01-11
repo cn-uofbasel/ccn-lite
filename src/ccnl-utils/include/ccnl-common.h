@@ -65,7 +65,7 @@
 #endif //USE_DEBUG_MALLOC
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
-struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
+struct ccnl_prefix_s* ccnl_prefix_new(char suite, uint32_t cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
 
 #include "ccnl-core.h"
@@ -112,7 +112,7 @@ const char* ccnl_enc2str(int enc);
 
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-        char *s; unsigned char *valptr; int vallen; \
+        char *s; unsigned char *valptr; size_t vallen; \
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) \
                 goto Bail; \
         s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
@@ -124,7 +124,7 @@ const char* ccnl_enc2str(int enc);
 
 #define extractStr2(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-        char *s; unsigned char *valptr; int vallen; \
+        char *s; unsigned char *valptr; size_t vallen; \
         if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0) \
                 goto Bail; \
         s = ccnl_malloc(vallen+1); if (!s) goto Bail; \

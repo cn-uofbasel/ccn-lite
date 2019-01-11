@@ -84,42 +84,42 @@
 #define CCN_DTAG_FragP          463
 #define CCN_DTAG_CCNPDU         17702112
 
-int
-ccnl_ccnb_dehead(unsigned char **buf, int *len, int *num, int *typ);
+int8_t
+ccnl_ccnb_dehead(uint8_t **buf, size_t *len, uint64_t *num, uint8_t *typ);
 
 struct ccnl_pkt_s*
-ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
+ccnl_ccnb_bytes2pkt(uint8_t *start, uint8_t **data, size_t *datalen);
 
-int
+int8_t
 ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
-int
-ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
-                       unsigned char *out, int outlen);
+int8_t
+ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, uint32_t *nonce,
+                       uint8_t *out, const uint8_t *bufend, size_t outlen, size_t *retlen);
 
-int
-ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
-                      int datalen, int *contentpos, unsigned char *out);
+int8_t
+ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, uint8_t *data, size_t datalen,
+                      size_t *contentpos, uint8_t *out, const uint8_t *bufend, size_t *retlen);
 
-int
-ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
-                  unsigned char **valptr, int *vallen);
+int8_t
+ccnl_ccnb_consume(int8_t typ, uint64_t num, uint8_t **buf, size_t *len,
+                  uint8_t **valptr, size_t *vallen);
 
 #ifdef NEEDS_PACKET_CRAFTING
-int
-ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt);
+int8_t
+ccnl_ccnb_mkHeader(uint8_t *buf, const uint8_t *bufend, uint64_t num, uint8_t tt, size_t *retlen);
 
-int
-ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
-                    char *str);
+int8_t
+ccnl_ccnb_mkStrBlob(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t tt,
+                    char *str, size_t *retlen);
 
-int
-ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
-                 char *cp, int cnt);
+int8_t
+ccnl_ccnb_mkBlob(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t tt,
+                 char *cp, size_t cnt, size_t *retlen);
 
-int
-ccnl_ccnb_mkField(unsigned char *out, unsigned int num, int typ,
-                  unsigned char *data, int datalen);
+int8_t
+ccnl_ccnb_mkField(uint8_t *out, const uint8_t *bufend, uint64_t num, uint8_t typ,
+                  uint8_t *data, size_t datalen, size_t *retlen);
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // eof

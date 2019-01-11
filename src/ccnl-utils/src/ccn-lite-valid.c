@@ -25,13 +25,15 @@
 #include "ccnl-ext-hmac.h"
 
 struct ccnl_pkt_s*
-ccnl_parse(unsigned char *data, int datalen)
+ccnl_parse(uint8_t *data, size_t datalen)
 {
     unsigned char *base = data;
-    int enc, suite = -1, skip = 0;
+    int suite = -1;
+    int32_t enc;
+    size_t skip = 0;
     struct ccnl_pkt_s *pkt = 0;
 
-    DEBUGMSG(DEBUG, "start parsing %d bytes\n", datalen);
+    DEBUGMSG(DEBUG, "start parsing %zu bytes\n", datalen);
 
     // work through explicit code switching
     while (!ccnl_switch_dehead(&data, &datalen, &enc))
@@ -40,7 +42,7 @@ ccnl_parse(unsigned char *data, int datalen)
         suite = ccnl_pkt2suite(data, datalen, &skip);
 
     if (!ccnl_isSuite(suite)) {
-        DEBUGMSG(WARNING, "?unknown packet format? %d bytes starting with 0x%02x at offset %zd\n",
+        DEBUGMSG(WARNING, "?unknown packet format? %zu bytes starting with 0x%02x at offset %zd\n",
                      datalen, *data, data - base);
         return NULL;
     }
@@ -50,9 +52,11 @@ ccnl_parse(unsigned char *data, int datalen)
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
-        int hdrlen;
+        size_t hdrlen;
 
-        hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+        if (ccnl_ccntlv_getHdrLen(data, datalen, &hdrlen)) {
+            return NULL;
+        }
         data += hdrlen;
         datalen -= hdrlen;
 
@@ -61,9 +65,8 @@ ccnl_parse(unsigned char *data, int datalen)
             DEBUGMSG(FATAL, "ccnx2015: parse error\n");
             return NULL;
         }
-        if (pkt->type != CCNX_TLV_TL_Interest &&
-                                            pkt->type != CCNX_TLV_TL_Object) {
-          DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%d)\n",
+        if (pkt->type != CCNX_TLV_TL_Interest && pkt->type != CCNX_TLV_TL_Object) {
+          DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%lu)\n",
                    pkt->type);
             return pkt;
         }
@@ -72,8 +75,8 @@ ccnl_parse(unsigned char *data, int datalen)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        int typ;
-        int len2;
+        uint64_t typ;
+        size_t len2;
 
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");
@@ -106,7 +109,9 @@ int
 main(int argc, char *argv[])
 {
     unsigned char incoming[64*1024];
-    int opt, cnt, rc, len = 0, exitBehavior = 0, signLen = 32;
+    size_t len = 0, signLen = 32;
+    ssize_t rc;
+    int opt, cnt, exitBehavior = 0;
     struct ccnl_pkt_s *pkt;
     unsigned char keyval[64], signature[32];
     char *keyfile = NULL;
@@ -124,10 +129,11 @@ main(int argc, char *argv[])
             break;
         case 'v':
 #ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
-                debug_level = (int)strtol(optarg, (char**)NULL, 10);
-            else
+            if (isdigit(optarg[0])) {
+                debug_level = (int) strtol(optarg, (char **) NULL, 10);
+            } else {
                 debug_level = ccnl_debug_str2level(optarg);
+            }
 #endif
             break;
         case 'h':
@@ -155,10 +161,15 @@ Usage:
         goto Usage;
     }
 
-    while ((rc = read(0, incoming + len, sizeof(incoming) - len)) > 0)
+    while ((rc = read(0, incoming + len, sizeof(incoming) - len)) > 0) {
+        if (rc < 0) {
+            fprintf(stderr, "read failure, aborting. errno: %d\n", errno);
+        }
         len += rc;
-    if (len <= 0)
+    }
+    if (len <= 0) {
         return 0;
+    }
 
     // parse packet pkt = ccnl_
     pkt = ccnl_parse(incoming, len);
@@ -181,10 +192,12 @@ Usage:
         cnt = 1;
         while (keys) {
             DEBUGMSG(VERBOSE, "trying key #%d\n", cnt);
-            ccnl_hmac256_keyval((unsigned char*) keys->key, keys->keylen,
-                keyval);
-            ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen,
-                signature, &signLen);
+            if (keys->keylen < 0) {
+                DEBUGMSG(ERROR, "invalid key length, packet dropped: %d\n", keys->keylen);
+                return -1;
+            }
+            ccnl_hmac256_keyval(keys->key, (size_t) keys->keylen, keyval);
+            ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen, signature, &signLen);
             if (!memcmp(signature, pkt->hmacSignature, 32)) {
                 DEBUGMSG(INFO, "signature is valid (key #%d)\n", cnt);
                 break;
