@@ -46,7 +46,7 @@ int udp_sendto(int sock, char *dest, unsigned char *data, int len);
 
 int ux_open(void);
 
-int ux_sendto(int sock, char *topath, unsigned char *data, int len);
+ssize_t ux_sendto(int sock, char *topath, uint8_t *data, size_t len);
 
 int block_on_read(int sock, float wait);
 

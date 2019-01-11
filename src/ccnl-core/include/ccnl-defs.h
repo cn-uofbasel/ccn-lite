@@ -265,4 +265,9 @@ typedef enum ccnl_enc_e {
 
 #endif //CCNL_DEFS_H
 
+//define true / false
+#define true 1
+#define false 0
+
+
 // eof

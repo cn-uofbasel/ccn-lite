@@ -60,7 +60,9 @@ typedef union {
 } ccnl_data_opts_u;
 
 struct ccnl_pktdetail_ccnb_s {
-    int minsuffix, maxsuffix, aok, scope;
+    uint32_t minsuffix, maxsuffix;
+    uint16_t aok;
+    int scope;
     struct ccnl_buf_s *nonce;
     struct ccnl_buf_s *ppkd;        /**< publisher public key digest */
 };
@@ -74,23 +76,24 @@ struct ccnl_pktdetail_ccntlv_s {
  */
 struct ccnl_pktdetail_ndntlv_s {
     /* Interest */
-    int minsuffix, maxsuffix, mbf, scope;
+    uint64_t minsuffix, maxsuffix, scope;
+    uint8_t mbf;
     struct ccnl_buf_s *nonce;      /**< nonce */
     struct ccnl_buf_s *ppkl;       /**< publisher public key locator */
-    uint32_t interestlifetime;     /**< interest lifetime */
+    uint64_t interestlifetime;     /**< interest lifetime */
     /* Data */
-    uint32_t freshnessperiod;      /**< defines how long a node has to wait (after the arrival of this data before) marking it “non-fresh” */
+    uint64_t freshnessperiod;      /**< defines how long a node has to wait (after the arrival of this data before) marking it “non-fresh” */
 };
 
 struct ccnl_pkt_s {
     struct ccnl_buf_s *buf;        /**< the packet's bytes */
     struct ccnl_prefix_s *pfx;     /**< prefix/name */
-    unsigned char *content;        /**< pointer into the data buffer */
-    int contlen;
-    unsigned int type;   /**< suite-specific value (outermost type) */
+    uint8_t *content;              /**< pointer into the data buffer */
+    size_t contlen;
+    uint64_t type;                 /**< suite-specific value (outermost type) */
     union {
-        int final_block_id;
-        unsigned int seqno;
+        int64_t final_block_id;
+        uint64_t seqno;
     } val;
     union {
         struct ccnl_pktdetail_ccnb_s   ccnb;
@@ -98,9 +101,9 @@ struct ccnl_pkt_s {
         struct ccnl_pktdetail_ndntlv_s ndntlv;
     } s;                           /**< suite specific packet details */
 #ifdef USE_HMAC256
-    unsigned char *hmacStart;
-    int hmacLen;
-    unsigned char *hmacSignature;
+    uint8_t *hmacStart;
+    size_t hmacLen;
+    uint8_t *hmacSignature;
 #endif
     unsigned int flags;
     char suite;
@@ -134,8 +137,8 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt);
  *
  * @return              length of the created component
 */
-int
-ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
+size_t
+ccnl_pkt_mkComponent(int suite, uint8_t *dst, char *src, size_t srclen);
 
 /**
  * @brief prepend a component to buf

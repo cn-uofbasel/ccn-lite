@@ -244,7 +244,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     }
     for (i = 0; i < lev; i++)
         fprintf(stderr, "  ");
-    fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->flatlen);
+    fprintf(stderr, "%s (0x%x, len=%zu)\n", n, t, x->flatlen);
 
     switch (t) {
     case LRPC_APPLICATION:
@@ -292,7 +292,8 @@ int
 main(int argc, char *argv[])
 {
     unsigned char request[64*1024], reply[64*1024], tmp[10];
-    int cnt, opt, reqlen, replen, port, sock = 0, switchlen;
+    int cnt, opt, port, sock = 0;
+    size_t reqlen, replen, switchlen;
     struct sockaddr sa;
     char *addr = NULL, *udp = NULL, *ux = NULL, noreply = 0;
     float wait = 3.0;
@@ -363,33 +364,36 @@ Usage:
         int n = random();
 
         nonce = calloc(1, sizeof(*nonce));
+        if (!nonce) {
+            return -1;
+        }
         nonce->type = LRPC_NONCE;
-        nonce->flatlen = -1;
         nonce->aux = malloc(sizeof(int));
         memcpy(nonce->aux, &n, sizeof(int));
         nonce->u.binlen = sizeof(int);
         nonce->nextinseq = expr;
 
         req = calloc(1, sizeof(*req));
+        if (!req) {
+            free(nonce);
+            return -1;
+        }
         req->type = LRPC_PT_REQUEST;
-        req->flatlen = -1;
         req->aux = nonce;
         expr = req;
     }
 
     reqlen = sizeof(tmp);
-    switchlen = ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &reqlen, tmp);
-    if (switchlen > 0)
-        memcpy(request, tmp+reqlen, switchlen);
-    else // this should not happen
-        switchlen = 0;
+    if (ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &reqlen, tmp, &switchlen)) {
+        return -1;
+    }
+    memcpy(request, tmp+reqlen, switchlen);
 
-    reqlen = ccnl_rdr_serialize(expr, request + switchlen,
-                                sizeof(request) - switchlen);
-    if (reqlen <= 0) {
+    if (ccnl_rdr_serialize(expr, request + switchlen,
+                           sizeof(request) - switchlen, &reqlen)) {
         DEBUGMSG(ERROR, "could no serialize\n");
-    } else
-        reqlen += switchlen;
+    }
+    reqlen += switchlen;
 
 //    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
 //    write(1, request, reqlen);
@@ -417,31 +421,40 @@ Usage:
     }
 
     for (cnt = 0; cnt < 3; cnt++) {
-        DEBUGMSG(DEBUG, "sending %d bytes\n", reqlen);
+        DEBUGMSG(DEBUG, "sending %zu bytes\n", reqlen);
         if (sendto(sock, request, reqlen, 0, &sa, sizeof(sa)) < 0) {
             perror("sendto");
             myexit(1);
         }
-        if (noreply)
+        if (noreply) {
             goto done;
+        }
 
         for (;;) { // wait for a content pkt (ignore interests)
-            int offs = 0;
+            size_t offs = 0;
+            ssize_t recvlen;
 
-            if (block_on_read(sock, wait) <= 0) // timeout
+            if (block_on_read(sock, wait) <= 0) {// timeout
                 break;
-            replen = recv(sock, reply, sizeof(reply), 0);
+            }
+            recvlen = recv(sock, reply, sizeof(reply), 0);
+            if (recvlen < 0) { //recv failure
+                DEBUGMSG(ERROR, "receive failed: %d\n", errno);
+                break;
+            }
+            replen = (size_t) recvlen;
 
-            DEBUGMSG(DEBUG, "received %d bytes\n", replen);
+            DEBUGMSG(DEBUG, "received %zu bytes\n", replen);
             if (replen > 0) {
                 DEBUGMSG(DEBUG, "  suite=%d\n",
                          ccnl_pkt2suite(reply, replen, NULL));
             }
 
-            if (replen <= 0)
+            if (replen <= 0) {
                 goto done;
+            }
             if (ccnl_pkt2suite(reply, replen, &offs) != CCNL_SUITE_LOCALRPC ||
-                                                reply[offs] != LRPC_PT_REPLY) {
+                               reply[offs] != LRPC_PT_REPLY) {
                 // not a Reply pkt
                 DEBUGMSG(WARNING, "skipping non-Reply packet 0x%02x 0x%02x\n",
                          *reply, reply[offs]);
@@ -450,8 +463,9 @@ Usage:
             write(1, reply, replen);
             myexit(0);
         }
-        if (cnt < 2)
+        if (cnt < 2) {
             DEBUGMSG(INFO, "re-sending RPC request\n");
+        }
     }
     DEBUGMSG(ERROR, "timeout (no RPC reply received so far)\n");
 
