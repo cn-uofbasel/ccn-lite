@@ -23,8 +23,11 @@
 #ifndef CCNL_PKT_SWITCH_H
 #define CCNL_PKT_SWITCH_H
 
-int
-ccnl_switch_dehead(unsigned char **buf, int *len, int *code);
+#include <stdint.h>
+#include <stddef.h>
+
+int8_t
+ccnl_switch_dehead(uint8_t **buf, size_t *len, int32_t *code);
 
 int
 ccnl_enc2suite(int enc);
@@ -33,8 +36,8 @@ ccnl_enc2suite(int enc);
 int
 ccnl_switch_prependCodeVal(unsigned long val, int *offset, unsigned char *buf);
 
-int
-ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf);
+int8_t
+ccnl_switch_prependCoding(uint64_t code, size_t *offset, uint8_t *buf, size_t *res);
 
 #endif
 

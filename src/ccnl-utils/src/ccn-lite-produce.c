@@ -31,22 +31,23 @@ main(int argc, char *argv[])
 {
     // char *private_key_path = 0;
     //    char *witness = 0;
-    unsigned char out[65*1024];
+    uint8_t out[65*1024];
     char *publisher = 0;
-    char *infname = 0, *outdirname = 0, *outfname;
-    int f, fout, contentlen = 0, opt, plen;
+    char *infname = 0, *outdirname = 0, *outfname = 0;
+    size_t contentlen = 0, plen;
+    int f, fout, opt;
     //    int suite = CCNL_SUITE_DEFAULT;
     int suite = CCNL_SUITE_CCNTLV;
-    int chunk_size = CCNL_MAX_CHUNK_SIZE;
+    size_t chunk_size = CCNL_MAX_CHUNK_SIZE;
     struct ccnl_prefix_s *name;
     ccnl_data_opts_u data_opts;
 
     while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:v:")) != -1) {
         switch (opt) {
         case 'c':
-            chunk_size = (int)strtol(optarg, (char **)NULL, 10);
+            chunk_size = (size_t) strtol(optarg, (char **) NULL, 10);
             if (chunk_size > CCNL_MAX_CHUNK_SIZE) {
-                DEBUGMSG(WARNING, "max chunk size is %d (%d is to large), using max chunk size\n", CCNL_MAX_CHUNK_SIZE, chunk_size);
+                DEBUGMSG(WARNING, "max chunk size is %d (%zu is to large), using max chunk size\n", CCNL_MAX_CHUNK_SIZE, chunk_size);
                 chunk_size = CCNL_MAX_CHUNK_SIZE;
             }
             break;
@@ -71,10 +72,9 @@ main(int argc, char *argv[])
             publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-            DEBUGMSG(ERROR,
-             "publisher key digest has wrong length (%d instead of 32)\n",
-             plen);
-            exit(-1);
+                DEBUGMSG(ERROR, "publisher key digest has wrong length (%zu instead of 32)\n",
+                         plen);
+                exit(-1);
             }
             break;
         case 's':
@@ -110,12 +110,14 @@ Usage:
         }
     }
 
-    if (!ccnl_isSuite(suite))
+    if (!ccnl_isSuite(suite)) {
         goto Usage;
+    }
 
     // mandatory url
-    if (!argv[optind])
+    if (!argv[optind]) {
         goto Usage;
+    }
 
     char *url_orig = argv[optind];
     char url[strlen(url_orig)];
@@ -123,7 +125,7 @@ Usage:
 
     int status;
     struct stat st_buf;
-    if(outdirname) {
+    if (outdirname) {
         // Check if outdirname is a directory and open it as a file
         status = stat(outdirname, &st_buf);
         if (status != 0) {
@@ -137,7 +139,7 @@ Usage:
             goto Usage;
         }
     }
-    if(infname) {
+    if (infname) {
         // Check if outdirname is a directory and open it as a file
         status = stat(infname, &st_buf);
         if (status != 0) {
@@ -155,7 +157,7 @@ Usage:
             perror("file open:");
         }
     } else {
-      f = 0;
+        f = 0;
     }
 
     char default_file_name[2] = "c";
@@ -165,10 +167,17 @@ Usage:
         DEBUGMSG(WARNING, "filename -f without -o output dir does nothing\n");
     }
 
-    char *chunk_buf;
-    chunk_buf = ccnl_malloc(chunk_size * sizeof(unsigned char));
-    int chunk_len, is_last = 0, offs = -1;
-    unsigned int chunknum = 0;
+    uint8_t *chunk_buf;
+    chunk_buf = ccnl_malloc(chunk_size * sizeof(uint8_t));
+    if (!chunk_buf) {
+        DEBUGMSG(ERROR, "Error: Failed to allocate memory\n");
+        exit(1);
+    }
+    size_t chunk_len;
+    ssize_t s_chunk_len;
+    int8_t is_last = 0;
+    size_t offs;
+    uint32_t chunknum = 0;
 
     char outpathname[255];
     char fileext[10];
@@ -189,14 +198,36 @@ Usage:
     
     FILE *fp = fopen(infname, "r");
     fseek(fp, 0L, SEEK_END);
-    int sz = ftell(fp);
+    long sz = ftell(fp);
+    size_t isz;
+    if (sz < 0) {
+        DEBUGMSG(ERROR, "Error reading input file offset; error: %d\n", errno);
+        exit(1);
+    }
+    if ((unsigned long) sz > SIZE_MAX) {
+        DEBUGMSG(ERROR, "Input file offset exceeds bounds: %ld", sz);
+        exit(1);
+    }
+    isz = (size_t) sz;
     rewind(fp);
     fclose(fp);
 
-    unsigned int lastchunknum = sz/chunk_size;
-    if (sz % chunk_size == 0) --lastchunknum;
+    size_t lastchunknum_s = (isz / chunk_size);
+    if (lastchunknum_s > UINT32_MAX) {
+        DEBUGMSG(ERROR, "lastchunknum exceeds bounds: %zu", lastchunknum_s);
+        exit(1);
+    }
+    uint32_t lastchunknum = (uint32_t) lastchunknum_s;
+    if (sz % chunk_size == 0) {
+        --lastchunknum;
+    }
 
-    chunk_len = read(f, chunk_buf, chunk_size);
+    s_chunk_len = read(f, chunk_buf, chunk_size);
+    if (s_chunk_len < 0) {
+        DEBUGMSG(ERROR, "Error reading input file; error: %d\n", errno);
+        exit(1);
+    }
+    chunk_len = (size_t) s_chunk_len;
     while (!is_last && chunk_len > 0) {
 
         if (chunk_len < chunk_size) {
@@ -209,19 +240,20 @@ Usage:
 
         switch (suite) {
         case CCNL_SUITE_CCNTLV:
-            contentlen = ccnl_ccntlv_prependContentWithHdr(name,
-                            (unsigned char *)chunk_buf, chunk_len,
-                            &lastchunknum, //is_last ? &chunknum : NULL, 
-                            NULL, // int *contentpos
-                            &offs, out);
+            if (ccnl_ccntlv_prependContentWithHdr(name, chunk_buf, chunk_len, &lastchunknum,
+                                                  //is_last ? &chunknum : NULL,
+                                                  NULL, // int *contentpos
+                                                  &offs, out, &contentlen)) {
+                goto Error;
+            }
             break;
         case CCNL_SUITE_NDNTLV:
             data_opts.ndntlv.finalblockid = lastchunknum;
-            contentlen = ccnl_ndntlv_prependContent(name,
-                                 (unsigned char *) chunk_buf, chunk_len,
-                                 NULL,
-                                 &(data_opts.ndntlv),// is_last ? &chunknum : NULL,
-                                 &offs, out);
+            if (ccnl_ndntlv_prependContent(name, chunk_buf, chunk_len, NULL,
+                                           &(data_opts.ndntlv),// is_last ? &chunknum : NULL,
+                                           &offs, out, &contentlen)) {
+                goto Error;
+            }
             break;
         default:
             DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
@@ -231,7 +263,6 @@ Usage:
 
         if (outdirname) {
             sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
-//            DEBUGMSG(INFO, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
 
             DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);
 
@@ -245,7 +276,12 @@ Usage:
 
         chunknum++;
         if (!is_last) {
-            chunk_len = read(f, chunk_buf, chunk_size);
+            s_chunk_len = read(f, chunk_buf, chunk_size);
+            if (s_chunk_len < 0) {
+                DEBUGMSG(ERROR, "Error reading input file; error: %d\n", errno);
+                exit(1);
+            }
+            chunk_len = (size_t) s_chunk_len;
         }
     }
 

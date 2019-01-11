@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #ifdef USE_HTTP_STATUS
 #include "ccnl-http-status.h"
@@ -150,7 +151,7 @@ main(int argc, char **argv)
     char *datadir = NULL, *ethdev = NULL, *crypto_sock_path = NULL;
     char *wpandev = NULL;
     int suite = CCNL_SUITE_DEFAULT;
-    struct ccnl_relay_s *theRelay = ccnl_malloc(sizeof(struct ccnl_relay_s));
+    struct ccnl_relay_s *theRelay = ccnl_calloc(1, sizeof(struct ccnl_relay_s));
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
 #else
@@ -170,21 +171,42 @@ main(int argc, char **argv)
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:6:v:w:x:")) != -1) {
         switch (opt) {
-        case 'c':
-            max_cache_entries = (int)strtol(optarg, (char**)NULL, 10);
+        case 'c': {
+            long max_cache_entries_l;
+            errno = 0;
+            max_cache_entries_l = strtol(optarg, (char **) NULL, 10);
+            if (errno || max_cache_entries_l < INT_MIN || max_cache_entries_l > INT_MAX) {
+                goto usage;
+            }
+            max_cache_entries = (int) max_cache_entries_l;
             break;
+        }
         case 'd':
             datadir = optarg;
             break;
         case 'e':
             ethdev = optarg;
             break;
-        case 'g':
-            inter_pkt_interval =  (int)strtol(optarg, (char**)NULL, 10);
+        case 'g': {
+            long inter_pkt_interval_l;
+            errno = 0;
+            inter_pkt_interval_l = strtol(optarg, (char **) NULL, 10);
+            if (errno || inter_pkt_interval_l < INT_MIN || inter_pkt_interval_l > INT_MAX) {
+                goto usage;
+            }
+            inter_pkt_interval = (int) inter_pkt_interval_l;
             break;
-        case 'i':
-            inter_ccn_interval =  (int)strtol(optarg, (char**)NULL, 10);
+        }
+        case 'i': {
+            long inter_ccn_interval_l;
+            errno = 0;
+            inter_ccn_interval_l = strtol(optarg, (char **) NULL, 10);
+            if (errno || inter_ccn_interval_l < INT_MIN || inter_ccn_interval_l > INT_MAX) {
+                goto usage;
+            }
+            inter_ccn_interval = (int) inter_ccn_interval_l;
             break;
+        }
 #ifdef USE_ECHO
         case 'o':
             echopfx = optarg;
@@ -198,27 +220,67 @@ main(int argc, char **argv)
             if (!ccnl_isSuite(suite))
                 goto usage;
             break;
-        case 't':
-            httpport =  (int)strtol(optarg, (char**)NULL, 10);
+        case 't': {
+            long httpport_l;
+            errno = 0;
+            httpport_l = strtol(optarg, (char **) NULL, 10);
+            if (errno || httpport_l < INT_MIN || httpport_l > INT_MAX) {
+                goto usage;
+            }
+            httpport = (int) httpport_l;
             break;
+        }
         case 'u':
-            if (udpport1 == -1)
-                udpport1 = (int)strtol(optarg, (char**)NULL, 10);
-            else
-                udpport2 = (int)strtol(optarg, (char**)NULL, 10);
+            if (udpport1 == -1) {
+                long udpport1_l;
+                errno = 0;
+                udpport1_l = strtol(optarg, (char **) NULL, 10);
+                if (errno || udpport1_l < INT_MIN || udpport1_l > INT_MAX) {
+                    goto usage;
+                }
+                udpport1 = (int) udpport1_l;
+            } else {
+                long udpport2_l;
+                errno = 0;
+                udpport2_l = strtol(optarg, (char **) NULL, 10);
+                if (errno || udpport2_l < INT_MIN || udpport2_l > INT_MAX) {
+                    goto usage;
+                }
+                udpport2 = (int) udpport2_l;
+            }
             break;
         case '6':
-            if (udp6port1 == -1)
-                udp6port1 = (int)strtol(optarg, (char**)NULL, 10);
-            else
-                udp6port2 = (int)strtol(optarg, (char**)NULL, 10);
+            if (udp6port1 == -1) {
+                long udp6port1_l;
+                errno = 0;
+                udp6port1_l = strtol(optarg, (char **) NULL, 10);
+                if (errno || udp6port1_l < INT_MIN || udp6port1_l > INT_MAX) {
+                    goto usage;
+                }
+                udp6port1 = (int) udp6port1_l;
+            } else {
+                long udp6port2_l;
+                errno = 0;
+                udp6port2_l = strtol(optarg, (char **) NULL, 10);
+                if (errno || udp6port2_l < INT_MIN || udp6port2_l > INT_MAX) {
+                    goto usage;
+                }
+                udp6port2 = (int) udp6port2_l;
+            }
             break;
         case 'v':
 #ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
-                debug_level = (int)strtol(optarg, (char**)NULL, 10);
-            else
+            if (isdigit(optarg[0])) {
+                long debuglevel_l;
+                errno = 0;
+                debuglevel_l = strtol(optarg, (char **) NULL, 10);
+                if (errno || debuglevel_l < INT_MIN || debuglevel_l > INT_MAX) {
+                    goto usage;
+                }
+                debug_level = (int) debuglevel_l;
+            } else {
                 debug_level = ccnl_debug_str2level(optarg);
+            }
 #endif
             break;
 #ifdef USE_WPAN
@@ -264,10 +326,12 @@ usage:
     }
 
     opt = ccnl_suite2defaultPort(suite);
-    if (udpport1 < 0)
+    if (udpport1 < 0) {
         udpport1 = opt;
-    if (httpport < 0)
+    }
+    if (httpport < 0) {
         httpport = opt;
+    }
 
     ccnl_core_init();
 
@@ -280,10 +344,11 @@ usage:
 //    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     ccnl_relay_config(theRelay, ethdev, wpandev, udpport1, udpport2,
-		      udp6port1, udp6port2, httpport,
+                      udp6port1, udp6port2, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);
-    if (datadir)
+    if (datadir) {
         ccnl_populate_cache(theRelay, datadir);
+    }
 
 #ifdef USE_ECHO
     if (echopfx) {
@@ -299,8 +364,9 @@ usage:
 
     ccnl_io_loop(theRelay);
 
-    while (eventqueue)
+    while (eventqueue) {
         ccnl_rem_timer(eventqueue);
+    }
 
     ccnl_core_cleanup(theRelay);
 #ifdef USE_HTTP_STATUS

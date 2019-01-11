@@ -61,9 +61,15 @@ main(int argc, char *argv[])
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
-        case 'n':
-            chunknum =  (int)strtol(optarg, (char **)NULL, 10);
+        case 'n': {
+            errno = 0;
+            unsigned long chunknum_ul = strtoul(optarg, (char **) NULL, 10);
+            if (errno || chunknum_ul > UINT_MAX) {
+                goto usage;
+            }
+            chunknum = (unsigned int) chunknum_ul;
             break;
+        }
         case 's':
             suite = ccnl_str2suite(optarg);
             if (!ccnl_isSuite(suite))
@@ -81,7 +87,7 @@ main(int argc, char *argv[])
 #endif
             break;
         case 'w':
-            wait = (float)strtof(optarg, (char**) NULL);
+            wait = strtof(optarg, (char**) NULL);
             break;
         case 'x':
             ux = optarg;
@@ -139,7 +145,7 @@ usage:
             argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
-        int nonce = random();
+        int32_t nonce = (int32_t) random();
         int rc;
         struct ccnl_face_s dummyFace;
         ccnl_interest_opts_u int_opts;
@@ -152,6 +158,10 @@ usage:
         memset(&dummyFace, 0, sizeof(dummyFace));
 
         buf = ccnl_mkSimpleInterest(prefix, &int_opts);
+        if (!buf) {
+            fprintf(stderr, "Failed to create interest.\n");
+            myexit(1);
+        }
 
         DEBUGMSG(DEBUG, "interest has %zd bytes\n", buf->datalen);
 /*
@@ -175,11 +185,14 @@ usage:
 
         for (;;) { // wait for a content pkt (ignore interests)
             unsigned char *cp = out;
-            int enc, suite2, len2;
+            int32_t enc;
+            int suite2;
+            size_t len2;
             DEBUGMSG(TRACE, "  waiting for packet\n");
 
-            if (block_on_read(sock, wait) <= 0) // timeout
+            if (block_on_read(sock, wait) <= 0) { // timeout
                 break;
+            }
             len = recv(sock, out, sizeof(out), 0);
 
             DEBUGMSG(DEBUG, "received %d bytes\n", len);
@@ -192,8 +205,9 @@ usage:
 */
             suite2 = -1;
             len2 = len;
-            while (!ccnl_switch_dehead(&cp, &len2, &enc))
+            while (!ccnl_switch_dehead(&cp, &len2, &enc)) {
                 suite2 = ccnl_enc2suite(enc);
+            }
             if (suite2 != -1 && suite2 != suite) {
                 DEBUGMSG(DEBUG, "  unknown suite %d\n", suite);
                 continue;

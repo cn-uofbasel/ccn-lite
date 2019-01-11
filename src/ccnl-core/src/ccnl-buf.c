@@ -44,12 +44,14 @@ ccnl_buf_new(void *data, size_t len)
 {
     struct ccnl_buf_s *b = (struct ccnl_buf_s*) ccnl_malloc(sizeof(*b) + len);
 
-    if (!b)
+    if (!b) {
         return NULL;
+    }
     b->next = NULL;
     b->datalen = len;
-    if (data)
+    if (data) {
         memcpy(b->data, data, len);
+    }
     return b;
 }
 
