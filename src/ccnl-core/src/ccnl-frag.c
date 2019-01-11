@@ -23,7 +23,7 @@
 #include "ccnl-frag.h"
 #include "ccnl-malloc.h"
 #include "ccnl-pkt.h"
-#include "ccnl-logging.h" 
+#include "ccnl-logging.h"
 
 #ifdef USE_FRAG
 

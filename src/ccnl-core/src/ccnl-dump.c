@@ -215,9 +215,9 @@ ccnl_dump(int lev, int typ, void *p)
             break;
         case CCNL_PACKET:
             INDENT(lev);
-            CONSOLE("%p PACKET %s typ=%d cont=%p contlen=%d finalBI=%d flags=0x%04x\n",
-                    (void *) pkt, ccnl_suite2str(pkt->suite), pkt->type,
-                    (void *) pkt->content, pkt->contlen, pkt->val.final_block_id,
+            CONSOLE("%p PACKET %s typ=%llu cont=%p contlen=%zd finalBI=%lld flags=0x%04x\n",
+                    (void *) pkt, ccnl_suite2str(pkt->suite), (unsigned long long) pkt->type,
+                    (void *) pkt->content, pkt->contlen, (long long)pkt->val.final_block_id,
                     pkt->flags);
             ccnl_dump(lev + 1, CCNL_PREFIX, pkt->pfx);
             switch (pkt->suite) {
@@ -253,9 +253,9 @@ ccnl_dump(int lev, int typ, void *p)
 #ifdef USE_SUITE_NDNTLV
                 case CCNL_SUITE_NDNTLV:
                     INDENT(lev + 1);
-                    CONSOLE("minsfx=%d maxsfx=%d mbf=%d scope=%d",
-                            pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix,
-                            pkt->s.ndntlv.mbf, pkt->s.ndntlv.scope);
+                    CONSOLE("minsfx=%llu maxsfx=%llu mbf=%d scope=%llu",
+                            (unsigned long long) pkt->s.ndntlv.minsuffix, (unsigned long long) pkt->s.ndntlv.maxsuffix,
+                            pkt->s.ndntlv.mbf, (unsigned long long) pkt->s.ndntlv.scope);
                     if (pkt->s.ndntlv.nonce) {
                         CONSOLE(" nonce=");
                         blob(pkt->s.ndntlv.nonce);

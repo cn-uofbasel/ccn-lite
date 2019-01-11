@@ -104,7 +104,7 @@ ccnl_suite2defaultPort(int suite)
     return NDN_UDP_PORT;
 }
 
-bool
+uint8_t
 ccnl_isSuite(int suite)
 {
 #ifdef USE_SUITE_CCNB
@@ -127,35 +127,43 @@ ccnl_isSuite(int suite)
 }
 
 int
-ccnl_pkt2suite(unsigned char *data, int len, int *skip)
+ccnl_pkt2suite(uint8_t *data, size_t len, size_t *skip)
 {
-    int enc, suite = -1;
-    unsigned char *olddata = data;
+    int suite = -1;
+    int32_t enc;
+    uint8_t *olddata = data;
 
-    if (skip)
+    if (skip) {
         *skip = 0;
+    }
 
-    if (len <= 0)
+    if (len <= 0) {
         return -1;
+    }
 
     DEBUGMSG_CUTL(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
 
-    while (!ccnl_switch_dehead(&data, &len, &enc))
+    while (!ccnl_switch_dehead(&data, &len, &enc)) {
         suite = ccnl_enc2suite(enc);
-    if (skip)
+    }
+    if (skip) {
         *skip = data - olddata;
-    if (suite >= 0)
+    }
+    if (suite >= 0) {
         return suite;
+    }
 
 #ifdef USE_SUITE_CCNB
-    if (*data == 0x04)
+    if (*data == 0x04) {
         return CCNL_SUITE_CCNB;
+    }
     if (*data == 0x01 && len > 1 && // check for CCNx2015 and Cisco collision:
                                 (data[1] != 0x00 && // interest
                                  data[1] != 0x01 && // data
                                  data[1] != 0x02 && // interestReturn
-                                 data[1] != 0x03))  // fragment
+                                 data[1] != 0x03)) {  // fragment
         return CCNL_SUITE_CCNB;
+    }
 #endif
 
 #ifdef USE_SUITE_CCNTLV
@@ -163,21 +171,24 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
             data[1] == CCNX_PT_Fragment ||
-            data[1] == CCNX_PT_NACK)
+            data[1] == CCNX_PT_NACK) {
             return CCNL_SUITE_CCNTLV;
+        }
     }
 #endif
 
 #ifdef USE_SUITE_NDNTLV
     if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
-        *data == NDN_TLV_Fragment)
+        *data == NDN_TLV_Fragment) {
         return CCNL_SUITE_NDNTLV;
+    }
 #endif
 
 /*
 #ifdef USE_SUITE_LOCALRPC
-        if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY)
+        if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY) {
             return CCNL_SUITE_LOCALRPC;
+        }
 #endif
     }
 */
