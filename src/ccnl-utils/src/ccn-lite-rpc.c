@@ -175,6 +175,7 @@ parsePrefixTerm(int lev, char **cpp)
                     free(term);
                 }
 
+                free(t2);
                 DEBUGMSG(ERROR, "parsePrefixTerm error: missing )\n");
                 return 0;
             }
@@ -365,9 +366,7 @@ Usage:
 
         nonce = calloc(1, sizeof(*nonce));
         if (!nonce) {
-            if (expr) {
-                free(expr);
-            }
+            free(expr);
             return -1;
         }
         nonce->type = LRPC_NONCE;
@@ -378,9 +377,7 @@ Usage:
 
         req = calloc(1, sizeof(*req));
         if (!req) {
-            if (expr) {
-                free(expr);
-            }
+            free(expr);
             free(nonce);
             return -1;
         }
@@ -391,9 +388,7 @@ Usage:
 
     reqlen = sizeof(tmp);
     if (ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &reqlen, tmp, &switchlen)) {
-        if (expr) {
-            free(expr);
-        }
+        free(expr);
 
         return -1;
     }
