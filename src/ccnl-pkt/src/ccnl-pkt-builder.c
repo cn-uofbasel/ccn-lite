@@ -216,6 +216,8 @@ ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
+            (void) tmpend;
+
             if (!opts) {
                 opts = &default_opts;
             }
