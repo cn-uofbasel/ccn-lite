@@ -1638,6 +1638,8 @@ main(int argc, char *argv[])
             port = strtol(strtok(NULL, "/"), NULL, 0);
             use_udp = 1;
             printf("udp: <%s> <%i>\n", udp, port);
+
+            free(udp_temp);
             break;
         case 'x':
             ux = optarg;
