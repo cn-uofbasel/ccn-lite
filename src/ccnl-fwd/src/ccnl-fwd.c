@@ -122,7 +122,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_RONR
     /* if we receive a chunk, we assume more chunks of this content may be
      * retrieved along the same path */
-    if ((c->pkt->pfx->chunknum) && (*(c->pkt->pfx->chunknum) >= 0)) {
+    if (c->pkt->pfx->chunknum) {
         struct ccnl_prefix_s *pfx_wo_chunk = ccnl_prefix_dup(c->pkt->pfx);
         pfx_wo_chunk->compcnt--;
         ccnl_free(pfx_wo_chunk->chunknum);
