@@ -370,7 +370,7 @@ Usage:
             return -1;
         }
         nonce->type = LRPC_NONCE;
-        nonce->aux = malloc(sizeof(int));
+        nonce->aux = malloc(sizeof(struct rdr_ds_s));
         memcpy(nonce->aux, &n, sizeof(int));
         nonce->u.binlen = sizeof(int);
         nonce->nextinseq = expr;
