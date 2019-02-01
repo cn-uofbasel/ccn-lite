@@ -1605,6 +1605,7 @@ main(int argc, char *argv[])
     struct sockaddr_in si;
     int opt, i = 0, ret = -1;
     FILE *f = NULL;
+    char *udp_temp = NULL;
 
     while ((opt = getopt(argc, argv, "hk:mp:v:u:x:")) != -1) {
         switch (opt) {
@@ -1627,11 +1628,18 @@ main(int argc, char *argv[])
 #endif
             break;
         case 'u':
-            udp = strdup(optarg);
-            udp = strtok(udp, "/");
+            udp_temp = strdup(optarg);
+            /** strdup failed to allocate memory */
+            if (!udp_temp) {
+                return -1;
+            }
+
+            udp = strtok(udp_temp, "/");
             port = strtol(strtok(NULL, "/"), NULL, 0);
             use_udp = 1;
             printf("udp: <%s> <%i>\n", udp, port);
+
+            free(udp_temp);
             break;
         case 'x':
             ux = optarg;
