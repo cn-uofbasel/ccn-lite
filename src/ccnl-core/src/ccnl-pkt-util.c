@@ -19,7 +19,6 @@
  * 2017-06-20 created
  */
 
-#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-util.h"
 #include "ccnl-defs.h"
 #include "ccnl-os-time.h"
@@ -28,17 +27,6 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-logging.h"
-#else
-#include <ccnl-pkt-util.h>
-#include <ccnl-defs.h>
-#include <ccnl-os-time.h>
-#include <ccnl-pkt-ccnb.h>
-#include <ccnl-pkt-ccntlv.h>
-#include <ccnl-pkt-ndntlv.h>
-#include <ccnl-pkt-switch.h>
-#include <ccnl-logging.h>
-#endif
-
 
 int
 ccnl_str2suite(char *cp)
