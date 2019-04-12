@@ -63,11 +63,13 @@ ccnl_prefix_new(char suite, uint32_t cnt)
 void
 ccnl_prefix_free(struct ccnl_prefix_s *p)
 {
-    ccnl_free(p->bytes);
-    ccnl_free(p->comp);
-    ccnl_free(p->complen);
-    ccnl_free(p->chunknum);
-    ccnl_free(p);
+    if (p) {
+        ccnl_free(p->bytes);
+        ccnl_free(p->comp);
+        ccnl_free(p->complen);
+        ccnl_free(p->chunknum);
+        ccnl_free(p);
+    }
 }
 
 struct ccnl_prefix_s*
@@ -732,3 +734,19 @@ ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     return buf;
 }
 
+int8_t  
+ccnl_prefix_compare(char *first, struct ccnl_prefix_s *second) 
+{
+    int result = -1;
+
+    char *spref = ccnl_prefix_to_path(second);
+
+    if (spref) {
+        /** check if prefixes match*/
+        if ((result = memcmp(first, spref, strlen(spref))) == 0) {
+            ccnl_free(spref);
+        }
+    }
+    
+    return result;
+}

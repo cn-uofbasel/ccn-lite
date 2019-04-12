@@ -32,16 +32,16 @@
 
 struct ccnl_content_s;
 
-struct ccnl_prefix_s {
-    uint8_t **comp; /**< name components of the prefix without '\0' at the end */
-    size_t *complen; /**< length of the name components */
-    uint32_t compcnt; /**< number of name components */
-    char suite; /**< type of the packet format */
-    uint8_t *nameptr; /**< binary name (for fast comparison) */
-    ssize_t namelen; /**<  valid length of name memory */
-    uint8_t *bytes;   /**< memory for name component copies */
-    uint32_t *chunknum;   /**< if defined, number of the chunk else -1 */
-};
+typedef struct ccnl_prefix_s {
+    unsigned char **comp;   /**< name components of the prefix without '\0' at the end */
+    int *complen;           /**< length of the name components */
+    int compcnt;            /**< number of name components */
+    char suite;             /**< type of the packet format */
+    unsigned char *nameptr; /**< binary name (for fast comparison) */
+    ssize_t namelen;        /**<  valid length of name memory */
+    unsigned char *bytes;   /**< memory for name component copies */
+    int *chunknum;          /**< if defined, number of the chunk else -1 */
+} ccnl_cs_name_t;
 
 /**
  * @brief Create a new CCNL_Prefix datastructure
@@ -217,6 +217,12 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
 */
 char*
 ccnl_prefix_debug_info(struct ccnl_prefix_s *p);
+
+/**
+ *
+ */
+int8_t 
+ccnl_prefix_compare(char *first, struct ccnl_prefix_s *second);
 
 #endif //EOF
 /** @} */
