@@ -33,7 +33,7 @@
 #include "ccn-lite-riot.h"
 #endif
 
-
+#include "ccnl-cs.h"
 
 struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
@@ -514,35 +514,23 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
     }
 }
 
-struct ccnl_content_s*
-ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
+/**
+ *
+ */
+void
+ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *content)
+//ccnl_content_remove(struct ccnl_relay_s *ccnl, ccnl_cs_content_t *content)
 {
-    struct ccnl_content_s *c2;
     DEBUGMSG_CORE(TRACE, "ccnl_content_remove\n");
-
-    c2 = c->next;
-    DBL_LINKED_LIST_REMOVE(ccnl->contents, c);
-
-//    free_content(c);
-    if (c->pkt) {
-        ccnl_prefix_free(c->pkt->pfx);
-        ccnl_free(c->pkt->buf);
-        ccnl_free(c->pkt);
-    }
-    //    ccnl_prefix_free(c->name);
-    ccnl_free(c);
-
-    ccnl->contentcnt--;
-#ifdef CCNL_RIOT
-    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&c->evtmsg_cstimeout);
-#endif
-    return c2;
+    (void)ccnl;
+    (void)content;
+    // TODO: content decrement muss noch rein ccnl->contentcnt--;
+//    ccnl_cs_remove(ccnl->content_options, content->packet->pfx);
 }
 
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
-    struct ccnl_content_s *cit;
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
@@ -550,11 +538,9 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                   ccnl->contentcnt, ccnl->max_cache_entries,
                   (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? (signed) *(c->pkt->pfx->chunknum) : -1);
 
-    for (cit = ccnl->contents; cit; cit = cit->next) {
-        if (ccnl_prefix_cmp(c->pkt->pfx, NULL, cit->pkt->pfx, CMP_EXACT) == 0) {
-            DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
-            return NULL;
-        }
+    if (ccnl_cs_exists(ccnl->content_options, c->pkt->pfx, CS_MATCH_EXACT)) {
+        DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
+        return NULL;
     }
 
     if (ccnl->max_cache_entries > 0 &&
@@ -712,7 +698,6 @@ ccnl_do_ageing(void *ptr, void *dummy)
 {
 
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
-    struct ccnl_content_s *c = relay->contents;
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
     time_t t = CCNL_NOW();
@@ -721,25 +706,9 @@ ccnl_do_ageing(void *ptr, void *dummy)
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
-    while (c) {
-        if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= (uint32_t) t &&
-                                !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
-            DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
-            c = ccnl_content_remove(relay, c);
-        }
-        else {
-#ifdef USE_SUITE_NDNTLV
-            if (c->pkt->suite == CCNL_SUITE_NDNTLV) {
-                // Mark content as stale if its freshness period expired and it is not static
-                if ((c->last_used + (c->pkt->s.ndntlv.freshnessperiod / 1000)) <= (uint32_t) t &&
-                        !(c->flags & CCNL_CONTENT_FLAGS_STATIC)) {
-                    c->flags |= CCNL_CONTENT_FLAGS_STALE;
-                }
-            }
-#endif
-            c = c->next;
-        }
-    }
+    /** age entries in the content store */
+    ccnl_cs_age(relay->content_options);
+
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
                 // than being held indefinitely."
         if ((i->last_used + i->lifetime) <= (uint32_t) t ||
@@ -946,18 +915,7 @@ void
 ccnl_cs_dump(struct ccnl_relay_s *ccnl)
 {
 #ifndef CCNL_LINUXKERNEL
-    struct ccnl_content_s *c = ccnl->contents;
-    unsigned i = 0;
-    char s[CCNL_MAX_PREFIX_SIZE];
-    (void) s;
-
-    while (c) {
-        printf("CS[%u]: %s [%d]: %.*s\n", i++,
-               ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
-               (c->pkt->pfx->chunknum)? (signed) *(c->pkt->pfx->chunknum) : -1,
-               (int) c->pkt->contlen, c->pkt->content);
-        c = c->next;
-    }
+    ccnl_cs_print(ccnl->content_options);
 #endif
 }
 
@@ -996,7 +954,7 @@ ccnl_interface_CTS(void *aux1, void *aux2)
 }
 
 int
-ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
+ccnl_cs_add2(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_content_s *content;
 
@@ -1010,7 +968,7 @@ ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 }
 
 int
-ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix)
+ccnl_cs_remove2(struct ccnl_relay_s *ccnl, char *prefix)
 {
     struct ccnl_content_s *c;
 
@@ -1019,22 +977,19 @@ ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix)
     }
 
     for (c = ccnl->contents; c; c = c->next) {
-        char *spref = ccnl_prefix_to_path(c->pkt->pfx);
-        if (!spref) {
-            return -2;
-        }
-        if (memcmp(prefix, spref, strlen(spref)) == 0) {
-            ccnl_free(spref);
+        if (ccnl_prefix_compare(prefix, c->pkt->pfx)) {
             ccnl_content_remove(ccnl, c);
             return 0;
+        } else {
+            /** allocation of prefix failed inside ccnl_prefix_compare */
+            return -2;
         }
-        ccnl_free(spref);
     }
     return -3;
 }
 
 struct ccnl_content_s *
-ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix)
+ccnl_cs_lookup2(struct ccnl_relay_s *ccnl, char *prefix)
 {
     struct ccnl_content_s *c;
 
@@ -1043,15 +998,13 @@ ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix)
     }
 
     for (c = ccnl->contents; c; c = c->next) {
-        char *spref = ccnl_prefix_to_path(c->pkt->pfx);
-        if (!spref) {
+        if (ccnl_prefix_compare(prefix, c->pkt->pfx)) {
+            return c;
+        } else {
+            /** allocation of prefix failed inside ccnl_prefix_compare */
             return NULL;
         }
-        if (memcmp(prefix, spref, strlen(spref)) == 0) {
-            ccnl_free(spref);
-            return c;
-        }
-        ccnl_free(spref);
     }
+
     return NULL;
 }
