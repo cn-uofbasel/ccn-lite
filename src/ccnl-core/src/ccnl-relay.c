@@ -391,7 +391,6 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // CCNL strategy: we forward on all FWD entries with a prefix match
 
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-        printf("fwd: %p\n", (void*)fwd);
         if (!fwd->prefix) {
             continue;
         }
