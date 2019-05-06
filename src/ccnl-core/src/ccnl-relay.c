@@ -404,8 +404,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
         rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->pkt->pfx, CMP_LONGEST);
 
-        DEBUGMSG_CORE(DEBUG, "  ccnl_interest_propagate, rc=%d/%d\n",
-                 rc, fwd->prefix->compcnt);
+        DEBUGMSG_CORE(DEBUG, "  ccnl_interest_propagate, rc=%ld/%ld\n",
+                 (long) rc, (long) fwd->prefix->compcnt);
         if (rc < (signed) fwd->prefix->compcnt) {
             continue;
         }
@@ -953,7 +953,7 @@ ccnl_cs_dump(struct ccnl_relay_s *ccnl)
         printf("CS[%u]: %s [%d]: %.*s\n", i++,
                ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
                (c->pkt->pfx->chunknum)? (signed) *(c->pkt->pfx->chunknum) : -1,
-               (int32_t) c->pkt->contlen, c->pkt->content);
+               (int) c->pkt->contlen, c->pkt->content);
         c = c->next;
     }
 #endif

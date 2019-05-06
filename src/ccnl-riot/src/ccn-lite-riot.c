@@ -159,7 +159,7 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
         return -ECANCELED;
     }
     i->mtu = (int)mtu;
-    DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
+    DEBUGMSG(DEBUG, "interface's MTU is set to %lu\n", (unsigned long) i->mtu);
 
     res = gnrc_netapi_get(if_pid, NETOPT_ADDR_LEN, 0, &(i->addr_len), sizeof(i->addr_len));
     if (res < 0) {
@@ -545,7 +545,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
         return -1;
     }
 
-    DEBUGMSG(INFO, "interest for chunk number: %u\n", (prefix->chunknum == NULL) ? 0 : *prefix->chunknum);
+    DEBUGMSG(INFO, "interest for chunk number: %lu\n", (prefix->chunknum == NULL) ? (unsigned long) 0 : (unsigned long) *prefix->chunknum);
 
     if (!prefix) {
         DEBUGMSG(ERROR, "prefix could not be created!\n");
