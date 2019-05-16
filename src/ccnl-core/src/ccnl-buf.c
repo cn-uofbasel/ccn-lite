@@ -74,9 +74,8 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
         ccnl->fib = fwd;
     }
 
-    /** check if the variable is set */
-    if (ccnl->contents) {
-       ccnl_cs_clear(ccnl->contents);
+    if (ccnl->content_options) {
+        ccnl_cs_clear(ccnl->content_options);
     }
 
     while (ccnl->nonces) {
