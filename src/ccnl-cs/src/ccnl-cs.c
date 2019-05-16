@@ -29,7 +29,9 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_lookup_t lookup_fun,
              ccnl_cs_op_remove_t remove_fun,
              ccnl_cs_op_clear_t clear_fun,
-             ccnl_cs_op_print_t print_fun) {
+             ccnl_cs_op_print_t print_fun,
+             ccnl_cs_op_age_t age_fun,
+             ccnl_cs_op_exists_t exists_fun) {
 
     if (ops) {
         ops->add = add_fun; 
@@ -37,6 +39,8 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
         ops->remove = remove_fun;
         ops->clear = clear_fun;
         ops->print = print_fun;
+        ops->age = age_fun;
+        ops->exists= exists_fun;
     }
 
     return;
@@ -116,6 +120,30 @@ ccnl_cs_print(ccnl_cs_ops_t *ops) {
     
     if (ops) {
         return ops->print();
+    }
+
+    return result;
+}
+
+ccnl_cs_status_t
+ccnl_cs_age(ccnl_cs_ops_t *ops) {
+    int result = CS_OPTIONS_ARE_NULL;
+
+    if (ops) {
+        return ops->age();
+    }
+
+    return result;
+}
+
+ccnl_cs_status_t
+ccnl_cs_exists(ccnl_cs_ops_t *ops,
+        const ccnl_cs_name_t *name,
+        ccnl_cs_match_t mode) {
+    int result = CS_OPTIONS_ARE_NULL;
+
+    if (ops) {
+        return ops->exists(name, mode);
     }
 
     return result;
