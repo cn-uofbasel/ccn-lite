@@ -519,13 +519,9 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
  */
 void
 ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *content)
-//ccnl_content_remove(struct ccnl_relay_s *ccnl, ccnl_cs_content_t *content)
 {
     DEBUGMSG_CORE(TRACE, "ccnl_content_remove\n");
-    (void)ccnl;
-    (void)content;
-    // TODO: content decrement muss noch rein ccnl->contentcnt--;
-//    ccnl_cs_remove(ccnl->content_options, content->packet->pfx);
+    ccnl_cs_remove(ccnl->content_options, content->pkt->pfx);
 }
 
 struct ccnl_content_s*
@@ -534,9 +530,8 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
-    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%ld) --> %p = %s [%d]\n",
-                  ccnl->contentcnt, 
-                  ccnl_cs_get_cs_capacity(),
+    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%ld/%ld) --> %p = %s [%d]\n",
+            ccnl_cs_get_cs_current_size(), ccnl_cs_get_cs_capacity(),
                   (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
 
     if (ccnl_cs_exists(ccnl->content_options, c->pkt->pfx, CS_MATCH_EXACT)) {

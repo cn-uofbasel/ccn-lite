@@ -231,6 +231,7 @@ ccnl_cs_age(ccnl_cs_ops_t *ops);
 
 void ccnl_cs_set_cs_capacity(size_t size);
 size_t ccnl_cs_get_cs_capacity(void);
+size_t ccnl_cs_get_cs_current_size(void);
 
 ccnl_cs_status_t
 ccnl_cs_remove_oldest_entry(ccnl_cs_ops_t *ops);

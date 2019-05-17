@@ -315,8 +315,9 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, "<li>Nonces: %d\n", cnt);
     for (cnt = 0, ipt = ccnl->pit; ipt; ipt = ipt->next, cnt++);
     len += sprintf(txt+len, "<li>Pending interests: %d\n", cnt);
-    len += sprintf(txt+len, "<li>Content chunks: %d (max=%d)\n",
-                   ccnl->contentcnt, ccnl->max_cache_entries);
+    // TODO: check if that's an issue ld (previously, d)
+    len += sprintf(txt+len, "<li>Content chunks: %ld (max=%ld)\n",
+                   ccnl_cs_get_cs_capacity(), ccnl_cs_get_cs_capacity());
     len += sprintf(txt+len, "</ul>\n");
 
     len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"

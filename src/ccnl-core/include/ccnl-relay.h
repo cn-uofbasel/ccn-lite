@@ -48,7 +48,6 @@ struct ccnl_relay_s {
     ccnl_cs_ops_t *content_options;
 
     struct ccnl_buf_s *nonces;  /**< The nonces that are currently in use */
-    int contentcnt;             /**< number of cached items */
     int max_cache_entries;      /**< max number of cached items -1: unlimited */
     int pitcnt;                 /**< Number of entries in the PIT */
     int max_pit_entries;        /**< max number of pit entries; -1: unlimited */ 
