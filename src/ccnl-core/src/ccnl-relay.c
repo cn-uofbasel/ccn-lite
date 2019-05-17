@@ -968,43 +968,43 @@ ccnl_cs_add2(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 }
 
 int
-ccnl_cs_remove2(struct ccnl_relay_s *ccnl, char *prefix)
+ccnl_relay_remove(struct ccnl_relay_s *ccnl, char *prefix)
 {
-    struct ccnl_content_s *c;
+    int result = -3;
 
-    if (!ccnl || !prefix) {
-        return -1;
-    }
+    if (ccnl) {
+        result = -1;
 
-    for (c = ccnl->contents; c; c = c->next) {
-        if (ccnl_prefix_compare(prefix, c->pkt->pfx)) {
-            ccnl_content_remove(ccnl, c);
-            return 0;
-        } else {
-            /** allocation of prefix failed inside ccnl_prefix_compare */
-            return -2;
+        if (prefix) {
+            const ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+            if (name) {
+                result = ccnl_cs_remove(ccnl->content_options, name); 
+                ccnl_prefix_free(name);
+            }
+            
+            result = -2;
         }
     }
-    return -3;
+
+    return result;
 }
 
 struct ccnl_content_s *
-ccnl_cs_lookup2(struct ccnl_relay_s *ccnl, char *prefix)
+ccnl_relay_lookup(struct ccnl_relay_s *ccnl, char *prefix)
 {
-    struct ccnl_content_s *c;
+    ccnl_cs_content_t *content = NULL;
 
-    if (!ccnl || !prefix) {
-        return NULL;
-    }
+    if (ccnl) {
+        if (prefix) {
+            const ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
 
-    for (c = ccnl->contents; c; c = c->next) {
-        if (ccnl_prefix_compare(prefix, c->pkt->pfx)) {
-            return c;
-        } else {
-            /** allocation of prefix failed inside ccnl_prefix_compare */
-            return NULL;
+            if (name) {
+                ccnl_cs_lookup(ccnl->content_options, name, content); 
+                ccnl_prefix_free(name);
+            }
         }
     }
-
-    return NULL;
+    
+    return content;
 }

@@ -410,7 +410,7 @@ void
                     DEBUGMSG(WARNING, "ccn-lite: CS remove failed, because of no memory available\n");
                     break;
                 }
-                if (ccnl_cs_remove(ccnl, spref) < 0) {
+                if (ccnl_relay_remove(ccnl, spref) < 0) {
                     DEBUGMSG(WARNING, "removing CS entry failed\n");
                 }
                 ccnl_free(spref);
@@ -421,7 +421,7 @@ void
                 spref = ccnl_prefix_to_path(prefix);
                 mr.type = CCNL_MSG_CS_LOOKUP;
                 if (spref) {
-                    content = ccnl_cs_lookup(ccnl, spref);
+                    content = ccnl_relay_lookup(ccnl, spref);
                     ccnl_free(spref);
                 }
                 else {

@@ -28,6 +28,7 @@
 #include "ccnl-if.h"
 #include "ccnl-pkt.h"
 #include "ccnl-sched.h"
+#include "ccnl-cs.h"
 
 
 struct ccnl_relay_s {
@@ -41,7 +42,11 @@ struct ccnl_relay_s {
     struct ccnl_forward_s *fib; /**< The Forwarding Information Base (FIB) */
 
     struct ccnl_interest_s *pit; /**< The Pending Interest Table (PIT) */
-    struct ccnl_content_s *contents; /**< contentsend; */
+
+    ccnl_cs_content_t *contents;
+    /** TODO: come up with a better place */
+    ccnl_cs_ops_t *content_options;
+
     struct ccnl_buf_s *nonces;  /**< The nonces that are currently in use */
     int contentcnt;             /**< number of cached items */
     int max_cache_entries;      /**< max number of cached items -1: unlimited */
@@ -135,9 +140,15 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
-
-struct ccnl_content_s*
-ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+/**
+ * Removes content from the content store
+ * 
+ * @param[in] relay The global \ref ccnl_relay_s struct
+ * @param[in] content The content to be removed
+ */
+void
+//ccnl_content_remove(struct ccnl_relay_s *relay, ccnl_cs_content_t *content);
+ccnl_content_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *content);
 
 /**
  * @brief add content @p c to the content store
@@ -251,7 +262,7 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
  * @return   -1, otherwise
 */
 int
-ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+ccnl_cs_add2(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
 /**
  * @brief Remove content with @p prefix from the Content Store
@@ -265,7 +276,7 @@ ccnl_cs_add(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
  * @return   -3, if no content with @p prefix was found to be removed
 */
 int
-ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix);
+ccnl_relay_remove(struct ccnl_relay_s *ccnl, char *prefix);
 
 /**
  * @brief Lookup content from the Content Store with prefix @p prefix
@@ -279,7 +290,7 @@ ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix);
  * @return              NULL, if not found
 */
 struct ccnl_content_s *
-ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix);
+ccnl_relay_lookup(struct ccnl_relay_s *ccnl, char *prefix);
 
 #endif //CCNL_RELAY_H
 /** @} */
