@@ -434,12 +434,14 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
 
     DEBUGMSG(INFO, "configuring relay\n");
 
-    relay->contents = NULL;
+    relay->content_options = NULL;
     relay->pit = NULL;
     relay->fib = NULL;
     relay->faces = NULL;
     relay->nonces = NULL;
-    relay->max_cache_entries = max_cache_entries;
+
+    ccnl_cs_set_cs_capacity(max_cache_entries);
+
     relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     relay->ccnl_ll_TX_ptr = &ccnl_ll_TX;
 
@@ -686,11 +688,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         char fname[1000];
         struct stat s;
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
-        struct ccnl_content_s *c = 0;
-        int fd, suite;
-        ssize_t recvlen;
-        size_t datalen, skip, flen;
-        uint8_t *data;
+        //ccnl_cs_content *content = NULL;
+        struct ccnl_content_s *content = NULL;
+        int fd, datalen, suite, skip;
+        unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_NDNTLV)
         uint64_t typ;
@@ -801,13 +802,13 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             DEBUGMSG(DEBUG, "  parsing error in %s\n", de->d_name);
             goto Done;
         }
-        c = ccnl_content_new(&pk);
-        if (!c) {
+        content = ccnl_content_new(&pk);
+        if (!content) {
             DEBUGMSG(WARNING, "could not create content (%s)\n", de->d_name);
             goto Done;
         }
-        ccnl_content_add2cache(ccnl, c);
-        c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+        ccnl_content_add2cache(ccnl, content);
+        content->flags |= CCNL_CONTENT_FLAGS_STATIC;
 Done:
         ccnl_pkt_free(pk);
         ccnl_free(buf);

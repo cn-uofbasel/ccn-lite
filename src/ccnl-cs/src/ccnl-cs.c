@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <string.h>
 
+/** Maximum number of entries in the content store */
+static size_t max_entries = 32;
+
 void
 ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_add_t add_fun,
@@ -44,6 +47,14 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
     }
 
     return;
+}
+
+void ccnl_cs_set_cs_capacity(size_t size) {
+    max_entries = size;
+}
+
+size_t ccnl_cs_get_cs_capacity(void) {
+    return max_entries;
 }
 
 ccnl_cs_status_t

@@ -462,7 +462,7 @@ ccnl_start(void)
     loopback_face = ccnl_get_face_or_create(&ccnl_relay, -1, NULL, 0);
     loopback_face->flags |= CCNL_FACE_FLAGS_STATIC;
 
-    ccnl_relay.max_cache_entries = CCNL_CACHE_SIZE;
+    ccnl_cs_set_cs_capacity(CCNL_CACHE_SIZE);
     ccnl_relay.max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     ccnl_relay.ccnl_ll_TX_ptr = &ccnl_ll_TX;
 

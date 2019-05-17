@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2018 HAW Hamburg
  * Copyright (C) 2018 MSA Safety 
+ * Copyright (C) 2018 Safety IO
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,12 +22,16 @@
 #ifndef CCNL_CS
 #define CCNL_CS
 
+#include "ccnl-prefix.h"
+#include "ccnl-content.h" // FIXME
+
 #include <limits.h>
 #include <stdlib.h>
 #include <stdint.h>
 
 /**
  * @brief Provides status codes for content store operations
+ * @{
  */
 typedef enum {
     CS_OPERATION_UNSUCCESSFUL = 0,   /**< operation was not successfull */
@@ -39,6 +44,19 @@ typedef enum {
     
     CS_DO_NOT_USE = INT_MAX          /**< set the enum to a fixed width, do not use! */
 } ccnl_cs_status_t;
+/** @} */
+
+/**
+ * @brief TODO
+ * @{
+ */
+typedef enum {
+    CS_MATCH = 0,                  /**< Two prefixes have to match */
+    CS_MATCH_EXACT = 1,            /**< Two */
+    CS_MATCH_LONGEST = 2,          /**< */
+    CS_MATCH_DO_NOT_USE = INT_MAX  /**< set the enum to a fixed width, do not use! */
+} ccnl_cs_match_t;
+/** @} */
 
 typedef struct {
     unsigned char **components; /**< the components of the prefix without '\0' at the end */
@@ -49,28 +67,31 @@ typedef struct {
 /**
  * @brief An abstract representation of an ICN name 
  */
+//typedef struct {
+//    uint8_t *name;         /**< the name itself */
+//    size_t length;         /**< the length of the name (formerly known as complen) */
+//    ccnl_cs_component_t component; /**< */
+//} ccnl_cs_name_t;
+
 typedef struct {
-    uint8_t *name;         /**< the name itself */
-    size_t length;         /**< the length of the name (formerly known as complen) */
-
-    unsigned char **comp; /**< name components of the prefix without '\0' at the end */
-    
-    size_t componentcount; /**< the number of components of the name (formerly known as compcnt) */
-    
-    int *componentlength;  /**< length of the name components */
-
-    ccnl_cs_component_t component; /**< */
-    int *chunknum;         /**< if defined, number of the chunk else -1 */
-} ccnl_cs_name_t;
+    // TODO: ccnl_content_flags flags;
+    uint8_t flags;
+    uint32_t last_used;          /**< indicates when the stored content was last used */
+#ifdef CCNL_RIOT
+    evtimer_msg_event_t timeout; /**< event timer message which is triggered when a timeout in the content store occurs */
+#endif
+} ccnl_cs_content_extra_t;
 
 /**
  * @brief An abstract representation of ICN content
  */
-typedef struct {
-    uint8_t *content; /**< A byte representation of the content */
-    uint32_t length;  /**< The size of the content */
-    uint32_t served;  /**< denotes how often the content has been served */
-} ccnl_cs_content_t;
+//typedef struct {
+//    uint8_t *content;          /**< A byte representation of the content */
+//    uint32_t length;           /**< The size of the content */
+//    uint32_t served;           /**< denotes how often the content has been served */
+//    struct ccnl_pkt_s *packet; /**< a byte representation of received content (the actual packet) */
+//    ccnl_cs_content_extra_t options;
+//} ccnl_cs_content_t;
 
 /**
  * Type definition for the function pointer to the add function
@@ -98,6 +119,13 @@ typedef int (*ccnl_cs_op_clear_t)(void);
 typedef int (*ccnl_cs_op_print_t)(void);
 
 /**
+ * Type definition for the function pointer to the print function
+ */
+typedef int (*ccnl_cs_op_age_t)(void);
+
+typedef int (*ccnl_cs_op_exists_t)(const ccnl_cs_name_t *name, ccnl_cs_match_t mode);
+
+/**
  * @brief Holds function pointers to concrete implementations of a content store
  */
 typedef struct {
@@ -106,6 +134,8 @@ typedef struct {
     ccnl_cs_op_remove_t remove; /**< Function pointer to the remove function */
     ccnl_cs_op_clear_t clear;   /**< Function pointer to the clear function */
     ccnl_cs_op_print_t print;   /**< Function pointer to the print function */
+    ccnl_cs_op_age_t age;       /**< Function pointer to the ageing function */
+    ccnl_cs_op_exists_t exists; /**< Function pointer to the exists function */
 } ccnl_cs_ops_t;
 
 /**
@@ -122,7 +152,9 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_lookup_t lookup_fun,
              ccnl_cs_op_remove_t remove_fun,
              ccnl_cs_op_clear_t clear_fun,
-             ccnl_cs_op_print_t print_fun
+             ccnl_cs_op_print_t print_fun,
+             ccnl_cs_op_age_t age_fun,
+             ccnl_cs_op_exists_t exists_fun
              );
 
 /**
@@ -175,9 +207,20 @@ ccnl_cs_remove(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name);
 
 ccnl_cs_status_t
+ccnl_cs_exists(ccnl_cs_ops_t *ops,
+               const ccnl_cs_name_t *name,
+               ccnl_cs_match_t mode);
+
+ccnl_cs_status_t
 ccnl_cs_clear(ccnl_cs_ops_t *ops);
 
 ccnl_cs_status_t
 ccnl_cs_print(ccnl_cs_ops_t *ops);
+
+ccnl_cs_status_t
+ccnl_cs_age(ccnl_cs_ops_t *ops);
+
+void ccnl_cs_set_cs_capacity(size_t size);
+size_t ccnl_cs_get_cs_capacity(void);
 
 #endif //CCNL_CS
