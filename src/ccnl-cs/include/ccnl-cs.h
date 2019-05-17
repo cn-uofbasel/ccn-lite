@@ -126,16 +126,24 @@ typedef int (*ccnl_cs_op_age_t)(void);
 typedef int (*ccnl_cs_op_exists_t)(const ccnl_cs_name_t *name, ccnl_cs_match_t mode);
 
 /**
+ * Type definition for the function pointer to the function which removes the 
+ * oldest entry in concrete content store implementation
+ */
+typedef int (*ccnl_cs_op_remove_oldest_t)(void);
+
+
+/**
  * @brief Holds function pointers to concrete implementations of a content store
  */
 typedef struct {
-    ccnl_cs_op_add_t add;       /**< Function pointer to the add function */
-    ccnl_cs_op_lookup_t lookup; /**< Function pointer to the lookup function */
-    ccnl_cs_op_remove_t remove; /**< Function pointer to the remove function */
-    ccnl_cs_op_clear_t clear;   /**< Function pointer to the clear function */
-    ccnl_cs_op_print_t print;   /**< Function pointer to the print function */
-    ccnl_cs_op_age_t age;       /**< Function pointer to the ageing function */
-    ccnl_cs_op_exists_t exists; /**< Function pointer to the exists function */
+    ccnl_cs_op_add_t add;                           /**< Function pointer to the add function */
+    ccnl_cs_op_lookup_t lookup;                     /**< Function pointer to the lookup function */
+    ccnl_cs_op_remove_t remove;                     /**< Function pointer to the remove function */
+    ccnl_cs_op_clear_t clear;                       /**< Function pointer to the clear function */
+    ccnl_cs_op_print_t print;                       /**< Function pointer to the print function */
+    ccnl_cs_op_age_t age;                           /**< Function pointer to the ageing function */
+    ccnl_cs_op_exists_t exists;                     /**< Function pointer to the exists function */
+    ccnl_cs_op_remove_oldest_t remove_oldest_entry; /**< Function pointer to the remove oldest function */
 } ccnl_cs_ops_t;
 
 /**
@@ -154,7 +162,8 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_clear_t clear_fun,
              ccnl_cs_op_print_t print_fun,
              ccnl_cs_op_age_t age_fun,
-             ccnl_cs_op_exists_t exists_fun
+             ccnl_cs_op_exists_t exists_fun,
+             ccnl_cs_op_remove_oldest_t oldest_fun
              );
 
 /**
@@ -222,5 +231,8 @@ ccnl_cs_age(ccnl_cs_ops_t *ops);
 
 void ccnl_cs_set_cs_capacity(size_t size);
 size_t ccnl_cs_get_cs_capacity(void);
+
+ccnl_cs_status_t
+ccnl_cs_remove_oldest_entry(ccnl_cs_ops_t *ops);
 
 #endif //CCNL_CS

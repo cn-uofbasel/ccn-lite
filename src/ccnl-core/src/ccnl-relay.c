@@ -534,43 +534,17 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
-    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
-                  ccnl->contentcnt, ccnl->max_cache_entries,
-                  (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? (signed) *(c->pkt->pfx->chunknum) : -1);
+    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%ld) --> %p = %s [%d]\n",
+                  ccnl->contentcnt, 
+                  ccnl_cs_get_cs_capacity(),
+                  (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
 
     if (ccnl_cs_exists(ccnl->content_options, c->pkt->pfx, CS_MATCH_EXACT)) {
         DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
         return NULL;
     }
 
-    if (ccnl->max_cache_entries > 0 &&
-        ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
-        struct ccnl_content_s *c2, *oldest = NULL;
-        uint32_t age = 0;
-        for (c2 = ccnl->contents; c2; c2 = c2->next) {
-             if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC)) {
-                 if ((age == 0) || c2->last_used < age) {
-                     age = c2->last_used;
-                     oldest = c2;
-                 }
-             }
-         }
-         if (oldest) {
-             DEBUGMSG_CORE(DEBUG, " remove old entry from cache\n");
-             ccnl_content_remove(ccnl, oldest);
-         }
-    }
-    if ((ccnl->max_cache_entries <= 0) ||
-         (ccnl->contentcnt <= ccnl->max_cache_entries)) {
-            DBL_LINKED_LIST_ADD(ccnl->contents, c);
-            ccnl->contentcnt++;
-#ifdef CCNL_RIOT
-            /* set cache timeout timer if content is not static */
-            if (!(c->flags & CCNL_CONTENT_FLAGS_STATIC)) {
-                ccnl_evtimer_set_cs_timeout(c);
-            }
-#endif
-    }
+    ccnl_cs_add(ccnl->content_options, c->pkt->pfx, c);
 
     return c;
 }
@@ -976,7 +950,7 @@ ccnl_relay_remove(struct ccnl_relay_s *ccnl, char *prefix)
         result = -1;
 
         if (prefix) {
-            const ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+            ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
 
             if (name) {
                 result = ccnl_cs_remove(ccnl->content_options, name); 
@@ -990,6 +964,7 @@ ccnl_relay_remove(struct ccnl_relay_s *ccnl, char *prefix)
     return result;
 }
 
+
 struct ccnl_content_s *
 ccnl_relay_lookup(struct ccnl_relay_s *ccnl, char *prefix)
 {
@@ -997,7 +972,7 @@ ccnl_relay_lookup(struct ccnl_relay_s *ccnl, char *prefix)
 
     if (ccnl) {
         if (prefix) {
-            const ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+            ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
 
             if (name) {
                 ccnl_cs_lookup(ccnl->content_options, name, content); 
