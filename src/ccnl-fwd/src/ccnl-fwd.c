@@ -89,12 +89,10 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-    // CONFORM: Step 1:
-    for (c = relay->contents; c; c = c->next) {
-        if (ccnl_prefix_cmp(c->pkt->pfx, NULL, (*pkt)->pfx, CMP_EXACT) == 0) {
-            DEBUGMSG_CFWD(TRACE, "  content is duplicate, ignoring\n");
-            return 0; // content is dup, do nothing
-        }
+    
+    if (ccnl_cs_exists(relay->content_options, (*pkt)->pfx, CS_MATCH_EXACT)) {
+        DEBUGMSG_CFWD(TRACE, "  content is duplicate, ignoring\n");
+        return 0; // content is dup, do nothing
     }
 
     c = ccnl_content_new(pkt);
@@ -179,10 +177,10 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
 
 int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                        struct ccnl_pkt_s **pkt, cMatchFct cMatch)
+                        struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i;
-    struct ccnl_content_s *c;
+    struct ccnl_content_s *c = NULL;
     int propagate= 0;
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
@@ -244,15 +242,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
+/*
+    // allocate memory? which prefix to pass
+    ccnl_content_t *content = NULL; 
+    ccnl_cs_lookup(relay->content_options, content);
+*/
 
-    for (c = relay->contents; c; c = c->next) {
-        if (c->pkt->pfx->suite != (*pkt)->pfx->suite)
-            continue;
-        if (cMatch(*pkt, c))
-            continue;
-
-        DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
-
+    if (ccnl_cs_match_interest(relay->content_options, *pkt, c)) {
         if (from) {
             if (from->ifndx >= 0) {
                 ccnl_send_pkt(relay, from, c->pkt);
@@ -316,7 +312,7 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     pkt->flags |= typ == CCN_DTAG_INTEREST ? CCNL_PKT_REQUEST : CCNL_PKT_REPLY;
 
     if (pkt->flags & CCNL_PKT_REQUEST) { // interest
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccnb_cMatch)) {
+        if (ccnl_fwd_handleInterest(relay, from, &pkt)) {
             goto Done;
         }
     } else { // content
@@ -505,7 +501,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
             // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
-            if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
+            if (ccnl_fwd_handleInterest(relay, from, &pkt))
                 goto Done;
         } else {
             DEBUGMSG_CFWD(WARNING, "  ccntlv: interest pkt type mismatch %d %lld\n",
@@ -559,7 +555,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     pkt->type = typ;
     switch (typ) {
     case NDN_TLV_Interest:
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch)) {
+        if (ccnl_fwd_handleInterest(relay, from, &pkt)) {
             goto Done;
         }
         break;

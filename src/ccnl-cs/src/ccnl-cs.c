@@ -37,7 +37,8 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_print_t print_fun,
              ccnl_cs_op_age_t age_fun,
              ccnl_cs_op_exists_t exists_fun,
-             ccnl_cs_op_remove_oldest_t oldest_fun) {
+             ccnl_cs_op_remove_oldest_t oldest_fun,
+             ccnl_cs_op_match_interest_t match_interest_fun) {
 
     if (ops) {
         ops->add = add_fun; 
@@ -48,6 +49,7 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
         ops->age = age_fun;
         ops->exists= exists_fun;
         ops->remove_oldest_entry = oldest_fun;
+        ops->match_interest = match_interest_fun;
     }
 
     return;
@@ -202,4 +204,23 @@ ccnl_cs_remove_oldest_entry(ccnl_cs_ops_t *ops) {
 
 size_t ccnl_cs_get_cs_current_size(void) {
     return size;
+}
+
+ccnl_cs_status_t
+ccnl_cs_match_interest(ccnl_cs_ops_t *ops,
+               const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content) {
+    int result = CS_CONTENT_IS_INVALID;
+
+    if (ops) {
+        if (packet) {
+            return ops->match_interest(packet, content);
+        } else {
+            // TODO
+            result = CS_NAME_IS_INVALID;
+        }
+    } else {
+        result = CS_OPTIONS_ARE_NULL;
+    }
+
+    return result;
 }

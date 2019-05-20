@@ -122,7 +122,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 */
 int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                        struct ccnl_pkt_s **pkt, cMatchFct cMatch);
+                        struct ccnl_pkt_s **pkt);
 
 
 /**

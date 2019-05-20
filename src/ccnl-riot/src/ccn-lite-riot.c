@@ -387,7 +387,7 @@ void
             case GNRC_NETAPI_MSG_TYPE_SND:
                 DEBUGMSG(DEBUG, "ccn-lite: GNRC_NETAPI_MSG_TYPE_SND received\n");
                 pkt = (struct ccnl_pkt_s *) m.content.ptr;
-                ccnl_fwd_handleInterest(ccnl, loopback_face, &pkt, ccnl_ndntlv_cMatch);
+                ccnl_fwd_handleInterest(ccnl, loopback_face, &pkt);
                 ccnl_pkt_free(pkt);
                 break;
 

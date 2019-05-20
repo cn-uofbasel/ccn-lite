@@ -131,6 +131,10 @@ typedef int (*ccnl_cs_op_exists_t)(const ccnl_cs_name_t *name, ccnl_cs_match_t m
  */
 typedef int (*ccnl_cs_op_remove_oldest_t)(void);
 
+/**
+ * Type definition for the function pointer to the match interest function
+ */
+typedef int (*ccnl_cs_op_match_interest_t)(const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content);
 
 /**
  * @brief Holds function pointers to concrete implementations of a content store
@@ -143,7 +147,8 @@ typedef struct {
     ccnl_cs_op_print_t print;                       /**< Function pointer to the print function */
     ccnl_cs_op_age_t age;                           /**< Function pointer to the ageing function */
     ccnl_cs_op_exists_t exists;                     /**< Function pointer to the exists function */
-    ccnl_cs_op_remove_oldest_t remove_oldest_entry; /**< Function pointer to the remove oldest function */
+    ccnl_cs_op_remove_oldest_t remove_oldest_entry; /**< Function pointer to the remove oldest entry function */
+    ccnl_cs_op_match_interest_t match_interest;     /**< Function pointer to the match interest function */
 } ccnl_cs_ops_t;
 
 /**
@@ -163,7 +168,8 @@ ccnl_cs_init(ccnl_cs_ops_t *ops,
              ccnl_cs_op_print_t print_fun,
              ccnl_cs_op_age_t age_fun,
              ccnl_cs_op_exists_t exists_fun,
-             ccnl_cs_op_remove_oldest_t oldest_fun
+             ccnl_cs_op_remove_oldest_t oldest_fun,
+             ccnl_cs_op_match_interest_t match_interest_fun
              );
 
 /**
@@ -235,5 +241,11 @@ size_t ccnl_cs_get_cs_current_size(void);
 
 ccnl_cs_status_t
 ccnl_cs_remove_oldest_entry(ccnl_cs_ops_t *ops);
+
+/**
+ *
+ */
+ccnl_cs_status_t
+ccnl_cs_match_interest(ccnl_cs_ops_t *ops, const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content);
 
 #endif //CCNL_CS
