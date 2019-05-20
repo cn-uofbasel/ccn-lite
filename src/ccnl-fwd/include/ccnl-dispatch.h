@@ -25,8 +25,6 @@
 
 #include "ccnl-fwd.h"
 
-//struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
-
 /**
  * @brief       Initialize the dispatcher for handling different packet forwarders
  */
