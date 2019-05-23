@@ -43,9 +43,9 @@ static void setup(void **state) {
 static int _create_content(ccnl_cs_name_t *prefix, ccnl_cs_content_t *content, unsigned char *payload, int length) 
 {
     int suite = CCNL_SUITE_NDNTLV;
-    int offset = CCNL_MAX_PACKET_SIZE;
+    size_t offset = CCNL_MAX_PACKET_SIZE;
 
-    int arg_len = ccnl_ndntlv_prependContent(prefix, payload, length, NULL, NULL, &offset, _out);
+    int arg_len = ccnl_ndntlv_prependContent(prefix, payload, length, NULL, NULL, &offset, _out, &length);
 
     int len;
     unsigned type;
@@ -173,9 +173,9 @@ void test_ccnl_cs_add_successful()
     ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
 
     int suite = CCNL_SUITE_NDNTLV;
-    int offset = CCNL_MAX_PACKET_SIZE;
+    size_t offset = CCNL_MAX_PACKET_SIZE;
 
-    int arg_len = ccnl_ndntlv_prependContent(name, payload, payload_len, NULL, NULL, &offset, _out);
+    int arg_len = ccnl_ndntlv_prependContent(name, payload, payload_len, NULL, NULL, &offset, _out, &payload_len);
 
     int len;
     unsigned type;

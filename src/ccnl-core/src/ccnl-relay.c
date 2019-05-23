@@ -532,7 +532,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
     DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%ld/%ld) --> %p = %s [%d]\n",
             ccnl_cs_get_cs_current_size(), ccnl_cs_get_cs_capacity(),
-                  (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
+                  (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? (signed)*(c->pkt->pfx->chunknum) : -1);
 
     if (ccnl_cs_exists(ccnl->content_options, c->pkt->pfx, CS_MATCH_EXACT)) {
         DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");

@@ -690,8 +690,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         //ccnl_cs_content *content = NULL;
         struct ccnl_content_s *content = NULL;
-        int fd, datalen, suite, skip;
-        unsigned char *data;
+        int fd, suite;
+        size_t datalen, skip, flen;
+        ssize_t recvlen;
+        uint8_t *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_NDNTLV)
         uint64_t typ;
