@@ -66,7 +66,7 @@ typedef struct ccnl_content_s {
     evtimer_msg_event_t evtmsg_cstimeout; /**< event timer message which is triggered when a timeout in the content store occurs */
 #endif
     int served_cnt;                       /**< determines how often the content has been served */
-} ccnl_content;
+} ccnl_cs_content_t;
 
 /**
  * @brief Wraps a \p packet into a \ref ccnl_content data structure
