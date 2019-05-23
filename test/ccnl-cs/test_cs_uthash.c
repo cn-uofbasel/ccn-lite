@@ -31,16 +31,14 @@
 
 ccnl_cs_ops_t content_store;
 
-static int setup(void **state) {
+static void setup(void **state) {
      ccnl_cs_init_uthash(&content_store);
 
      //state = (void*)&content_store;
-
-     return 0;
 }
 
-static int teardown(void **state) {
-     return 0;
+static void teardown(void **state) {
+
 }
 
 void ccnl_cs_uthash_exists_false(void **state)
