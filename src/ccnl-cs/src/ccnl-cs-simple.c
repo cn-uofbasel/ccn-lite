@@ -53,6 +53,7 @@ void ccnl_cs_init_simple(void) {
                  lookup,
                  remove,
                  clear,
-                 print);
+                 print,
+                 NULL, NULL, NULL, NULL); // FIXME: add stub for ageing, exists function
     return;
 }
