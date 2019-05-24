@@ -21,7 +21,7 @@
 #define CCNL_CS_HELPER
 
 #include "ccnl-cs.h"
-//#include "ccnl-prefix.h"
+#include "ccnl-pkt.h"
 
 #include <stdbool.h>
 
@@ -52,6 +52,9 @@ ccnl_cs_name_t *ccnl_cs_create_name(const char* prefix, size_t length);
  * @return Upon success an allocated and initialized \ref ccnl_cs_content_t struct, NULL otherwise
  */
 ccnl_cs_content_t *ccnl_cs_create_content(uint8_t *content, size_t size);
+
+int8_t ccnl_cs_build_content(ccnl_cs_content_t **content, struct ccnl_prefix_s *name,
+                             ccnl_data_opts_u *opts, uint8_t *payload, size_t paylen);
 
 /**
  * @brief Compares two \ref ccnl_cs_name_t structs

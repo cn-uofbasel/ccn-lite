@@ -200,7 +200,9 @@ void test_ccnl_cs_add_successful()
     content = ccnl_content_new(&packet);
 */
     ccnl_cs_content_t *content = NULL;
-    int result = _create_content(name, content, payload, payload_len);
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+
+//    int result = _create_content(name, content, payload, payload_len);
     printf("result is %d\n", result);
     assert_int_equal(result, 0);
     assert_non_null(content);

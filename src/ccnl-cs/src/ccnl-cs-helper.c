@@ -96,6 +96,31 @@ ccnl_cs_content_t *ccnl_cs_create_content(uint8_t *content, size_t size) {
     //return result;
 }
 
+int8_t ccnl_cs_build_content(ccnl_cs_content_t **content, struct ccnl_prefix_s *name,
+                              ccnl_data_opts_u *opts, uint8_t *payload, size_t paylen)
+{
+    static unsigned char data_buf[CCNL_MAX_PACKET_SIZE];
+    size_t offs = CCNL_MAX_PACKET_SIZE;
+    size_t reslen = 0;
+
+    if (ccnl_ndntlv_prependContent(name, payload, paylen, NULL,
+                                   opts ? &(opts->ndntlv) : NULL,
+                                   &offs, data_buf, &reslen)) {
+        return -1;
+    }
+
+    uint64_t type;
+    unsigned char *olddata;
+    unsigned char *data = olddata = data_buf + offs;
+
+    ccnl_ndntlv_dehead(&data, &reslen, &type, &paylen);
+
+    struct ccnl_pkt_s *packet = ccnl_ndntlv_bytes2pkt(type, olddata, &data, &reslen);
+    *content = ccnl_content_new(&packet);
+
+    return 0;
+}
+
 /*
 ccnl_cs_name_t *ccnl_cs_prefix_to_name(struct ccnl_prefix_s *prefix) {
     ccnl_cs_name_t *result = NULL;
