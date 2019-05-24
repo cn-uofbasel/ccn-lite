@@ -31,6 +31,7 @@
 #include "ccnl-cs-ll.h"
 #include "ccnl-prefix.h"
 #include "ccnl-cs-helper.h"
+#include "ccnl-pkt.h"
 #include "ccnl-pkt-ndntlv.h"
 
 static unsigned char _out[CCNL_MAX_PACKET_SIZE];
@@ -38,45 +39,14 @@ ccnl_cs_ops_t content_store;
 
 static int _create_content(ccnl_cs_name_t *prefix, ccnl_cs_content_t *content, unsigned char *payload, int length);
 
-static void setup(void **state) {
+/** initializs the \ref ccnl_cs_ops_t with the function pointers of the utlist implementation */
+static void setup_cs_ll(void **state) {
      ccnl_cs_init_ll(&content_store);
 }
 
-static int _create_content(ccnl_cs_name_t *prefix, ccnl_cs_content_t *content, unsigned char *payload, int length) 
-{
-    int suite = CCNL_SUITE_NDNTLV;
-    size_t offset = CCNL_MAX_PACKET_SIZE;
-
-    int arg_len = ccnl_ndntlv_prependContent(prefix, payload, length, NULL, NULL, &offset, _out, &length);
-
-    int len;
-    unsigned type;
-    unsigned char *olddata;
-    unsigned char *data = olddata = _out + offset;
-
-    ccnl_ndntlv_dehead(&data, &arg_len, (int*) &type, &len);
-    
-    /*) 
-    int result = -5;
-    if ( (result = ccnl_ndntlv_dehead(&data, &arg_len, (int*) &type, &len)) || type != NDN_TLV_Data) {
-        printf(">>> %d\n", result);
-        return -1;
-    }
-    */
-
-    struct ccnl_pkt_s *packet = ccnl_ndntlv_bytes2pkt(type, olddata, &data, &arg_len);
-
-    if (!packet) {
-        return -3;
-    }
-
-    content = ccnl_content_new(&packet);
-
-    if (!content) {
-        return -2;
-    }
-
-    return 0;
+/** initializs the \ref ccnl_cs_ops_t with the function pointers of the uthash implementation */
+static void setup_cs_uthash(void **state) {
+     ccnl_cs_init_uthash(&content_store);
 }
 
 void test_ccnl_cs_add_invalid_parameters()
@@ -119,7 +89,6 @@ void test_ccnl_cs_lookup_invalid_parameters()
 
     /** set the name */
     ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
-
             
     ccnl_cs_content_t content;
     int result = ccnl_cs_lookup(NULL, name, &content);
@@ -179,52 +148,23 @@ void test_ccnl_cs_add_successful()
 
     /** set the name */
     ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
-/*
-    int suite = CCNL_SUITE_NDNTLV;
-    size_t offset = CCNL_MAX_PACKET_SIZE;
 
-    int arg_len = ccnl_ndntlv_prependContent(name, payload, payload_len, NULL, NULL, &offset, _out, &payload_len);
-
-    int len;
-    unsigned type;
-    unsigned char *olddata;
-    unsigned char *data = olddata = _out + offset;
-
-    if (ccnl_ndntlv_dehead(&data, &arg_len, (int*) &type, &len) || type != NDN_TLV_Data) {
-        printf("error\n");
-    }
-
-    struct ccnl_pkt_s *packet = ccnl_ndntlv_bytes2pkt(type, olddata, &data, &arg_len);
-
-    ccnl_cs_content_t *content = NULL;
-    content = ccnl_content_new(&packet);
-*/
     ccnl_cs_content_t *content = NULL;
     int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
 
-//    int result = _create_content(name, content, payload, payload_len);
-    printf("result is %d\n", result);
     assert_int_equal(result, 0);
     assert_non_null(content);
 
     result = ccnl_cs_add(&content_store, name, content);
-    //int result = ccnl_cs_add(&content_store, name, content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
     assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
-
-    /** also the item should be in the content store */
-//    result = ccnl_cs_exists(&content_store, name, content);
 
     int size = ccnl_cs_get_cs_current_size();
     int expected_size = 1;
     assert_int_equal(expected_size, size); 
     
-    /** remove the previously added element from the content store */
-    //result = ccnl_cs_remove(&content_store, name);
-    //assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
-
     /** clear the content store, todo: move to teardown function */
-    //ccnl_cs_clear(&content_store);
+    ccnl_cs_clear(&content_store);
 
     ccnl_prefix_free(name);
     free(prefix);
@@ -296,15 +236,20 @@ size_t ccnl_cs_get_cs_current_size(void);
 int main(void)
 {
      const UnitTest tests[] = {
-         //unit_test_setup(test_ccnl_cs_add_successful, setup),
-         unit_test_setup(test_ccnl_cs_remove_non_existent_entry, setup),
+         unit_test_setup(test_ccnl_cs_add_successful, setup_cs_ll),
+         unit_test_setup(test_ccnl_cs_remove_non_existent_entry, setup_cs_ll),
          unit_test(test_ccnl_cs_add_invalid_parameters),
          unit_test(test_ccnl_cs_lookup_invalid_parameters),
          unit_test(test_ccnl_cs_remove_invalid_parameters),
          unit_test(test_ccnl_cs_clear_invalid_parameter),
-         unit_test_setup(test_ccnl_cs_get_cs_capacity_successful, setup),
+         unit_test_setup(test_ccnl_cs_get_cs_capacity_successful, setup_cs_ll),
          unit_test(test_ccnl_cs_set_cs_capacity_successful),
-         unit_test_setup(test_ccnl_cs_clear_successful, setup),
+         unit_test_setup(test_ccnl_cs_clear_successful, setup_cs_ll),
+/*
+         unit_test_setup(test_ccnl_cs_remove_non_existent_entry, setup_cs_uthash),
+         unit_test_setup(test_ccnl_cs_get_cs_capacity_successful, setup_cs_uthash),
+         unit_test_setup(test_ccnl_cs_clear_successful, setup_cs_uthash),
+ */
      };
     
      return run_tests(tests); 

@@ -21,7 +21,8 @@
 
 #include "ccnl-defs.h"
 #include "ccnl-pkt.h"
-//#include "ccnl-content.h" // TODO: refactor
+#include "ccnl-pkt-ndntlv.h"
+#include "ccnl-content.h" // TODO: refactor
 #include "ccnl-logging.h"
 #include "ccnl-os-time.h"
 #include "ccnl-cs-helper.h"

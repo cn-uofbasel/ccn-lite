@@ -27,10 +27,8 @@
 #include "ccnl-cs-helper.h"
 #include "ccnl-cs-uthash.h"
 
-/***
- * The actual hashmap of the uthash-based content store implementation
+/** The actual hashmap of the uthash-based content store implementation */
 static ccnl_cs_uthash_t *hashmap = NULL;
- */
 
 
 static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content);
@@ -176,14 +174,12 @@ static int ccnl_cs_uthash_dump(void) {
 }
 
 static ccnl_cs_status_t ccnl_cs_uthash_clear(void) {
-    /*
     ccnl_cs_uthash_t *current_entry, *tmp;
     
     HASH_ITER(hh, hashmap, current_entry, tmp) {
         HASH_DEL(hashmap, current_entry);
         free(current_entry);            
     }
-*/
 
     return 0;
 }
