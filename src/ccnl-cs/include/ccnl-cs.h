@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2018 HAW Hamburg
  * Copyright (C) 2018 MSA Safety 
- * Copyright (C) 2018 Safety IO
+ * Copyright (C) 2018, 2019 Safety IO
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -226,26 +226,60 @@ ccnl_cs_exists(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name,
                ccnl_cs_match_t mode);
 
+/**
+ * @brief Removes all elements from the content store
+ * 
+ * @param[in] ops Data structure which holds the function pointer to the clear function
+ * 
+ * @return 0 All content was removed successfully from the content store
+ * @return -1 An invalid \ref ccnl_cs_op_t struct was passed to the function (e.g. \p ops is NULL)
+ */
 ccnl_cs_status_t
 ccnl_cs_clear(ccnl_cs_ops_t *ops);
+
+
+/**
+ * @brief Allows to set the maxmium size of the content store
+ * 
+ * @param[in] size The new size of the content store
+ */
+void ccnl_cs_set_cs_capacity(size_t size);
+
+/**
+ * @brief Returns the maximum size of the content store
+ *
+ * @return The maximum size of the content store
+ */
+size_t ccnl_cs_get_cs_capacity(void);
+
+/**
+ * @brief Returns the current size of the content store
+ *
+ * @return The current size of the content store
+ */
+size_t ccnl_cs_get_cs_current_size(void);
+
+/**
+ * @brief Checks if an Interest packet matches an content object in the content store
+ *
+ * @param[in] ops Data structure which holds the function pointer to the clear function
+ * @param[in] packet  The Interest packet (and thus the prefix, to lookup)
+ * @param[out] content If successfull, the pointer points to the content found in the content store
+ *
+ * @return 0 Content which matches the Interest was found in the content store
+ * @return -1 An invalid \ref ccnl_cs_op_t struct was passed to the function (e.g. \p ops is NULL)
+ */
+ccnl_cs_status_t
+ccnl_cs_match_interest(ccnl_cs_ops_t *ops, const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content);
+
+
+ccnl_cs_status_t
+ccnl_cs_remove_oldest_entry(ccnl_cs_ops_t *ops);
 
 ccnl_cs_status_t
 ccnl_cs_print(ccnl_cs_ops_t *ops);
 
 ccnl_cs_status_t
 ccnl_cs_age(ccnl_cs_ops_t *ops);
-
-void ccnl_cs_set_cs_capacity(size_t size);
-size_t ccnl_cs_get_cs_capacity(void);
-size_t ccnl_cs_get_cs_current_size(void);
-
-ccnl_cs_status_t
-ccnl_cs_remove_oldest_entry(ccnl_cs_ops_t *ops);
-
-/**
- *
- */
-ccnl_cs_status_t
-ccnl_cs_match_interest(ccnl_cs_ops_t *ops, const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content);
 
 #endif //CCNL_CS
