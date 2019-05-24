@@ -142,7 +142,7 @@ static ccnl_cs_status_t ccnl_cs_ll_lookup(const ccnl_cs_name_t *name, ccnl_cs_co
 }
 
 static ccnl_cs_status_t ccnl_cs_ll_remove(const ccnl_cs_name_t *name) {
-    ccnl_cs_status_t result = CS_OPERATION_UNSUCCESSFUL;
+    ccnl_cs_status_t result = CS_NAME_COULD_NOT_BE_FOUND;
 
     /** build a temporary packet */
     struct ccnl_pkt_s packet;
@@ -174,7 +174,7 @@ static ccnl_cs_status_t ccnl_cs_ll_clear(void) {
         free(element);
     }
 
-    return 0;
+    return CS_OPERATION_WAS_SUCCESSFUL;
 }
 
 static ccnl_cs_status_t ccnl_cs_ll_dump(void) {
