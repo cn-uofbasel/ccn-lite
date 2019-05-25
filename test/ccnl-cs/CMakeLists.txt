@@ -4,10 +4,24 @@ project(ccnl-cs-tests)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test/ccnl-cs)
 
-set(CCNL_EXTRA_FLAGS
-        -DUSE_SUITE_NDNTLV
-    )
-add_definitions(${CCNL_EXTRA_FLAGS})
+option(CCNL_PACKETFORMAT_NDN "Use the NDN (v0.2) packet parser." ON)
+
+set(CCNL_PACKETFORMAT_FLAGS "")
+if (CCNL_PACKETFORMAT_NDN)
+   set(CCNL_PACKETFORMAT_FLAGS "${CCNL_PACKETFORMAT_FLAGS}" -DUSE_SUITE_NDNTLV)
+endif ()
+if (CCNL_PACKETFORMAT_CCNB)
+   set(CCNL_PACKETFORMAT_FLAGS "${CCNL_PACKETFORMAT_FLAGS}" -DUSE_SUITE_CCNB)
+endif ()
+if (CCNL_PACKETFORMAT_CCNTLV)
+   set(CCNL_PACKETFORMAT_FLAGS "${CCNL_PACKETFORMAT_FLAGS}" -DUSE_SUITE_CCNTLV)
+endif ()
+if (CCNL_PACKETFORMAT_LOCALRPC)
+   set(CCNL_PACKETFORMAT_FLAGS "${CCNL_PACKETFORMAT_FLAGS}" -DUSE_SUITE_LOCALRPC)
+endif ()
+set("${CCNL_PACKETFORMAT_FLAGS}" CACHE PATH "packet format flags for CCN-lite")
+
+add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 
 link_directories(
     ${CMAKE_BINARY_DIR}/lib
@@ -21,7 +35,7 @@ include_directories(include ../../src/ccnl-cs/include ../../src/ccnl-core/includ
 
 add_executable(test_cs_wip test_cs_wip.c)
 target_link_libraries(test_cs_wip ccnl-core ccnl-pkt ccnl-fwd ccnl-cs cmocka)
-target_link_libraries(test_cs_wip ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
+target_link_libraries(test_cs_wip ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY} ccnl-core ccnl-pkt)
 add_test(test_cs_wip test_cs_wip)
 
 #add_executable(test_cs_uthash test_cs_uthash.c)
