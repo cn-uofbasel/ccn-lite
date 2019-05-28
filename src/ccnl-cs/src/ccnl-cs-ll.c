@@ -171,7 +171,7 @@ static ccnl_cs_status_t ccnl_cs_ll_clear(void) {
 
     DL_FOREACH_SAFE(ll, element, temp) {
         DL_DELETE(ll, element);
-        free(element);
+        ccnl_content_free(element);
     }
 
     return CS_OPERATION_WAS_SUCCESSFUL;

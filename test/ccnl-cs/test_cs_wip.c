@@ -155,8 +155,8 @@ void test_ccnl_cs_add_successful()
     assert_int_equal(result, 0);
     assert_non_null(content);
 
+    /** add element to the content store */
     result = ccnl_cs_add(&content_store, name, content);
-    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
     assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
 
     int size = ccnl_cs_get_cs_current_size();
@@ -225,13 +225,12 @@ void test_ccnl_cs_set_cs_capacity_successful()
     assert_int_equal(size, ccnl_cs_get_cs_capacity());
 }
 
-void test_ccnl_cs_get_cs_capacity_successful(void) 
+void test_ccnl_cs_get_cs_capacity_successful()
 {
     size_t size = 32;
     assert_int_equal(size, ccnl_cs_get_cs_capacity());
 }
 
-size_t ccnl_cs_get_cs_current_size(void);
 
 int main(void)
 {
