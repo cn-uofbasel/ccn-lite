@@ -23,6 +23,7 @@
 #include "utlist.h"
 #include "ccnl-cs.h"
 #include "ccnl-pkt.h"
+#include "ccnl-cs-helper.h"
 #include "ccnl-fwd.h"
 #include "ccnl-dispatch.h"
 
@@ -215,17 +216,22 @@ static ccnl_cs_status_t ccnl_cs_ll_remove_oldest_entry(void) {
 }
 
 static bool ccnl_cs_ll_exists(ccnl_cs_name_t *name) {
-    /** build a temporary packet */
-    struct ccnl_pkt_s packet;
-    packet.pfx = name;
-    /** build a temporary content element which encapsulates the packet */
-    ccnl_cs_content_t temporary;
-    temporary.pkt = &packet;
+    /** create some exemplary payload (which is not evaluated but required for crafting a content object) */
+    size_t payload_len = sizeof(uint8_t);
+    uint8_t *payload = malloc(payload_len);
+    /** build a temporary content element which encapsulates the name */
+    ccnl_cs_content_t *temporary = NULL;
+    /** super ugly, super whacky */
+    ccnl_cs_build_content(&temporary, name, NULL, payload, payload_len); 
+
     /** temporary element which is used during search */
     ccnl_cs_content_t *content;
-
     /** search if there is an actual element already in the list which matches the name */
-    DL_SEARCH(ll, content, &temporary, _content_cmp_name); 
+    DL_SEARCH(ll, content, temporary, _content_cmp_name); 
+
+    /** free previously allocated memory */
+    free(payload);
+    ccnl_content_free(temporary);
 
     /** check if an element was found */
     return (content != NULL); 

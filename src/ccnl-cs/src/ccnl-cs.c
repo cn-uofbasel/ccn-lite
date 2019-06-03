@@ -109,9 +109,7 @@ ccnl_cs_lookup(ccnl_cs_ops_t *ops,
 
     if (ops) {
         if (name) {
-            if (content) {
-                return ops->lookup(name, content);
-            }
+            return ops->lookup(name, content);
         } else {
             result = CS_NAME_IS_INVALID;
         }
