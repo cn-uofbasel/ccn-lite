@@ -970,7 +970,7 @@ ccnl_relay_lookup(struct ccnl_relay_s *ccnl, char *prefix)
             ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
 
             if (name) {
-                ccnl_cs_lookup(ccnl->content_options, name, content); 
+                ccnl_cs_lookup(ccnl->content_options, name, &content); 
                 ccnl_prefix_free(name);
             }
         }

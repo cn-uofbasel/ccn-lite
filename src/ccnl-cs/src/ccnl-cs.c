@@ -104,7 +104,7 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
 
 ccnl_cs_status_t
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
-               const ccnl_cs_name_t *name, ccnl_cs_content_t *content) {
+               const ccnl_cs_name_t *name, ccnl_cs_content_t **content) {
     int result = CS_CONTENT_IS_INVALID;
 
     if (ops) {

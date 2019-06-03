@@ -101,7 +101,7 @@ typedef int (*ccnl_cs_op_add_t)(const ccnl_cs_name_t *name, const ccnl_cs_conten
 /**
  * Type definition for the function pointer to the lookup function
  */
-typedef int (*ccnl_cs_op_lookup_t)(const ccnl_cs_name_t *name, ccnl_cs_content_t *content);
+typedef int (*ccnl_cs_op_lookup_t)(const ccnl_cs_name_t *name, ccnl_cs_content_t **content);
 
 /**
  * Type definition for the function pointer to the remove function
@@ -205,7 +205,7 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
 ccnl_cs_status_t
 ccnl_cs_lookup(ccnl_cs_ops_t *ops,
                const ccnl_cs_name_t *name,
-               ccnl_cs_content_t *content);
+               ccnl_cs_content_t **content);
 
 /**
  * @brief Removes an item from the content store 

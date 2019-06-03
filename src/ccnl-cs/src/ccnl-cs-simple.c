@@ -28,7 +28,7 @@ static int add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
     return 0;
 }
 
-static int lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t *content) {
+static int lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t **content) {
     (void) name;
     (void) content;
     return 0;

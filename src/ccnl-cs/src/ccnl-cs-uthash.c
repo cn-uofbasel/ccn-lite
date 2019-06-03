@@ -3,6 +3,7 @@
  * @b Content store implementation based on uthash
  *
  * Copyright (C) 2018 MSA Safety 
+ * Copyright (C) 2019 Safety IO
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,7 +33,7 @@ static ccnl_cs_uthash_t *hashmap = NULL;
 
 
 static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content);
-static ccnl_cs_status_t ccnl_cs_uthash_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t *content);
+static ccnl_cs_status_t ccnl_cs_uthash_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t **content);
 static ccnl_cs_status_t ccnl_cs_uthash_remove(const ccnl_cs_name_t *name);
 static ccnl_cs_status_t ccnl_cs_uthash_clear(void);
 static ccnl_cs_status_t ccnl_cs_uthash_dump(void);
@@ -45,47 +46,18 @@ void ccnl_cs_init_uthash(ccnl_cs_ops_t *ccnl_cs_ops_uthash) {
 }
 
 static ccnl_cs_status_t ccnl_cs_uthash_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
-    (void)name;
     (void)content;
-    /* name is not already stored in the content store 
+    ccnl_cs_status_t result = CS_OPERATION_UNSUCCESSFUL;
+    /* name is not already stored in the content store */
     if (!ccnl_cs_uthash_exists((ccnl_cs_name_t*)name)) {
-        ccnl_cs_uthash_t *entry = malloc(sizeof(ccnl_cs_uthash_t));
-
-        if (entry) {
-            entry->key = ccnl_cs_create_name((const char*)name->name, name->length);
-
-            if (entry->key) {
-     */
-                /* copy over the name 
-                memcpy(entry->key->name, name->name, name->length);
-                entry->key->length = name->length;
-                 */
-                /* create value member 
-                entry->value = ccnl_cs_create_content(content->content, content->length);
-
-                if (entry->value) {
-                 */
-                    /* copy over the content */
-                        /*
-                    memcpy(entry->value->content, content->content, content->length);
-                    entry->value->length = content->length;
-
-                    HASH_ADD_KEYPTR(hh, hashmap, entry->key->name, entry->key->length, entry);
-
-                    return CS_OPERATION_WAS_SUCCESSFUL;
-                } else {
-                    free(entry);
-                }
-            } else {
-                free(entry);
-            }
-        }
+//        HASH_ADD_KEYPTR(hh, hashmap, (ccnl_cs_name_t*)name, entry->key->complen, (ccnl_cs_content_t*)content);
+        result = CS_OPERATION_WAS_SUCCESSFUL;
     }
-*/
-    return CS_OPERATION_UNSUCCESSFUL;
+
+    return result;
 }
 
-static ccnl_cs_status_t ccnl_cs_uthash_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t *content) {
+static ccnl_cs_status_t ccnl_cs_uthash_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t **content) {
     (void)name;
     (void)content;
     //ccnl_cs_uthash_t *entry = NULL;
@@ -135,14 +107,11 @@ static ccnl_cs_status_t ccnl_cs_uthash_remove(const ccnl_cs_name_t *name) {
 }
 
 bool ccnl_cs_uthash_exists(ccnl_cs_name_t *name) {
-    (void)name;
     ccnl_cs_uthash_t *entry = NULL;
 
-    /* check that name is a valid pointer 
     if (name) {
-        HASH_FIND(hh, hashmap, name->name, name->length, entry); 
+       // HASH_FIND(hh, hashmap, name, name->complen, entry); 
     }
-     */
 
     /* if no entry could be found the, the temporary element 'entry' points to NULL */
     return (entry != NULL);
@@ -178,7 +147,7 @@ static ccnl_cs_status_t ccnl_cs_uthash_clear(void) {
     
     HASH_ITER(hh, hashmap, current_entry, tmp) {
         HASH_DEL(hashmap, current_entry);
-        free(current_entry);            
+        ccnl_content_free(current_entry->value);            
     }
 
     return 0;

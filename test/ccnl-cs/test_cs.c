@@ -375,12 +375,10 @@ void test_ccnl_cs_lookup_successful()
     assert_int_equal(expected_size, size); 
 
     /** lookup a name in the content store */
-    ccnl_cs_content_t item;
-    //ccnl_cs_content_t *item = NULL;
+    ccnl_cs_content_t *item = NULL;
     result = ccnl_cs_lookup(&content_store, name, &item);
     assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
-    //assert_non_null(item);
-
+    assert_non_null(item);
 
     ccnl_prefix_free(name);
     free(prefix);
@@ -394,7 +392,7 @@ int main(void)
          unit_test_setup_teardown(test_ccnl_cs_remove_non_existent_entry, setup_cs_ll, teardown_cs),
          unit_test(test_ccnl_cs_add_invalid_parameters),
          unit_test(test_ccnl_cs_lookup_invalid_parameters),
-//         unit_test_setup_teardown(test_ccnl_cs_lookup_successful, setup_cs_ll, teardown_cs),
+         unit_test_setup_teardown(test_ccnl_cs_lookup_successful, setup_cs_ll, teardown_cs),
          unit_test(test_ccnl_cs_remove_invalid_parameters),
          unit_test(test_ccnl_cs_clear_invalid_parameter),
          unit_test_setup_teardown(test_ccnl_cs_get_cs_capacity_successful, setup_cs_ll, teardown_cs),
