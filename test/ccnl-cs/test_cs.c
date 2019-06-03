@@ -384,20 +384,66 @@ void test_ccnl_cs_lookup_successful()
     free(prefix);
 }
 
+void test_ccnl_cs_remove_successful()
+{
+    /** prepare name */
+    uint8_t prefix_len = 37;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/a/test/for/ccnl_cs_ll_remove", prefix_len);
+
+    uint8_t payload_len = 6;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "def123", payload_len);
+
+    /** set the name */
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+    assert_int_equal(result, 0);
+    assert_non_null(content);
+
+    int size = ccnl_cs_get_cs_current_size();
+    int expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 1;
+    assert_int_equal(expected_size, size); 
+
+    result = ccnl_cs_remove(&content_store, name);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    ccnl_prefix_free(name);
+    free(prefix);
+}
+
 int main(void)
 {
      const UnitTest tests[] = {
+         unit_test(test_ccnl_cs_add_invalid_parameters),
          unit_test_setup_teardown(test_ccnl_cs_add_successful, setup_cs_ll, teardown_cs),
          unit_test_setup_teardown(test_ccnl_cs_add_unsuccessful, setup_cs_ll, teardown_cs),
-         unit_test_setup_teardown(test_ccnl_cs_remove_non_existent_entry, setup_cs_ll, teardown_cs),
-         unit_test(test_ccnl_cs_add_invalid_parameters),
+
          unit_test(test_ccnl_cs_lookup_invalid_parameters),
          unit_test_setup_teardown(test_ccnl_cs_lookup_successful, setup_cs_ll, teardown_cs),
+
          unit_test(test_ccnl_cs_remove_invalid_parameters),
+         unit_test_setup_teardown(test_ccnl_cs_remove_successful, setup_cs_ll, teardown_cs),
+         unit_test_setup_teardown(test_ccnl_cs_remove_non_existent_entry, setup_cs_ll, teardown_cs),
+
          unit_test(test_ccnl_cs_clear_invalid_parameter),
+         unit_test_setup_teardown(test_ccnl_cs_clear_successful, setup_cs_ll, teardown_cs),
+
          unit_test_setup_teardown(test_ccnl_cs_get_cs_capacity_successful, setup_cs_ll, teardown_cs),
          unit_test(test_ccnl_cs_set_cs_capacity_successful),
-         unit_test_setup_teardown(test_ccnl_cs_clear_successful, setup_cs_ll, teardown_cs),
 /*
          unit_test_setup(test_ccnl_cs_remove_non_existent_entry, setup_cs_uthash),
          unit_test_setup(test_ccnl_cs_get_cs_capacity_successful, setup_cs_uthash),

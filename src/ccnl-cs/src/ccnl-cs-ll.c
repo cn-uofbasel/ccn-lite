@@ -41,6 +41,22 @@ static ccnl_cs_content_t *ll = NULL;
 extern struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
 /**
+ * @brief Wraps a @p name into a @p content object
+ *
+ * The functions embeds a @p name into @p content object, so it can be used for
+ * the \ref _content_cmp_name function. The entries in the content store store 
+ * the prefix/name of a content object in a packet representation. The packet
+ * representation holds a fully encoded TLV for the prefix (in case of NDN) and
+ * thus won't match with a prefix/name which was just encoded with a call to 
+ * \ref ccnl_URItoPrefix
+ *
+ * @param[in]  name The name to be embedded into a @p content object
+ * @param[out] content The newly created content object which holds the given @p name
+ *
+ */
+static void _embed_ccnl_cs_name(ccnl_cs_name_t *name, ccnl_cs_content_t **content);
+
+/**
  * Compares two \ref ccnl_cs_content_t elements
  *
  * @param[in] a The first item 
@@ -54,15 +70,41 @@ extern struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
 static int _content_cmp_name(const ccnl_cs_content_t *a, const ccnl_cs_content_t *b);
 
+/**
+ * \ref ccnl_cs_add
+ */
 static ccnl_cs_status_t ccnl_cs_ll_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content);
+/**
+ * \ref ccnl_cs_lookup
+ */
 static ccnl_cs_status_t ccnl_cs_ll_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t **content);
+/**
+ * \ref ccnl_cs_remove
+ */
 static ccnl_cs_status_t ccnl_cs_ll_remove(const ccnl_cs_name_t *name);
+/**
+ * \ref ccnl_cs_clear
+ */
 static ccnl_cs_status_t ccnl_cs_ll_clear(void);
+/**
+ * \ref
+ */
 static ccnl_cs_status_t ccnl_cs_ll_dump(void);
+/**
+ * \ref
+ */
 static ccnl_cs_status_t ccnl_cs_ll_age(void);
+/**
+ * \ref
+ */
 static ccnl_cs_status_t ccnl_cs_ll_remove_oldest_entry(void);
+
+
 static int ccnl_cs_ll_match_interest(const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content);
 
+/**
+ * \ref ccnl_cs_exists
+ */
 static bool ccnl_cs_ll_exists(ccnl_cs_name_t *name);
 
 /**
@@ -100,7 +142,6 @@ static int _content_cmp_name(const ccnl_cs_content_t *a, const ccnl_cs_content_t
     return -1;
 }
 
-
 static ccnl_cs_status_t ccnl_cs_ll_add(const ccnl_cs_name_t *name, const ccnl_cs_content_t *content) {
     ccnl_cs_status_t result = CS_OPERATION_UNSUCCESSFUL;
 
@@ -112,15 +153,21 @@ static ccnl_cs_status_t ccnl_cs_ll_add(const ccnl_cs_name_t *name, const ccnl_cs
     return result;
 }
 
+static void _embed_ccnl_cs_name(ccnl_cs_name_t *name, ccnl_cs_content_t **content) {
+    /** create some exemplary payload (which is not used) */
+    size_t payload_len = sizeof(uint8_t);
+    uint8_t *payload = malloc(payload_len);
+    /** create a new content object with the given name */
+    ccnl_cs_build_content(content, name, NULL, payload, payload_len); 
+    /** free the payload */
+    free(payload);
+}
+
 static ccnl_cs_status_t ccnl_cs_ll_lookup(const ccnl_cs_name_t *name, ccnl_cs_content_t **content) {
     ccnl_cs_status_t result = CS_OPERATION_UNSUCCESSFUL;
 
-    /** create some exemplary payload (which is not evaluated but required for crafting a content object) */
-    size_t payload_len = sizeof(uint8_t);
-    uint8_t *payload = malloc(payload_len);
-    /** build a temporary content element which encapsulates the name */
     ccnl_cs_content_t *temporary = NULL;
-    ccnl_cs_build_content(&temporary, (ccnl_cs_name_t*)name, NULL, payload, payload_len); 
+    _embed_ccnl_cs_name((ccnl_cs_name_t*)name, &temporary);
 
     if (temporary) {
         /** search if there is an actual element already in the list which matches the name */
@@ -129,10 +176,6 @@ static ccnl_cs_status_t ccnl_cs_ll_lookup(const ccnl_cs_name_t *name, ccnl_cs_co
         /** check if an element was found */
         if (content) {
             result = CS_OPERATION_WAS_SUCCESSFUL;
-        }
-        
-        if (payload) { 
-            free(payload);
         }
 
         ccnl_content_free(temporary);
@@ -144,23 +187,25 @@ static ccnl_cs_status_t ccnl_cs_ll_lookup(const ccnl_cs_name_t *name, ccnl_cs_co
 static ccnl_cs_status_t ccnl_cs_ll_remove(const ccnl_cs_name_t *name) {
     ccnl_cs_status_t result = CS_NAME_COULD_NOT_BE_FOUND;
 
-    /** build a temporary packet */
-    struct ccnl_pkt_s packet;
-    packet.pfx = (ccnl_cs_name_t*)name;
-    /** build a temporary content element which encapsulates the packet */
-    ccnl_cs_content_t temporary;
-    temporary.pkt = &packet;
-    /** temporary element which is used during search */
-    ccnl_cs_content_t *content;
+    /** build a temporary content element which encapsulates the name */
+    ccnl_cs_content_t *temporary = NULL;
+    _embed_ccnl_cs_name((ccnl_cs_name_t*)name, &temporary);
 
-    /** search if there is an actual element already in the list which matches the name */
-    DL_SEARCH(ll, content, &temporary, _content_cmp_name); 
+    if (temporary) {
+        /** temporary element which is used during search */
+        ccnl_cs_content_t *content = NULL;
 
-    /** check if an element was found */
-    if (content) {
-        /** delete the content associated with that name */
-        DL_DELETE(ll, content);
-        result = CS_OPERATION_WAS_SUCCESSFUL;
+        /** search if there is an actual element already in the list which matches the name */
+        DL_SEARCH(ll, content, temporary, _content_cmp_name); 
+
+        /** check if an element was found */
+        if (content) {
+            /** delete the content associated with that name */
+            DL_DELETE(ll, content);
+            result = CS_OPERATION_WAS_SUCCESSFUL;
+        }
+
+        ccnl_content_free(temporary);
     }
 
     return result;
@@ -215,12 +260,10 @@ static ccnl_cs_status_t ccnl_cs_ll_remove_oldest_entry(void) {
 }
 
 static bool ccnl_cs_ll_exists(ccnl_cs_name_t *name) {
-    /** create some exemplary payload (which is not evaluated but required for crafting a content object) */
-    size_t payload_len = sizeof(uint8_t);
-    uint8_t *payload = malloc(payload_len);
     /** build a temporary content element which encapsulates the name */
     ccnl_cs_content_t *temporary = NULL;
-    ccnl_cs_build_content(&temporary, name, NULL, payload, payload_len); 
+    _embed_ccnl_cs_name(name, &temporary);
+
     /** temporary element which is used during search */
     ccnl_cs_content_t *content = NULL;
 
@@ -228,10 +271,6 @@ static bool ccnl_cs_ll_exists(ccnl_cs_name_t *name) {
         /** search if there is an actual element already in the list which matches the name */
         DL_SEARCH(ll, content, temporary, _content_cmp_name); 
         
-        if (payload) { 
-            free(payload);
-        }
-
         ccnl_content_free(temporary);
     }
 
