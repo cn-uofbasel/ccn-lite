@@ -2,7 +2,7 @@
  * @file test-cs.c
  * @brief CCN lite - Tests for content store implementation
  *
- * Copyright (C) 2018 MSA Safety
+ * Copyright (C) 2019 Safety IO
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,46 +23,46 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
- 
+
+#include <stdio.h>
+
 #include "ccnl-cs.h"
+#include "ccnl-defs.h"
+#include "ccnl-cs-ll.h"
+#include "ccnl-prefix.h"
 #include "ccnl-cs-helper.h"
+#include "ccnl-pkt.h"
+#include "ccnl-pkt-ndntlv.h"
 
+static ccnl_cs_ops_t content_store;
 
-static int setup(void **state) {
-     ccnl_cs_ops_t content_store;
-     /** TODO: set function pointers */
-
-     state = (void*)&content_store;
-
-     return 0;
+/** initializs the \ref ccnl_cs_ops_t with the function pointers of the utlist implementation */
+static void setup_cs_ll(void **state) {
+     ccnl_cs_init_ll(&content_store);
 }
 
-static int teardown(void **state) {
-
-     return 0;
+static void teardown_cs(void **state) {
+     ccnl_cs_clear(&content_store);
 }
- 
-void test1()
-{
-  int result = 0;
-  assert_int_equal(result, 0);
+
+/** initializs the \ref ccnl_cs_ops_t with the function pointers of the uthash implementation */
+static void setup_cs_uthash(void **state) {
+     ccnl_cs_init_uthash(&content_store);
 }
 
 void test_ccnl_cs_add_invalid_parameters()
 {
-    /** build up our ccnl_cs_name_t struct */
-    uint8_t _size = 10;
-    uint8_t _name[_size];
-    memset(&(_name[0]), 0x42, _size);  
+    /** prepare name */
+    uint8_t prefix_len = 18;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/some/test", prefix_len);
 
     /** set the name */
-    ccnl_cs_name_t name;
-    /** TODO: that's a bit hard to read -> fix */
-    name.name = &(_name[0]);
-    name.length = _size;
-            
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+    
     ccnl_cs_content_t content;
-    int result = ccnl_cs_add(NULL, &name, &content);
+            
+    int result = ccnl_cs_add(NULL, name, &content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
     assert_int_equal(result, CS_OPTIONS_ARE_NULL);
 
@@ -73,25 +73,19 @@ void test_ccnl_cs_add_invalid_parameters()
     /* if we pass an invalid name, call should fail */
     assert_int_equal(result, CS_NAME_IS_INVALID);
 
-    result = ccnl_cs_add(&options, &name, NULL);
+    result = ccnl_cs_add(&options, name, NULL);
     /* if we pass an invalid content object, call should fail */
     assert_int_equal(result, CS_CONTENT_IS_INVALID);
+
+    ccnl_prefix_free(name);
+    free(prefix);
 }
 
 void test_ccnl_cs_lookup_invalid_parameters()
 {
-    /** build up our ccnl_cs_name_t struct */
-    uint8_t _size = 10;
-    uint8_t _name[_size];
-    memset(&(_name[0]), 0x42, _size);  
-
-    /** set the name */
-    ccnl_cs_name_t name;
-    /** TODO: that's a bit hard to read -> fix */
-    name.name = &(_name[0]);
-    name.length = _size;
-            
+    ccnl_cs_name_t name; 
     ccnl_cs_content_t content;
+
     int result = ccnl_cs_lookup(NULL, &name, &content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
     assert_int_equal(result, CS_OPTIONS_ARE_NULL);
@@ -102,67 +96,19 @@ void test_ccnl_cs_lookup_invalid_parameters()
     result = ccnl_cs_lookup(&options, NULL, &content);
     /* if we pass an invalid name, call should fail */
     assert_int_equal(result, CS_NAME_IS_INVALID);
-
-    result = ccnl_cs_lookup(&options, &name, NULL);
-    /* if we pass an invalid content object, call should fail */
-    assert_int_equal(result, CS_CONTENT_IS_INVALID);
-}
-
-void test_ccnl_cs_add_successful()
-{
-    /** build up our ccnl_cs_name_t struct */
-    uint8_t _size = 10;
-    uint8_t _name[_size];
-    memset(&(_name[0]), 0x42, _size);  
-
-    /** set the name */
-    ccnl_cs_name_t name;
-    /** TODO: that's a bit hard to read -> fix */
-    name.name = &(_name[0]);
-    name.length = _size;
-
-    ccnl_cs_content_t content;
-    //TODO    
-    int result = ccnl_cs_add(NULL, &name, &content);
-    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
-}
-
-void test_ccnl_cs_add_unsuccessful()
-{
-    /** build up our ccnl_cs_name_t struct */
-    uint8_t _size = 10;
-    uint8_t _name[_size];
-    memset(&(_name[0]), 0x42, _size);  
-
-    /** set the name */
-    ccnl_cs_name_t name;
-    /** TODO: that's a bit hard to read -> fix */
-    name.name = &(_name[0]);
-    name.length = _size;
-     ccnl_cs_content_t content;
-    //TODO    
-    int result = ccnl_cs_add(NULL, &name, &content);
-    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
-
-    // and now try to add the same content again which should fail
-
 }
 
 void test_ccnl_cs_remove_invalid_parameters()
 {
-    /** build up our ccnl_cs_name_t struct */
-    uint8_t _size = 10;
-    uint8_t _name[_size];
-    memset(&(_name[0]), 0x42, _size);  
+    /** prepare name */
+    uint8_t prefix_len = 27;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/again/another/test", prefix_len);
 
     /** set the name */
-    ccnl_cs_name_t name;
-    name.name = &(_name[0]);
-    name.length = _size;
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
             
-    int result = ccnl_cs_remove(NULL, &name);
+    int result = ccnl_cs_remove(NULL, name);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
     assert_int_equal(result, CS_OPTIONS_ARE_NULL);
 
@@ -172,71 +118,293 @@ void test_ccnl_cs_remove_invalid_parameters()
     result = ccnl_cs_remove(&options, NULL);
     /* if we pass an invalid name, call should fail */
     assert_int_equal(result, CS_NAME_IS_INVALID);
+
+    ccnl_prefix_free(name);
+    free(prefix);
 }
 
-void test_ccnl_cs_remove_wrong_name_size(void **state)
+void test_ccnl_cs_add_successful()
 {
-    /* retrieve implementation */
-    ccnl_cs_ops_t *content_store_impl = (ccnl_cs_ops_t*)state;
-    /* build up our ccnl_cs_name_t struct */
-    uint8_t _size = 10;
-    uint8_t _name[_size];
-    memset(&(_name[0]), 0x42, _size);  
+    /** prepare name */
+    uint8_t prefix_len = 29;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/a/content/store/test", prefix_len);
+
+    uint8_t payload_len = 26;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "abcdefghijklmnopqrstuvwxyz", payload_len);
 
     /** set the name */
-    ccnl_cs_name_t name;
-    /** TODO: that's a bit hard to read -> fix */
-    name.name = &(_name[0]);
-    /** what happens if we set the size to 0? */
-    name.length = 0;
-            
-    /* TODO: pass actual valid first parameter */
-    int result = ccnl_cs_remove(content_store_impl, &name);
-    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
-    assert_int_equal(result, 0);
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
 
-    /** what happens if we set the size to two-times the actual size? */
-    name.length = 2 * _size;
-    /* TODO: pass actual valid first parameter */
-    result = ccnl_cs_remove(content_store_impl, &name);
-    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+
     assert_int_equal(result, 0);
+    assert_non_null(content);
+
+    /** add element to the content store */
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    int size = ccnl_cs_get_cs_current_size();
+    int expected_size = 1;
+    assert_int_equal(expected_size, size); 
+    
+    /** clear the content store, todo: move to teardown function */
+    ccnl_cs_clear(&content_store);
+
+    ccnl_prefix_free(name);
+    free(prefix);
+    free(payload);
 }
 
-void test_ccnl_cs_remove_partially_valid_structs(void **state)
+void test_ccnl_cs_add_unsuccessful()
 {
-    /* retrieve implementation */
-    ccnl_cs_ops_t *content_store_impl = (ccnl_cs_ops_t*)state;
+    /** prepare name */
+    uint8_t prefix_len = 29;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/a/content/store/test", prefix_len);
 
-    /** leave the member 'name' uninitialized */
-    ccnl_cs_name_t name;
-    /** but give it a size */
-    name.length = 256;
+    uint8_t payload_len = 26;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "abcdefghijklmnopqrstuvwxyz", payload_len);
 
-    int result = ccnl_cs_remove(content_store_impl, &name);
-    /* call should fail */
+    /** set the name */
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+
     assert_int_equal(result, 0);
+    assert_non_null(content);
 
-    /* okay, let's set the name to NULL, is a check performed? */
-    name.name = NULL;
+    /** add element to the content store */
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
 
-    result = ccnl_cs_remove(content_store_impl, &name);
-    /* call should fail */
+    int size = ccnl_cs_get_cs_current_size();
+    int expected_size = 1;
+    assert_int_equal(expected_size, size); 
+
+    /** adding the same element a second time should fail */
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_UNSUCCESSFUL);
+
+    /** there should be still only one entry in the content store */
+    assert_int_equal(expected_size, size); 
+    
+    /** clear the content store, todo: move to teardown function */
+    ccnl_cs_clear(&content_store);
+
+    ccnl_prefix_free(name);
+    free(prefix);
+    free(payload);
+}
+
+void test_ccnl_cs_clear_invalid_parameter() 
+{
+    /** pass invalid parameter to the ccnl_cs_clear function */
+    int result = ccnl_cs_clear(NULL);
+    assert_int_equal(result, CS_OPTIONS_ARE_NULL);
+}
+
+void test_ccnl_cs_clear_successful()
+{
+    /** prepare name */
+    uint8_t prefix_len = 36;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/a/test/for/ccnl_cs_ll_clear", prefix_len);
+
+    uint8_t payload_len = 6;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "abcdef", payload_len);
+
+    /** set the name */
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
     assert_int_equal(result, 0);
+    assert_non_null(content);
+
+    int size = ccnl_cs_get_cs_current_size();
+    int expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    /** add a single element and call clear */
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 1;
+    assert_int_equal(expected_size, size); 
+
+    result = ccnl_cs_clear(&content_store);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    /** create a new content element */
+    result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+    assert_int_equal(result, 0);
+    assert_non_null(content);
+
+    /** prepare another name */
+    prefix_len = 42;
+    char *another_prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(another_prefix, "/this/is/a/test/for/ccnl_cs_ll_clear/again", prefix_len);
+
+    payload_len = 12;
+    unsigned char *another_payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(another_payload, "abcdefghijkl", payload_len);
+
+    /** set another name */
+    ccnl_cs_name_t *another_name = ccnl_URItoPrefix(another_prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    /** create another content element */
+    ccnl_cs_content_t *another_content = NULL;
+    result = ccnl_cs_build_content(&another_content, another_name, NULL, another_payload, payload_len);
+    assert_int_equal(result, 0);
+    assert_non_null(content);
+
+    /** add multiple elements and call clear */
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    /** only one entry in the content store */
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 1;
+    assert_int_equal(expected_size, size); 
+
+    /** add another content element to the content store */
+    result = ccnl_cs_add(&content_store, another_name, another_content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    /** there should be two entries in the content store */
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 2;
+    assert_int_equal(expected_size, size); 
+
+    /** remove everything */
+    result = ccnl_cs_clear(&content_store);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    /** content store should be empty */
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    /** clean up */
+    ccnl_prefix_free(another_name);
+    free(another_prefix);
+    free(another_payload);
+
+    ccnl_prefix_free(name);
+    free(prefix);
+    free(payload);
+}
+
+void test_ccnl_cs_remove_non_existent_entry()
+{
+    /** the content store should be empty */
+    int size = ccnl_cs_get_cs_current_size();
+    int expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    /** create a prefix */
+    uint8_t prefix_len = 35;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/another/content/store/test", prefix_len);
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    assert_non_null(name);
+
+    /** the name/prefix has not been added before so the name should not be found */
+    int result = ccnl_cs_remove(&content_store, name);
+    assert_int_equal(result, CS_NAME_COULD_NOT_BE_FOUND);
+
+    ccnl_prefix_free(name);
+    free(prefix);
+}
+
+void test_ccnl_cs_set_cs_capacity_successful()
+{
+    size_t size = 42; 
+    assert_int_not_equal(size, ccnl_cs_get_cs_capacity());
+    ccnl_cs_set_cs_capacity(size);
+    assert_int_equal(size, ccnl_cs_get_cs_capacity());
+}
+
+void test_ccnl_cs_get_cs_capacity_successful()
+{
+    size_t size = 32;
+    assert_int_equal(size, ccnl_cs_get_cs_capacity());
+}
+
+void test_ccnl_cs_lookup_successful()
+{
+    /** prepare name */
+    uint8_t prefix_len = 37;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/a/test/for/ccnl_cs_ll_lookup", prefix_len);
+
+    uint8_t payload_len = 6;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "abc123", payload_len);
+
+    /** set the name */
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+    assert_int_equal(result, 0);
+    assert_non_null(content);
+
+    int size = ccnl_cs_get_cs_current_size();
+    int expected_size = 0;
+    assert_int_equal(expected_size, size); 
+
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    size = ccnl_cs_get_cs_current_size();
+    expected_size = 1;
+    assert_int_equal(expected_size, size); 
+
+    /** lookup a name in the content store */
+    ccnl_cs_content_t item;
+    //ccnl_cs_content_t *item = NULL;
+    result = ccnl_cs_lookup(&content_store, name, &item);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+    //assert_non_null(item);
+
+
+    ccnl_prefix_free(name);
+    free(prefix);
 }
 
 int main(void)
 {
      const UnitTest tests[] = {
-         unit_test(test1),
-         unit_test(test_ccnl_cs_remove_invalid_parameters),
+         unit_test_setup_teardown(test_ccnl_cs_add_successful, setup_cs_ll, teardown_cs),
+         unit_test_setup_teardown(test_ccnl_cs_add_unsuccessful, setup_cs_ll, teardown_cs),
+         unit_test_setup_teardown(test_ccnl_cs_remove_non_existent_entry, setup_cs_ll, teardown_cs),
          unit_test(test_ccnl_cs_add_invalid_parameters),
          unit_test(test_ccnl_cs_lookup_invalid_parameters),
-    /*
-         unit_test(test_ccnl_cs_remove_invalid_name),
-         unit_test(test_ccnl_cs_remove_wrong_name_size, setup, NULL),
-         unit_test(test_ccnl_cs_remove_partially_valid_structs, setup, NULL),
-    */
+//         unit_test_setup_teardown(test_ccnl_cs_lookup_successful, setup_cs_ll, teardown_cs),
+         unit_test(test_ccnl_cs_remove_invalid_parameters),
+         unit_test(test_ccnl_cs_clear_invalid_parameter),
+         unit_test_setup_teardown(test_ccnl_cs_get_cs_capacity_successful, setup_cs_ll, teardown_cs),
+         unit_test(test_ccnl_cs_set_cs_capacity_successful),
+         unit_test_setup_teardown(test_ccnl_cs_clear_successful, setup_cs_ll, teardown_cs),
+/*
+         unit_test_setup(test_ccnl_cs_remove_non_existent_entry, setup_cs_uthash),
+         unit_test_setup(test_ccnl_cs_get_cs_capacity_successful, setup_cs_uthash),
+         unit_test_setup(test_ccnl_cs_clear_successful, setup_cs_uthash),
+ */
      };
     
      return run_tests(tests); 

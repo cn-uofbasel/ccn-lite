@@ -28,15 +28,10 @@ link_directories(
 )
 include_directories(include ../../src/ccnl-cs/include ../../src/ccnl-core/include ../../src/ccnl-pkt/include)
 
-#add_executable(test_cs test_cs.c)
-#target_link_libraries(test_cs ccnl-cs cmocka)
-#target_link_libraries(test_cs ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY})
-#add_test(test_cs test_cs)
-
-add_executable(test_cs_wip test_cs_wip.c)
-target_link_libraries(test_cs_wip ccnl-core ccnl-pkt ccnl-fwd ccnl-cs cmocka)
-target_link_libraries(test_cs_wip ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY} ccnl-core ccnl-pkt)
-add_test(test_cs_wip test_cs_wip)
+add_executable(test_cs test_cs.c)
+target_link_libraries(test_cs ccnl-core ccnl-pkt ccnl-fwd ccnl-cs cmocka)
+target_link_libraries(test_cs ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY} ccnl-core ccnl-pkt)
+add_test(test_cs test_cs)
 
 #add_executable(test_cs_uthash test_cs_uthash.c)
 #target_link_libraries(test_cs_uthash ccnl-cs ccnl-core ccnl-pkt cmocka)
