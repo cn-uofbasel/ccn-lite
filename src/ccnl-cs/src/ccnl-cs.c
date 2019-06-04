@@ -86,7 +86,7 @@ ccnl_cs_add(ccnl_cs_ops_t *ops,
 #ifdef CCNL_RIOT
                         /** set cache timeout timer if content is not static */
                         if (!(content->flags & CCNL_CONTENT_FLAGS_STATIC)) {
-                            ccnl_evtimer_set_cs_timeout(content);
+                            //ccnl_evtimer_set_cs_timeout(content);
                         }
 #endif
                     }
