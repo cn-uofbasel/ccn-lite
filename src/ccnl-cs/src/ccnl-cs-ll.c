@@ -37,8 +37,8 @@ static ccnl_cs_content_t *ll = NULL;
  * \ref cMatchFct function pointers per packet types. 
  *
  * TODO: refactor for lose coupling
- */
 extern struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
+ */
 
 /**
  * @brief Wraps a @p name into a @p content object
@@ -303,12 +303,13 @@ static int ccnl_cs_ll_cmp_match_interest(const ccnl_cs_content_t *a, const ccnl_
      * 
      */
     switch (b->pkt->pfx->suite) {
-             /*
 #ifdef USE_SUITE_NDNTLV 
         case CCNL_SUITE_NDNTLV:
-             result = ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch(b->pkt, (ccnl_cs_content_t*)a);
+//             result = ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch(b->pkt, (ccnl_cs_content_t*)a);
+             result = ccnl_ndntlv_cMatch(b->pkt, (ccnl_cs_content_t*)a);
              break;
 #endif
+             /*
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
              result = ccnl_core_suites[CCNL_SUITE_CCNB].cMatch(b->pkt, (ccnl_cs_content_t*)a);

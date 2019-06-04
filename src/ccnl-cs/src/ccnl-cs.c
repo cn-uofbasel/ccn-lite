@@ -207,18 +207,15 @@ size_t ccnl_cs_get_cs_current_size(void) {
 ccnl_cs_status_t
 ccnl_cs_match_interest(ccnl_cs_ops_t *ops,
                const struct ccnl_pkt_s *packet, ccnl_cs_content_t *content) {
-    int result = CS_CONTENT_IS_INVALID;
+    int result = CS_OPTIONS_ARE_NULL;
 
     if (ops) {
         if (packet) {
             return ops->match_interest(packet, content);
         } else {
-            // TODO
-            result = CS_NAME_IS_INVALID;
+            result = CS_PACKET_IS_INVALID;
         }
-    } else {
-        result = CS_OPTIONS_ARE_NULL;
-    }
+    } 
 
     return result;
 }

@@ -41,6 +41,7 @@ typedef enum {
     CS_CONTENT_IS_INVALID = -3,      /**< content is invalid or NULL */
 
     CS_NAME_COULD_NOT_BE_FOUND = -4, /**< a name could not be found */
+    CS_PACKET_IS_INVALID = -5,       /**< packet is invalid or NULL */
     
     CS_DO_NOT_USE = INT_MAX          /**< set the enum to a fixed width, do not use! */
 } ccnl_cs_status_t;

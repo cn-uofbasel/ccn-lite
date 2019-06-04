@@ -425,6 +425,94 @@ void test_ccnl_cs_remove_successful()
     free(prefix);
 }
 
+void test_ccnl_cs_match_interest_invalid_parameters() 
+{
+    struct ccnl_pkt_s packet;
+    ccnl_cs_content_t *content = NULL;
+            
+    int result = ccnl_cs_match_interest(NULL, &packet, content);
+    /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
+    assert_int_equal(result, CS_OPTIONS_ARE_NULL);
+
+    /* we don't set function pointers */
+    ccnl_cs_ops_t options;
+
+    result = ccnl_cs_match_interest(&options, NULL, content);
+    /* if we pass an invalid name, call should fail */
+    assert_int_equal(result, CS_PACKET_IS_INVALID);
+}
+
+void test_ccnl_cs_match_interest_successful() 
+{
+    /** prepare name */
+    uint8_t prefix_len = 45;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/a/test/for/ccnl_cs_ll_match_interest", prefix_len);
+
+    uint8_t payload_len = 6;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "jkl123", payload_len);
+
+    /** set the name */
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+    assert_int_equal(result, 0);
+
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    ccnl_cs_content_t *temporary = NULL;
+    result = ccnl_cs_match_interest(&content_store, content->pkt, temporary);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    ccnl_prefix_free(name);
+    free(prefix);
+}
+
+void test_ccnl_cs_match_interest_unsuccessful() 
+{
+    uint8_t prefix_len = 51;
+    char *prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(prefix, "/this/is/another/test/for/ccnl_cs_ll_match_interest", prefix_len);
+
+    uint8_t payload_len = 6;
+    unsigned char *payload = malloc(sizeof(unsigned char) * payload_len);
+    strncpy(payload, "jkl453", payload_len);
+
+    ccnl_cs_name_t *name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *content = NULL;
+    int8_t result = ccnl_cs_build_content(&content, name, NULL, payload, payload_len);
+    assert_int_equal(result, 0);
+
+    result = ccnl_cs_add(&content_store, name, content);
+    assert_int_equal(result, CS_OPERATION_WAS_SUCCESSFUL);
+
+    prefix_len = 23;
+    char *some_other_prefix = malloc(sizeof(char) * prefix_len);
+    strncpy(some_other_prefix, "/this/is/something/else", prefix_len);
+
+    ccnl_cs_name_t *some_other_name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+
+    ccnl_cs_content_t *some_other_content = NULL;
+    result = ccnl_cs_build_content(&some_other_content, some_other_name, NULL, payload, payload_len);
+    assert_int_equal(result, 0);
+
+    ccnl_cs_content_t *temporary = NULL;
+    result = ccnl_cs_match_interest(&content_store, some_other_content->pkt, temporary);
+    printf(">>>> result is %d\n", result);
+    assert_int_equal(result, CS_OPERATION_UNSUCCESSFUL);
+
+    ccnl_content_free(some_other_content);
+    ccnl_prefix_free(some_other_name);
+    free(some_other_prefix);
+
+    ccnl_prefix_free(name);
+    free(prefix);
+}
+
 int main(void)
 {
      const UnitTest tests[] = {
@@ -444,6 +532,10 @@ int main(void)
 
          unit_test_setup_teardown(test_ccnl_cs_get_cs_capacity_successful, setup_cs_ll, teardown_cs),
          unit_test(test_ccnl_cs_set_cs_capacity_successful),
+
+         unit_test(test_ccnl_cs_match_interest_invalid_parameters),
+         unit_test_setup_teardown(test_ccnl_cs_match_interest_successful, setup_cs_ll, teardown_cs),
+         unit_test_setup_teardown(test_ccnl_cs_match_interest_unsuccessful, setup_cs_ll, teardown_cs),
 /*
          unit_test_setup(test_ccnl_cs_remove_non_existent_entry, setup_cs_uthash),
          unit_test_setup(test_ccnl_cs_get_cs_capacity_successful, setup_cs_uthash),
