@@ -494,7 +494,7 @@ void test_ccnl_cs_match_interest_unsuccessful()
     char *some_other_prefix = malloc(sizeof(char) * prefix_len);
     strncpy(some_other_prefix, "/this/is/something/else", prefix_len);
 
-    ccnl_cs_name_t *some_other_name = ccnl_URItoPrefix(prefix, CCNL_SUITE_NDNTLV, NULL);
+    ccnl_cs_name_t *some_other_name = ccnl_URItoPrefix(some_other_prefix, CCNL_SUITE_NDNTLV, NULL);
 
     ccnl_cs_content_t *some_other_content = NULL;
     result = ccnl_cs_build_content(&some_other_content, some_other_name, NULL, payload, payload_len);
@@ -502,7 +502,6 @@ void test_ccnl_cs_match_interest_unsuccessful()
 
     ccnl_cs_content_t *temporary = NULL;
     result = ccnl_cs_match_interest(&content_store, some_other_content->pkt, temporary);
-    printf(">>>> result is %d\n", result);
     assert_int_equal(result, CS_OPERATION_UNSUCCESSFUL);
 
     ccnl_content_free(some_other_content);
