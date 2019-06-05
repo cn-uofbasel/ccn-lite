@@ -26,6 +26,11 @@
 #include "ccnl-fwd.h"
 
 /**
+ * @brief       Cotainer to hold suite relevant callback functions
+ */
+extern struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
+
+/**
  * @brief       Initialize the dispatcher for handling different packet forwarders
  */
 void
