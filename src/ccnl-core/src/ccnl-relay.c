@@ -530,7 +530,8 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     char s[CCNL_MAX_PREFIX_SIZE];
     (void) s;
 
-    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%u/%u) --> %p = %s [%d]\n",
+    DEBUGMSG_CORE(DEBUG, 
+            "ccnl_content_add2cache (%zd/%zd) --> %p = %s [%d]\n",
             ccnl_cs_get_cs_current_size(), ccnl_cs_get_cs_capacity(),
                   (void*)c, ccnl_prefix_to_str(c->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE), (c->pkt->pfx->chunknum)? (signed)*(c->pkt->pfx->chunknum) : -1);
 
