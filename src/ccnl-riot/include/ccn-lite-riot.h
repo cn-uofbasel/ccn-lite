@@ -30,7 +30,7 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "net/gnrc/netreg.h"
 #include "ccnl-dispatch.h"
-//#include "ccnl-pkt-builder.h"
+#include "ccnl-cs-ll.h"
 
 #include "evtimer.h"
 #include "evtimer_msg.h"

@@ -8,8 +8,9 @@ include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
 file(GLOB CORESOURCE "../ccnl-core/src/*.c")
+file(GLOB CSSOURCE "../ccnl-cs/src/*.c")
 file(GLOB FWDSOURCE "../ccnl-fwd/src/*.c")
 file(GLOB PKTSOURCE "../ccnl-pkt/src/*.c")
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES} ${CORESOURCE} ${FWDSOURCE} ${PKTSOURCE} ${HEADERS})
+add_library(${PROJECT_NAME} STATIC ${SOURCES} ${CSSOURCE} ${CORESOURCE} ${FWDSOURCE} ${PKTSOURCE} ${HEADERS})
 

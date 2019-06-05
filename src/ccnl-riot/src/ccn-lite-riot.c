@@ -400,7 +400,7 @@ void
             case CCNL_MSG_CS_ADD:
                 DEBUGMSG(VERBOSE, "ccn-lite: CS add\n");
                 content = (struct ccnl_content_s *)m.content.ptr;
-                ccnl_cs_add(ccnl, content);
+                ccnl_cs_add(ccnl->content_options, content->pkt->pfx, content);
                 break;
             case CCNL_MSG_CS_DEL:
                 DEBUGMSG(VERBOSE, "ccn-lite: CS remove\n");
