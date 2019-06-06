@@ -29,6 +29,7 @@
 #include "ccnl-cs.h"
 #include "ccnl-defs.h"
 #include "ccnl-cs-ll.h"
+#include "ccnl-cs-uthash.h"
 #include "ccnl-prefix.h"
 #include "ccnl-cs-helper.h"
 #include "ccnl-pkt.h"
@@ -84,7 +85,7 @@ void test_ccnl_cs_add_invalid_parameters()
 void test_ccnl_cs_lookup_invalid_parameters()
 {
     ccnl_cs_name_t name; 
-    ccnl_cs_content_t content;
+    ccnl_cs_content_t *content = NULL;
 
     int result = ccnl_cs_lookup(NULL, &name, &content);
     /* if we pass an invalid ccnl_cs_ops_t array, call should fail */
