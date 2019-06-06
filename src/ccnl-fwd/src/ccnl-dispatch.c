@@ -38,7 +38,7 @@
 
 #include "ccnl-logging.h"
 
-struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
+struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST] = {{ 0 }};
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, uint8_t *data,
