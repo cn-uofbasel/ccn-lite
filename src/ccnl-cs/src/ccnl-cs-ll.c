@@ -299,28 +299,40 @@ static int ccnl_cs_ll_cmp_match_interest(const ccnl_cs_content_t *a, const ccnl_
         return result;
     }
     
-    /**
-     * 
-     */
     switch (b->pkt->pfx->suite) {
 #ifdef USE_SUITE_NDNTLV 
         case CCNL_SUITE_NDNTLV:
-             result = ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch(b->pkt, (ccnl_cs_content_t*)a);
-//             result = ccnl_ndntlv_cMatch(b->pkt, (ccnl_cs_content_t*)a);
-             break;
+            if (ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch) {
+                result = ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch(b->pkt, (ccnl_cs_content_t*)a);
+            /**
+             * The \ref ccnl_core_suites needs to be initialized first via \ref ccnl_core_init
+             */
+            } else {
+                result = -3;
+            }
+
+            break;
 #endif
-             /*
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-             result = ccnl_core_suites[CCNL_SUITE_CCNB].cMatch(b->pkt, (ccnl_cs_content_t*)a);
-             break;
+            if (ccnl_core_suites[CCNL_SUITE_CCNB].cMatch) {
+                result = ccnl_core_suites[CCNL_SUITE_CCNB].cMatch(b->pkt, (ccnl_cs_content_t*)a);
+            } else {
+                result = -3;
+            }
+            
+            break;
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
-             result = ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch(b->pkt, (ccnl_cs_content_t*)a);
-             break;
+            if (ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch) {
+                result = ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch(b->pkt, (ccnl_cs_content_t*)a);
+            } else {
+                result = -3;
+            }
+
+            break;
 #endif
-*/
         default:
              result = -2;
              break;

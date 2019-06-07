@@ -40,6 +40,8 @@ static ccnl_cs_ops_t content_store;
 /** initializs the \ref ccnl_cs_ops_t with the function pointers of the utlist implementation */
 static void setup_cs_ll(void **state) {
      ccnl_cs_init_ll(&content_store);
+     /** initialize the \ref ccnl_core_suites struct */
+     ccnl_core_init();
 }
 
 static void teardown_cs(void **state) {
@@ -49,6 +51,8 @@ static void teardown_cs(void **state) {
 /** initializs the \ref ccnl_cs_ops_t with the function pointers of the uthash implementation */
 static void setup_cs_uthash(void **state) {
      ccnl_cs_init_uthash(&content_store);
+     /** initialize the \ref ccnl_core_suites struct */
+     ccnl_core_init();
 }
 
 void test_ccnl_cs_add_invalid_parameters()
