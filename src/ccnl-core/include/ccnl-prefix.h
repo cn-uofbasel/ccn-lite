@@ -93,7 +93,7 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, uint8_t *cmp, size_t cmplen)
  * @return      0 on success else < 0
 */
 int
-ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum);
+ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, uint32_t chunknum);
 
 /**
  * @brief Compares two Prefix datastructures
@@ -107,7 +107,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum);
  * @return      0 if full match (CMP_EXACT)
  * @return      n>0 for matched components (mode = CMP_MATCH, CMP_LONGEST)
 */
-int
+int32_t
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode);
 
@@ -153,7 +153,7 @@ unescape_component(char *comp);
  * @return The prefix datastruct that was created
 */
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, unsigned int *chunknum);
+ccnl_URItoPrefix(char* uri, int suite, uint32_t *chunknum);
 
 /**
  * @brief Transforms a URI to a list of strings 

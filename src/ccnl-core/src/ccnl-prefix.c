@@ -176,7 +176,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, uint32_t chunknum)
 {
     if (chunknum >= 0xff) {
       DEBUGMSG_CUTL(WARNING, "addChunkNum is only implemented for "
-               "chunknum smaller than 0xff (%d)\n", chunknum);
+               "chunknum smaller than 0xff (%lu)\n", (long unsigned) chunknum);
         return -1;
     }
 
@@ -422,15 +422,15 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
         if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
             rc = mode == CMP_EXACT ? -1 : (int32_t) i;
-            DEBUGMSG(VERBOSE, "component mismatch: %i\n", i);
+            DEBUGMSG(VERBOSE, "component mismatch: %lu\n", (long unsigned) i);
             goto done;
         }
     }
     // FIXME: we must also inspect chunknum here!
     rc = (mode == CMP_EXACT) ? 0 : (int32_t) i;
 done:
-    DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
-             pfx->compcnt, plen, nam->compcnt, rc);
+    DEBUGMSG(TRACE, "  cmp result: pfxlen=%lu cmplen=%lu namlen=%lu matchlen=%ld\n",
+             (long unsigned) pfx->compcnt, (long unsigned) plen, (long unsigned) nam->compcnt, (long) rc);
     return rc;
 }
 
@@ -648,7 +648,7 @@ ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     }
     len += result;
 
-    result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "compcnt:%i ", p->compcnt);
+    result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "compcnt:%lu ", (long unsigned) p->compcnt);
     if (!(result > -1 && (unsigned) result < (CCNL_MAX_PACKET_SIZE - len))) {
         DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
         ccnl_free(buf);
@@ -697,7 +697,7 @@ ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     }
     len += result;
     for (i = 0; i < p->compcnt; i++) {
-        result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "%.*s", (uint32_t) p->complen[i], p->comp[i]);
+        result = snprintf(buf + len, CCNL_MAX_PACKET_SIZE - len, "%.*s", (int) p->complen[i], p->comp[i]);
         if (!(result > -1 && (unsigned) result < (CCNL_MAX_PACKET_SIZE - len))) {
             DEBUGMSG(ERROR, "Could not print prefix, since out of allocated memory");
             ccnl_free(buf);

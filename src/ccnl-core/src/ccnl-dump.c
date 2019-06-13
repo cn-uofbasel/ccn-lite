@@ -83,8 +83,8 @@ ccnl_dump(int lev, int typ, void *p)
             break;
         case CCNL_PREFIX:
             INDENT(lev);
-            CONSOLE("%p PREFIX len=%d val=%s\n",
-                    (void *) pre, pre->compcnt, ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
+            CONSOLE("%p PREFIX len=%lu val=%s\n",
+                    (void *) pre, (long unsigned) pre->compcnt, ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
             break;
         case CCNL_RELAY:
             INDENT(lev);
