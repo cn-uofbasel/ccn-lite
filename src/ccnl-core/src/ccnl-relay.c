@@ -358,6 +358,9 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         i->pending = tmp;
     }
     i2 = i->next;
+
+    ccnl->pitcnt--;
+
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
 
     if (i->pkt) {
