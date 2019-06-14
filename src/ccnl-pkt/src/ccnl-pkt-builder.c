@@ -21,6 +21,10 @@
 
 #include "ccnl-pkt-builder.h"
 
+#ifdef CCNL_RIOT
+#include "random.h"
+#endif
+
 #ifdef USE_SUITE_CCNB
 
 int8_t ccnb_isContent(unsigned char *buf, size_t len)
@@ -196,7 +200,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts)
 int8_t
 ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
                 uint8_t *tmp, uint8_t *tmpend, size_t *len, size_t *offs) {
-    ccnl_interest_opts_u default_opts;
+    ccnl_interest_opts_u default_opts = {{ 0 }};
 
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
@@ -223,7 +227,11 @@ ccnl_mkInterest(struct ccnl_prefix_s *name, ccnl_interest_opts_u *opts,
             }
 
             if (!opts->ndntlv.nonce) {
+#ifndef CCNL_RIOT
                 opts->ndntlv.nonce = rand();
+#else
+                opts->ndntlv.nonce = random_uint32();
+#endif
             }
 
             if (ccnl_ndntlv_prependInterest(name, -1, &(opts->ndntlv), offs, tmp, len)) {
