@@ -116,14 +116,11 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
  *
  * @param[in] prefix        Prefix to be compared (shorter of Longest Prefix matching)
  * @param[in] minsuffix     ?
- * @param[in] maxsuffix     ? 
+ * @param[in] maxsuffix     ?
  * @param[in] c             Content to test the prefix against
  *
- * @return      -1 if no match at all (all modes) or exact match failed
- * @return      -2 mismatch in expected number of components between prefix and content
- * @return      -3 computation of digest failed 
- * @return      0 if full match
- * @return      n>0 for matched components
+ * @return      0 if no match
+ * @return      1 if full match
 */
 int8_t
 ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
