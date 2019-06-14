@@ -332,6 +332,18 @@ static inline void ccnl_evtimer_set_cs_timeout(struct ccnl_content_s *c)
     evtimer_add_msg(&ccnl_evtimer, &c->evtmsg_cstimeout, ccnl_event_loop_pid);
 }
 
+/**
+ * @brief Remove RIOT related structures for Interests
+ *
+ * @param[in] et        RIOT related event queue that holds timer events
+ * @param[in] i         The Interest structure
+ */
+static inline void ccnl_riot_interest_remove(evtimer_t *et, struct ccnl_interest_s *i)
+{
+    evtimer_del(et, (evtimer_event_t *)&i->evtmsg_retrans);
+    evtimer_del(et, (evtimer_event_t *)&i->evtmsg_timeout);
+}
+
 #ifdef __cplusplus
 }
 #endif
