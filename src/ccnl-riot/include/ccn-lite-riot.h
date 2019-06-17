@@ -32,6 +32,7 @@
 #include "ccnl-dispatch.h"
 //#include "ccnl-pkt-builder.h"
 
+#include "irq.h"
 #include "evtimer.h"
 #include "evtimer_msg.h"
 
