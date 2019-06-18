@@ -548,7 +548,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, struct ccnl_n
         }
     }
 
-    if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Nonce, (uint64_t) opts->nonce, offset, buf) < 0) {
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (uint8_t *) &opts->nonce, 4, offset, buf) < 0) {
         return -1;
     }
 
