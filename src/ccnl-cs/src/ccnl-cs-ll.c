@@ -223,10 +223,15 @@ static ccnl_cs_status_t ccnl_cs_ll_clear(void) {
 }
 
 static ccnl_cs_status_t ccnl_cs_ll_dump(void) {
+    char s[CCNL_MAX_PREFIX_SIZE];
     ccnl_cs_content_t *element;
+    uint32_t i = 0;
 
     DL_FOREACH(ll, element) {
-        printf("TODO");
+               printf("CS[%u]: %s [%d]: %.*s\n", i++,
+               ccnl_prefix_to_str(element->pkt->pfx,s,CCNL_MAX_PREFIX_SIZE),
+               (element->pkt->pfx->chunknum)? (signed) *(element->pkt->pfx->chunknum) : -1,
+               (int) element->pkt->contlen, element->pkt->content);
     }
 
     return 0;
@@ -285,6 +290,8 @@ static int ccnl_cs_ll_match_interest(const struct ccnl_pkt_s *packet, ccnl_cs_co
 
     /** iterate over all elements in the content store */
     DL_SEARCH(ll, content, &temporary, ccnl_cs_ll_cmp_match_interest); 
+
+    DEBUGMSG(DEBUG, "packet matches content? %d \n", (content != NULL));
 
     // check
     return (content != NULL);

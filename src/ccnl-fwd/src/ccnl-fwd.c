@@ -240,13 +240,8 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
-            // Step 1: search in content store
+    // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
-/*
-    // allocate memory? which prefix to pass
-    ccnl_content_t *content = NULL; 
-    ccnl_cs_lookup(relay->content_options, content);
-*/
 
     if (ccnl_cs_match_interest(relay->content_options, *pkt, c)) {
         if (from) {
