@@ -32,6 +32,7 @@
 #include "ccnl-dispatch.h"
 #include "ccnl-cs-ll.h"
 
+#include "irq.h"
 #include "evtimer.h"
 #include "evtimer_msg.h"
 
@@ -342,6 +343,17 @@ static inline void ccnl_riot_interest_remove(evtimer_t *et, struct ccnl_interest
 {
     evtimer_del(et, (evtimer_event_t *)&i->evtmsg_retrans);
     evtimer_del(et, (evtimer_event_t *)&i->evtmsg_timeout);
+
+    unsigned state = irq_disable();
+    /* remove messages that relate to this interest from the message queue */
+    thread_t *me = (thread_t*) sched_threads[sched_active_pid];
+    for (unsigned j = 0; j <= me->msg_queue.mask; j++) {
+        if (me->msg_array[j].content.ptr == i) {
+            /* removing is done by setting to zero */
+            memset(&(me->msg_array[j]), 0, sizeof(me->msg_array[j]));
+        }
+    }
+    irq_restore(state);
 }
 
 #ifdef __cplusplus
