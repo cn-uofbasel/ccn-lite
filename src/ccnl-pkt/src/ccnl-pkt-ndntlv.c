@@ -56,8 +56,8 @@ ccnl_ndntlv_varlenint(uint8_t **buf, size_t *len, uint64_t *val)
         *len -= 3;
     } else if (**buf == 254 && *len >= 5) { // 4 bytes
         /* ORing bytes does not provoke alignment issues */
-        *val = ((*buf)[1] << 24U) | ((*buf)[2] << 16U) |
-               ((*buf)[3] <<  8U) | ((*buf)[4] <<  0U);
+        *val = ((uint64_t)(*buf)[1] << 24U) | ((uint64_t)(*buf)[2] << 16U) |
+               ((uint64_t)(*buf)[3] <<  8U) | ((uint64_t)(*buf)[4] <<  0U);
         *buf += 5;
         *len -= 5;
     } else {
