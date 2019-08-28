@@ -35,7 +35,7 @@ struct ccnl_face_s {
     int ifndx;
     sockunion peer;
     int flags;
-    int last_used; // updated when we receive a packet
+    uint32_t last_used; // updated when we receive a packet
     struct ccnl_buf_s *outq, *outqend; // queue of packets to send
     struct ccnl_frag_s *frag;  // which special datagram armoring
     struct ccnl_sched_s *sched;
