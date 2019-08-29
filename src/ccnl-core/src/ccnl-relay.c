@@ -760,7 +760,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     }
     while (f) {
         if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
-                (f->last_used + CCNL_FACE_TIMEOUT) <= t){
+                (f->last_used + CCNL_FACE_TIMEOUT) <= (uint32_t) t){
             DEBUGMSG_CORE(TRACE, "AGING: FACE REMOVE %p\n", (void*) f);
             f = ccnl_face_remove(relay, f);
         } else {
