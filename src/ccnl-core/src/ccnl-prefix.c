@@ -471,8 +471,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
         }
     }
 
-    int32_t cmp = ccnl_prefix_cmp(p, md, prefix, CMP_MATCH);
-    return cmp > 0 && (uint32_t) cmp == prefix->compcnt;
+    int32_t cmp = ccnl_prefix_cmp(p, md, prefix, CMP_EXACT);
+    return cmp;
+
 }
 
 #endif // NEEDS_PREFIX_MATCHING
