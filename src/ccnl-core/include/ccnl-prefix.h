@@ -104,7 +104,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, uint32_t chunknum);
  * @param[in] mode  Mode for prefix comp (CMP_EXACT, CMP_MATCH, CMP_LONGEST)
  *
  * @return      -1 if no match at all (all modes) or exact match failed
- * @return      0 if full match (CMP_EXACT)
+ * @return      0 if full match (mode = CMP_EXACT) or no components match (mode = CMP_MATCH)
  * @return      n>0 for matched components (mode = CMP_MATCH, CMP_LONGEST)
 */
 int32_t

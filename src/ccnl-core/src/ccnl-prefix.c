@@ -385,8 +385,8 @@ int32_t
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode)
 /* returns -1 if no match at all (all modes) or exact match failed
-   returns  0 if full match (CMP_EXACT)
-   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
+   returns  0 if full match (mode = CMP_EXACT) or no components match (mode = CMP_MATCH)
+   returns n>0 for matched components (mode = CMP_MATCH, CMP_LONGEST) */
 {
     int32_t rc = -1;
     size_t clen;
