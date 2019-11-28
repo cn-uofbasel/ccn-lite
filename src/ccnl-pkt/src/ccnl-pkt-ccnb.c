@@ -360,7 +360,7 @@ ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
     assert(p->suite == CCNL_SUITE_CCNB);
 #endif
 
-    if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c)) {
+    if (ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c) < 0) {
         return -1;
     }
     if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd)) {

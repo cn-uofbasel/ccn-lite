@@ -347,7 +347,7 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
     assert(p->suite == CCNL_SUITE_NDNTLV);
 #endif
 
-    if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c)) {
+    if (ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c) < 0) {
         return -1;
     }
 
