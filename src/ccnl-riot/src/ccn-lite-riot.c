@@ -474,7 +474,7 @@ ccnl_start(void)
     return ccnl_event_loop_pid;
 }
 
-static xtimer_t _wait_timer = { .target = 0, .long_target = 0 };
+static xtimer_t _wait_timer;
 static msg_t _timeout_msg;
 int
 ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
