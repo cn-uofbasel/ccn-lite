@@ -248,6 +248,8 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     for (c = relay->contents; c; c = c->next) {
         if (c->pkt->pfx->suite != (*pkt)->pfx->suite)
             continue;
+        if (c->pkt->flags & CCNL_PKT_TENTATIVE)
+            continue;
         if (cMatch(*pkt, c))
             continue;
 

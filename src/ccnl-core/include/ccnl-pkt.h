@@ -40,6 +40,7 @@
 #define CCNL_PKT_FRAGMENT   0x03 // "Fragment"
 #define CCNL_PKT_FRAG_BEGIN 0x04 // see also CCNL_DATA_FRAG_FLAG_FIRST etc
 #define CCNL_PKT_FRAG_END   0x08
+#define CCNL_PKT_TENTATIVE  0x10 // contains an incomplete packet
 
 /**
  * @brief Options for Interest messages of all TLV formats
