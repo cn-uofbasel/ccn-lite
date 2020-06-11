@@ -297,6 +297,27 @@ ccnl_ndntlv_parse_signature_info(uint8_t *data, size_t len)
 }
 #endif
 
+static int
+ccnl_ndntlv_rebase_ptrs(struct ccnl_pkt_s *pkt, const uint8_t *start)
+{
+    if (!pkt->buf) {
+        return -1;
+    }
+    // carefully rebase ptrs to new buf because of 64bit pointers:
+    if (pkt->content) {
+        pkt->content = pkt->buf->data + (pkt->content - start);
+    }
+    if (pkt->pfx) {
+        for (unsigned i = 0; i < pkt->pfx->compcnt; i++) {
+            pkt->pfx->comp[i] = pkt->buf->data + (pkt->pfx->comp[i] - start);
+        }
+        if (pkt->pfx->nameptr) {
+            pkt->pfx->nameptr = pkt->buf->data + (pkt->pfx->nameptr - start);
+        }
+    }
+    return 0;
+}
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
@@ -389,22 +410,9 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
 
     pkt->pfx = prefix;
     pkt->buf = ccnl_buf_new(start, *data - start);
-    if (!pkt->buf) {
+    if (ccnl_ndntlv_rebase_ptrs(pkt, start) < 0) {
         goto Bail;
     }
-    // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (pkt->content) {
-        pkt->content = pkt->buf->data + (pkt->content - start);
-    }
-    if (prefix) {
-        for (i = 0; i < prefix->compcnt; i++) {
-            prefix->comp[i] = pkt->buf->data + (prefix->comp[i] - start);
-        }
-        if (prefix->nameptr) {
-            prefix->nameptr = pkt->buf->data + (prefix->nameptr - start);
-        }
-    }
-
     return pkt;
 Bail:
     ccnl_pkt_free(pkt);
