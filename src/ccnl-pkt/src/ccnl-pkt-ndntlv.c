@@ -260,6 +260,21 @@ ccnl_ndntlv_parse_meta_info(struct ccnl_pkt_s *pkt, uint8_t *data, size_t len)
     return 0;
 }
 
+static void
+ccnl_ndntlv_parse_frag_begin_end(struct ccnl_pkt_s *pkt,
+                                 uint8_t *data, size_t len)
+{
+    pkt->val.seqno = ccnl_ndntlv_nonNegInt(data, len);
+    DEBUGMSG(TRACE, "  frag: %04llux\n", (unsigned long long)pkt->val.seqno);
+    if (pkt->val.seqno & 0x4000) {
+        pkt->flags |= CCNL_PKT_FRAG_BEGIN;
+    }
+    if (pkt->val.seqno & 0x8000) {
+        pkt->flags |= CCNL_PKT_FRAG_END;
+    }
+    pkt->val.seqno &= 0x3fff;
+}
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
@@ -323,15 +338,7 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
             pkt->s.ndntlv.interestlifetime = ccnl_ndntlv_nonNegInt(*data, len);
             break;
         case NDN_TLV_Frag_BeginEndFields:
-            pkt->val.seqno = ccnl_ndntlv_nonNegInt(*data, len);
-            DEBUGMSG(TRACE, "  frag: %04llux\n", (unsigned long long)pkt->val.seqno);
-            if (pkt->val.seqno & 0x4000) {
-                pkt->flags |= CCNL_PKT_FRAG_BEGIN;
-            }
-            if (pkt->val.seqno & 0x8000) {
-                pkt->flags |= CCNL_PKT_FRAG_END;
-            }
-            pkt->val.seqno &= 0x3fff;
+            ccnl_ndntlv_parse_frag_begin_end(pkt, *data, len);
             break;
 #ifdef USE_HMAC256
         case NDN_TLV_SignatureInfo:
