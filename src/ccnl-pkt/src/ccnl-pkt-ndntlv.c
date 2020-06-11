@@ -275,6 +275,28 @@ ccnl_ndntlv_parse_frag_begin_end(struct ccnl_pkt_s *pkt,
     pkt->val.seqno &= 0x3fff;
 }
 
+#ifdef USE_HMAC256
+static int
+ccnl_ndntlv_parse_signature_info(uint8_t *data, size_t len)
+{
+    while (len > 0) {
+        uint64_t typ;
+        size_t i;
+
+        if (ccnl_ndntlv_dehead(&data, &len, &typ, &i)) {
+            return -1;
+        }
+        if (typ == NDN_TLV_SignatureType && i == 1 &&
+                                  *data == NDN_VAL_SIGTYPE_HMAC256) {
+            return 1;
+        }
+        data += i;
+        len -= i;
+    }
+    return 0;
+}
+#endif
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
@@ -342,17 +364,9 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
             break;
 #ifdef USE_HMAC256
         case NDN_TLV_SignatureInfo:
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i)) {
-                    goto Bail;
-                }
-                if (typ == NDN_TLV_SignatureType && i == 1 &&
-                                          *cp == NDN_VAL_SIGTYPE_HMAC256) {
-                    validAlgoIsHmac256 = 1;
-                    break;
-                }
-                cp += i;
-                len2 -= i;
+            if ((validAlgoIsHmac256 = ccnl_ndntlv_parse_signature_info(
+                    *data, len)) < 0) {
+                goto Bail;
             }
             break;
         case NDN_TLV_SignatureValue:
