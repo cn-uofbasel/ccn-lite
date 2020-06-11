@@ -101,23 +101,10 @@ ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
     return 0;
 }
 
-// we use one extraction routine for each of interest, data and fragment pkts
-struct ccnl_pkt_s*
-ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
-                      uint8_t **data, size_t *datalen)
+static struct ccnl_pkt_s*
+ccnl_ndntlv_create_pkt(uint64_t pkttype, uint8_t *start)
 {
-    struct ccnl_pkt_s *pkt;
-    size_t oldpos, len, i;
-    uint64_t typ;
-    struct ccnl_prefix_s *prefix = 0;
-#ifdef USE_HMAC256
-    int validAlgoIsHmac256 = 0;
-#endif
-
-
-    DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%zu\n", *datalen);
-
-    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
+    struct ccnl_pkt_s *pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
     if (!pkt) {
         return NULL;
     }
@@ -125,6 +112,8 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
 
 #ifdef USE_HMAC256
     pkt->hmacStart = start;
+#else
+    (void)start;
 #endif
     switch(pkttype) {
     case NDN_TLV_Interest:
@@ -140,7 +129,8 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
 #endif
     default:
         DEBUGMSG(INFO, "  ndntlv: unknown packet type %llu\n", (unsigned long long)pkttype);
-        goto Bail;
+        ccnl_pkt_free(pkt);
+        return NULL;
     }
 
     pkt->suite = CCNL_SUITE_NDNTLV;
@@ -149,6 +139,29 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
 
     /* set default lifetime, in case InterestLifetime guider is absent */
     pkt->s.ndntlv.interestlifetime = CCNL_INTEREST_TIMEOUT;
+
+    return pkt;
+}
+
+// we use one extraction routine for each of interest, data and fragment pkts
+struct ccnl_pkt_s*
+ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
+                      uint8_t **data, size_t *datalen)
+{
+    struct ccnl_pkt_s *pkt;
+    size_t oldpos, len;
+    uint64_t typ;
+    struct ccnl_prefix_s *prefix = 0;
+#ifdef USE_HMAC256
+    int validAlgoIsHmac256 = 0;
+#endif
+
+
+    DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%zu\n", *datalen);
+
+    if (!(pkt = ccnl_ndntlv_create_pkt(pkttype, start))) {
+        return NULL;
+    }
 
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
