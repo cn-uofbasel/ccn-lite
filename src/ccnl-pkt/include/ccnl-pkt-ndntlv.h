@@ -161,6 +161,14 @@ int8_t
 ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
                    uint64_t *typ, size_t *vallen);
 
+/**
+ * @brief   Same as ccnl_ndntlv_dehead() but not checking length value in TLV is
+ *          longer than buffer
+ */
+int8_t
+ccnl_ndntlv_dehead_soft(uint8_t **buf, size_t *len,
+                        uint64_t *typ, size_t *vallen);
+
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
                       uint8_t **data, size_t *datalen);

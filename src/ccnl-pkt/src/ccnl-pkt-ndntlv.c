@@ -79,9 +79,10 @@ ccnl_ndntlv_nonNegInt(uint8_t *cp, size_t len)
     return val;
 }
 
-int8_t
-ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
-                   uint64_t *typ, size_t *vallen)
+static int8_t
+_ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
+                    uint64_t *typ, size_t *vallen,
+                    bool full_pkt)
 {
     size_t maxlen = *len;
     uint64_t vallen_int = 0;
@@ -95,10 +96,24 @@ ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
         return -1; // Return failure (-1) if length value in the tlv exceeds size_t bounds
     }
     *vallen = (size_t) vallen_int;
-    if (*vallen > maxlen) {
+    if ((full_pkt) && (*vallen > maxlen)) {
         return -1; // Return failure (-1) if length value in the tlv is longer than the buffer
     }
     return 0;
+}
+
+int8_t
+ccnl_ndntlv_dehead_soft(uint8_t **buf, size_t *len,
+                        uint64_t *typ, size_t *vallen)
+{
+    return _ccnl_ndntlv_dehead(buf, len, typ, vallen, false);
+}
+
+int8_t
+ccnl_ndntlv_dehead(uint8_t **buf, size_t *len,
+                   uint64_t *typ, size_t *vallen)
+{
+    return _ccnl_ndntlv_dehead(buf, len, typ, vallen, true);
 }
 
 static struct ccnl_pkt_s*
