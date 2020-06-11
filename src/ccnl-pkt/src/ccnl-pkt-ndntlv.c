@@ -224,6 +224,42 @@ ccnl_ndntlv_parse_selectors(struct ccnl_pkt_s *pkt, uint8_t *data, size_t len)
     return 0;
 }
 
+static int
+ccnl_ndntlv_parse_meta_info(struct ccnl_pkt_s *pkt, uint8_t *data, size_t len)
+{
+    while (len > 0) {
+        uint64_t typ;
+        size_t i;
+
+        if (ccnl_ndntlv_dehead(&data, &len, &typ, &i)) {
+            return -1;
+        }
+        if (typ == NDN_TLV_ContentType) {
+            // Not used
+            // = ccnl_ndntlv_nonNegInt(data, i);
+            DEBUGMSG(WARNING, "'ContentType' field ignored\n");
+        }
+        if (typ == NDN_TLV_FreshnessPeriod) {
+            pkt->s.ndntlv.freshnessperiod = ccnl_ndntlv_nonNegInt(data, i);
+        }
+        if (typ == NDN_TLV_FinalBlockId) {
+            if (ccnl_ndntlv_dehead(&data, &len, &typ, &i)) {
+                return -1;
+            }
+            if (typ == NDN_TLV_NameComponent) {
+                // TODO: again, includedNonNeg not yet implemented
+                pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(data + 1, i - 1);
+                if (pkt->val.final_block_id < 0) { // TODO: Is this check ok?
+                    return -1;
+                }
+            }
+        }
+        data += i;
+        len -= i;
+    }
+    return 0;
+}
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
@@ -279,32 +315,8 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
             pkt->contlen = len;
             break;
         case NDN_TLV_MetaInfo:
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i)) {
-                    goto Bail;
-                }
-                if (typ == NDN_TLV_ContentType) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'ContentType' field ignored\n");
-                }
-                if (typ == NDN_TLV_FreshnessPeriod) {
-                    pkt->s.ndntlv.freshnessperiod = ccnl_ndntlv_nonNegInt(cp, i);
-                }
-                if (typ == NDN_TLV_FinalBlockId) {
-                    if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i)) {
-                        goto Bail;
-                    }
-                    if (typ == NDN_TLV_NameComponent) {
-                        // TODO: again, includedNonNeg not yet implemented
-                        pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
-                        if (pkt->val.final_block_id < 0) { // TODO: Is this check ok?
-                            goto Bail;
-                        }
-                    }
-                }
-                cp += i;
-                len2 -= i;
+            if (ccnl_ndntlv_parse_meta_info(pkt, *data, len) < 0) {
+                goto Bail;
             }
             break;
         case NDN_TLV_InterestLifetime:
