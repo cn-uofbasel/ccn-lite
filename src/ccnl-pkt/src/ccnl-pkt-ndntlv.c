@@ -191,6 +191,39 @@ Bail:
     return NULL;
 }
 
+static int
+ccnl_ndntlv_parse_selectors(struct ccnl_pkt_s *pkt, uint8_t *data, size_t len)
+{
+    while (len > 0) {
+        uint64_t typ;
+        size_t i;
+
+        if (ccnl_ndntlv_dehead(&data, &len, &typ, &i)) {
+            return -1;
+        }
+        switch(typ) {
+        case NDN_TLV_MinSuffixComponents:
+            pkt->s.ndntlv.minsuffix = ccnl_ndntlv_nonNegInt(data, i);
+            break;
+        case NDN_TLV_MaxSuffixComponents:
+//          fprintf(stderr, "setting to %d\n", (int)ccnl_ndntlv_nonNegInt(data, i));
+            pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(data, i);
+            break;
+        case NDN_TLV_MustBeFresh:
+            pkt->s.ndntlv.mbf = 1;
+            break;
+        case NDN_TLV_Exclude:
+            DEBUGMSG(WARNING, "'Exclude' field ignored\n");
+            break;
+        default:
+            break;
+        }
+        data += i;
+        len -= i;
+    }
+    return 0;
+}
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
@@ -230,29 +263,8 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
             pkt->val.final_block_id = -1;
             break;
         case NDN_TLV_Selectors:
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i)) {
-                    goto Bail;
-                }
-                switch(typ) {
-                case NDN_TLV_MinSuffixComponents:
-                    pkt->s.ndntlv.minsuffix = ccnl_ndntlv_nonNegInt(cp, i);
-                    break;
-                case NDN_TLV_MaxSuffixComponents:
-//                    fprintf(stderr, "setting to %d\n", (int)ccnl_ndntlv_nonNegInt(cp, i));
-                    pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(cp, i);
-                    break;
-                case NDN_TLV_MustBeFresh:
-                    pkt->s.ndntlv.mbf = 1;
-                    break;
-                case NDN_TLV_Exclude:
-                    DEBUGMSG(WARNING, "'Exclude' field ignored\n");
-                    break;
-                default:
-                    break;
-                }
-                cp += i;
-                len2 -= i;
+            if (ccnl_ndntlv_parse_selectors(pkt, *data, len) < 0) {
+                goto Bail;
             }
             break;
         case NDN_TLV_Nonce:
