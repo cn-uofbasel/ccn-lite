@@ -143,6 +143,54 @@ ccnl_ndntlv_create_pkt(uint64_t pkttype, uint8_t *start)
     return pkt;
 }
 
+static struct ccnl_prefix_s*
+ccnl_ndntlv_parse_name(uint8_t *start, uint8_t *data, size_t oldpos, size_t len)
+{
+    struct ccnl_prefix_s *prefix = ccnl_prefix_new(CCNL_SUITE_NDNTLV,
+                                                   CCNL_MAX_NAME_COMP);
+
+    if (prefix) {
+        uint8_t *cp = data;
+
+        prefix->compcnt = 0;
+
+        prefix->nameptr = start + oldpos;
+        while (len > 0) {
+            uint64_t typ;
+            size_t i;
+
+            if (ccnl_ndntlv_dehead(&cp, &len, &typ, &i)) {
+                goto Bail;
+            }
+            if (typ == NDN_TLV_NameComponent &&
+                        prefix->compcnt < CCNL_MAX_NAME_COMP) {
+                if(cp[0] == NDN_Marker_SegmentNumber) {
+                    uint64_t chunknum;
+                    prefix->chunknum = (uint32_t *) ccnl_malloc(sizeof(uint32_t));
+                    // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
+                    // it is implemented for encode, the decode is not yet implemented
+                    chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
+                    if (chunknum > UINT32_MAX) {
+                        goto Bail;
+                    }
+                    *prefix->chunknum = (uint32_t) chunknum;
+                }
+                prefix->comp[prefix->compcnt] = cp;
+                prefix->complen[prefix->compcnt] = i; //FIXME, what if the len value inside the TLV is wrong -> can this lead to overruns inside
+                prefix->compcnt++;
+            }  // else unknown type: skip
+            cp += i;
+            len -= i;
+        }
+        prefix->namelen = data - prefix->nameptr;
+        DEBUGMSG(DEBUG, "  check interest type\n");
+    }
+    return prefix;
+Bail:
+    ccnl_prefix_free(prefix);
+    return NULL;
+}
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
@@ -174,41 +222,12 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
                 DEBUGMSG(WARNING, " ndntlv: name already defined\n");
                 goto Bail;
             }
-            prefix = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
-            if (!prefix) {
+            if (!(prefix = ccnl_ndntlv_parse_name(start, *data, oldpos,
+                                                  len))) {
                 goto Bail;
             }
-            prefix->compcnt = 0;
             pkt->pfx = prefix;
             pkt->val.final_block_id = -1;
-
-            prefix->nameptr = start + oldpos;
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i)) {
-                    goto Bail;
-                }
-                if (typ == NDN_TLV_NameComponent &&
-                            prefix->compcnt < CCNL_MAX_NAME_COMP) {
-                    if(cp[0] == NDN_Marker_SegmentNumber) {
-                        uint64_t chunknum;
-                        prefix->chunknum = (uint32_t *) ccnl_malloc(sizeof(uint32_t));
-                        // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
-                        // it is implemented for encode, the decode is not yet implemented
-                        chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
-                        if (chunknum > UINT32_MAX) {
-                            goto Bail;
-                        }
-                        *prefix->chunknum = (uint32_t) chunknum;
-                    }
-                    prefix->comp[prefix->compcnt] = cp;
-                    prefix->complen[prefix->compcnt] = i; //FIXME, what if the len value inside the TLV is wrong -> can this lead to overruns inside
-                    prefix->compcnt++;
-                }  // else unknown type: skip
-                cp += i;
-                len2 -= i;
-            }
-            prefix->namelen = *data - prefix->nameptr;
-            DEBUGMSG(DEBUG, "  check interest type\n");
             break;
         case NDN_TLV_Selectors:
             while (len2 > 0) {
