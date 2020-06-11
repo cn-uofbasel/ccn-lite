@@ -340,9 +340,6 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
 
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
-        uint8_t *cp = *data;
-        size_t len2 = len;
-
         switch (typ) {
         case NDN_TLV_Name:
             if (prefix) {
