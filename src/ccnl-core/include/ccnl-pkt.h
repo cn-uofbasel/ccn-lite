@@ -106,6 +106,9 @@ struct ccnl_pkt_s {
     size_t hmacLen;
     uint8_t *hmacSignature;
 #endif
+#ifdef USE_TENTATIVE_CACHE
+    uint8_t *parsed_until;
+#endif
     unsigned int flags;
     char suite;
 };

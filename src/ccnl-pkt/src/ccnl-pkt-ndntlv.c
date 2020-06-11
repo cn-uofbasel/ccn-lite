@@ -151,6 +151,9 @@ ccnl_ndntlv_create_pkt(uint64_t pkttype, uint8_t *start)
     pkt->suite = CCNL_SUITE_NDNTLV;
     pkt->s.ndntlv.scope = 3;
     pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+#ifdef USE_TENTATIVE_CACHE
+    pkt->parsed_until = NULL;
+#endif
 
     /* set default lifetime, in case InterestLifetime guider is absent */
     pkt->s.ndntlv.interestlifetime = CCNL_INTEREST_TIMEOUT;
@@ -431,6 +434,140 @@ Bail:
     return NULL;
 }
 
+#ifdef USE_TENTATIVE_CACHE
+#ifndef CCNL_PKT_TENTATIVE_HOLE_CANARY
+#define CCNL_PKT_TENTATIVE_HOLE_CANARY  (0xff)
+#endif
+
+int
+ccnl_ndntlv_bytes2pkt_partial(uint64_t pkttype, uint8_t *start,
+                              uint8_t *data, size_t datalen,
+                              struct ccnl_pkt_s **pkt_out,
+                              size_t offset, size_t total_size)
+{
+    struct ccnl_pkt_s *pkt = *pkt_out;
+    size_t oldpos, len;
+    uint64_t typ;
+    struct ccnl_prefix_s *prefix = 0;
+#ifdef USE_HMAC256
+    int validAlgoIsHmac256 = 0;
+#endif
+    int res = -1;
+
+
+    DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt_partial len=%zu\n", datalen);
+    if (!pkt) {
+        if (!(pkt = ccnl_ndntlv_create_pkt(pkttype, start))) {
+            goto Bail;
+        }
+        pkt->flags |= CCNL_PKT_TENTATIVE;
+        pkt->buf = ccnl_buf_new(NULL, total_size);
+        if (!pkt->buf) {
+            ccnl_pkt_free(pkt);
+            goto Bail;
+        }
+        pkt->pfx = NULL;
+        pkt->content = NULL;
+        pkt->parsed_until = ((uint8_t *)pkt->buf->data) + (data - start);
+        *pkt_out = pkt;
+        memset(pkt->buf->data, CCNL_PKT_TENTATIVE_HOLE_CANARY, total_size);
+    }
+    else if (pkt->parsed_until == NULL) {
+        return 0;
+    }
+    if (offset > 0) {
+        memcpy(((uint8_t *)pkt->buf->data) + offset, start, datalen);
+    }
+    else {
+        memcpy(pkt->buf->data, start, datalen + (data - start));
+    }
+    if (pkt->pfx) {
+        prefix = pkt->pfx;
+    }
+
+    if (pkt->flags & CCNL_PKT_TENTATIVE) {
+        datalen = offset + datalen - (pkt->parsed_until - pkt->buf->data);
+        data = pkt->parsed_until;
+        start = pkt->buf->data;
+        oldpos = data - start;
+        /* TENTATIVE entries need to be reparsed with every addition of new
+         * data, as there might be holes that need closing */
+        while (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) == 0) {
+            switch (typ) {
+            case NDN_TLV_Name:
+                if (prefix) {
+                    DEBUGMSG(WARNING, " ndntlv: name already defined\n");
+                    goto Bail;
+                }
+                if (!(prefix = ccnl_ndntlv_parse_name(start, data, oldpos,
+                                                      len))) {
+                    goto Bail;
+                }
+                pkt->pfx = prefix;
+                pkt->val.final_block_id = -1;
+                break;
+            case NDN_TLV_Selectors:
+                if (ccnl_ndntlv_parse_selectors(pkt, data, len) < 0) {
+                    goto Bail;
+                }
+                break;
+            case NDN_TLV_Nonce:
+                pkt->s.ndntlv.nonce = ccnl_buf_new(data, len);
+                break;
+            case NDN_TLV_Scope:
+                pkt->s.ndntlv.scope = ccnl_ndntlv_nonNegInt(data, len);
+                break;
+            case NDN_TLV_Content:
+            case NDN_TLV_NdnlpFragment: // payload
+                pkt->content = data;
+                pkt->contlen = len;
+                break;
+            case NDN_TLV_MetaInfo:
+                if (ccnl_ndntlv_parse_meta_info(pkt, data, len) < 0) {
+                    goto Bail;
+                }
+                break;
+            case NDN_TLV_InterestLifetime:
+                pkt->s.ndntlv.interestlifetime = ccnl_ndntlv_nonNegInt(data, len);
+                break;
+            case NDN_TLV_Frag_BeginEndFields:
+                ccnl_ndntlv_parse_frag_begin_end(pkt, data, len);
+                break;
+#ifdef USE_HMAC256
+            case NDN_TLV_SignatureInfo:
+                if ((validAlgoIsHmac256 = ccnl_ndntlv_parse_signature_info(
+                        data, len)) < 0) {
+                    goto Bail;
+                }
+                break;
+            case NDN_TLV_SignatureValue:
+                if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
+                    pkt->hmacLen = oldpos;
+                    pkt->hmacSignature = data;
+                }
+                break;
+#endif
+            default:
+                break;
+            }
+            data += len;
+            datalen -= len;
+            oldpos = data - start;
+        }
+        res = 0;
+        pkt->pfx = prefix;
+        if (datalen == 0) {
+            pkt->flags &= ~CCNL_PKT_TENTATIVE;
+            pkt->parsed_until = NULL;
+        }
+        else {
+            pkt->parsed_until = start + oldpos;
+        }
+    }
+Bail:
+    return res;
+}
+#endif
 // ----------------------------------------------------------------------
 
 #ifdef NEEDS_PREFIX_MATCHING

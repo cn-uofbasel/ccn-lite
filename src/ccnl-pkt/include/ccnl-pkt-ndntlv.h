@@ -173,6 +173,12 @@ struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
                       uint8_t **data, size_t *datalen);
 
+int
+ccnl_ndntlv_bytes2pkt_partial(uint64_t pkttype, uint8_t *start,
+                              uint8_t *data, size_t datalen,
+                              struct ccnl_pkt_s **pkt,
+                              size_t offset, size_t total_size);
+
 int8_t
 ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 

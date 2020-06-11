@@ -65,6 +65,10 @@ typedef struct ccnl_content_s {
 #ifdef CCNL_RIOT
     evtimer_msg_event_t evtmsg_cstimeout; /**< event timer message which is triggered when a timeout in the content store occurs */
 #endif
+#ifdef USE_TENTATIVE_CACHE
+    void (*del_cb)(void *);
+    void *del_cb_ctx;
+#endif
     int served_cnt;                       /**< determines how often the content has been served */
 } ccnl_content;
 

@@ -530,6 +530,11 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         ccnl_free(c->pkt);
     }
     //    ccnl_prefix_free(c->name);
+#ifdef USE_TENTATIVE_CACHE
+    if (c->del_cb) {
+        c->del_cb(c->del_cb_ctx);
+    }
+#endif
     ccnl_free(c);
 
     ccnl->contentcnt--;
