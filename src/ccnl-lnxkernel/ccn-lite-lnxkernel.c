@@ -121,6 +121,7 @@
 #define ccnl_app_RX(x,y)                do{}while(0)
 
 #define cache_strategy_remove(...)      0
+#define cache_strategy_cache(...)       0
 
 
 
