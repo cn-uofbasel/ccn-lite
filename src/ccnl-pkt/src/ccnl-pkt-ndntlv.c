@@ -470,10 +470,17 @@ ccnl_ndntlv_bytes2pkt_partial(uint64_t pkttype, uint8_t *start,
         pkt->content = NULL;
         pkt->parsed_until = ((uint8_t *)pkt->buf->data) + (data - start);
         *pkt_out = pkt;
-        memset(pkt->buf->data, CCNL_PKT_TENTATIVE_HOLE_CANARY, total_size);
     }
     else if (pkt->parsed_until == NULL) {
         return 0;
+    }
+    if (pkt->buf->datalen < total_size) {
+        struct ccnl_buf_s *b = ccnl_realloc(pkt->buf, sizeof(*b) + total_size);
+
+        if (!b) {
+            goto Bail;
+        }
+        pkt->buf = b;
     }
     if (offset > 0) {
         memcpy(((uint8_t *)pkt->buf->data) + offset, start, datalen);
