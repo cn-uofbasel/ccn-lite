@@ -66,6 +66,12 @@ struct ccnl_relay_s {
 };
 
 /**
+ * @brief Function pointer type for caching strategy function
+ */
+typedef int (*ccnl_cache_strategy_func)(struct ccnl_relay_s *relay,
+                                        struct ccnl_content_s *c);
+
+/**
  * @brief Broadcast an interest message to all available interfaces
  *
  * @param[in] ccnl          The CCN-lite relay used to send the interest
@@ -281,5 +287,24 @@ ccnl_cs_remove(struct ccnl_relay_s *ccnl, char *prefix);
 struct ccnl_content_s *
 ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix);
 
+/**
+ * @brief Set a function to control the cache replacement strategy
+ *
+ * The given function will be called if the cache is full and a new content
+ * chunk arrives. It shall remove (at least) one entry from the cache.
+ *
+ * If the return value of @p func is 0, the default caching strategy will be
+ * applied by the CCN-lite stack. If the return value is 1, it is assumed that
+ * (at least) one entry has been removed from the cache.
+ *
+ * @param[in] func  The function to be called for an incoming content chunk if
+ *                  the cache is full.
+ */
+void ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func);
+
+/**
+ * @brief May be defined for a particular caching strategy
+ */
+int cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c);
 #endif //CCNL_RELAY_H
 /** @} */
