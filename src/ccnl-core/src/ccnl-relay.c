@@ -562,7 +562,8 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
 
     if (ccnl->max_cache_entries > 0 &&
-        ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
+        ccnl->contentcnt >= ccnl->max_cache_entries && !cache_strategy_remove(ccnl, c)) {
+        // remove oldest content
         struct ccnl_content_s *c2, *oldest = NULL;
         uint32_t age = 0;
         for (c2 = ccnl->contents; c2; c2 = c2->next) {
