@@ -333,6 +333,11 @@ ccnl_ndntlv_rebase_ptrs(struct ccnl_pkt_s *pkt, const uint8_t *start)
             pkt->pfx->nameptr = pkt->buf->data + (pkt->pfx->nameptr - start);
         }
     }
+#ifdef USE_TENTATIVE_CACHE
+    if (pkt->parsed_until) {
+        pkt->parsed_until = pkt->buf->data + (pkt->parsed_until - start);
+    }
+#endif
     return 0;
 }
 
@@ -475,12 +480,18 @@ ccnl_ndntlv_bytes2pkt_partial(uint64_t pkttype, uint8_t *start,
         return 0;
     }
     if (pkt->buf->datalen < total_size) {
-        struct ccnl_buf_s *b = ccnl_realloc(pkt->buf, sizeof(*b) + total_size);
+        uint8_t *old_start = pkt->buf->data;
+        struct ccnl_buf_s *b = ccnl_buf_new(NULL, total_size);
 
         if (!b) {
             goto Bail;
         }
+        *b = *(pkt->buf);
+        b->datalen = total_size;
+        memcpy(b->data, pkt->buf->data, pkt->buf->datalen);
+        ccnl_free(pkt->buf);
         pkt->buf = b;
+        ccnl_ndntlv_rebase_ptrs(pkt, old_start);
     }
     if (offset > 0) {
         memcpy(((uint8_t *)pkt->buf->data) + offset, start, datalen);
