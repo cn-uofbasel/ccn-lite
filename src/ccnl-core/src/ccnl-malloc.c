@@ -66,7 +66,7 @@ void* debug_malloc(size_t s, const char *fn, int lno, char *tstamp)
             char *timestamp = malloc(new_timestamp_size); 
 
             if (timestamp) {
-                h->tstamp = strcpy(timestamp, tstamp); 
+                h->tstamp = strncpy(timestamp, tstamp, new_timestamp_size);
             /** allocating the timestamp failed */
             } else { 
                 /** free previously allocated memory */
@@ -198,7 +198,7 @@ void* debug_strdup(const char *s, const char *fn, int lno, char *tstamp)
             cp = (char*) debug_malloc(size, fn, lno, tstamp);
              
             if (cp) {
-                strcpy(cp, s);
+                strncpy(cp, s, size);
             }
         }
 #ifndef BUILTIN_INT_ADD_OVERFLOW_DETECTION_UNAVAILABLE

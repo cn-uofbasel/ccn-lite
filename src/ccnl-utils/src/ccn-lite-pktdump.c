@@ -559,7 +559,7 @@ ccntlv_parse_sequence(size_t lev, uint16_t ctx, unsigned char *base,
             }
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            strncpy(n_old, n, sizeof(n_old));
             if (ccntlv_parse_sequence(lev+1, ctx2, base, buf, &i, n, rawxml, out)) {
                 return -1;
             }

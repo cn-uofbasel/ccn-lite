@@ -325,7 +325,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
+        strncpy(fname, path, sizeof(fname));
         strcat(fname, "/");
         strcat(fname, de->d_name);
 
@@ -657,12 +657,12 @@ ccnl_android_init()
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 #ifdef USE_ECHO
 #ifdef USE_SUITE_CCNTLV
-    strcpy(hello, echopath);
+    strncpy(hello, echopath, sizeof(hello));
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, &dummy);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV
-    strcpy(hello, echopath);
+    strncpy(hello, echopath, sizeof(hello));
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif

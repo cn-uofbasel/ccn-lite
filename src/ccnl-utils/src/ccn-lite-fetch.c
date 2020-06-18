@@ -252,7 +252,7 @@ usage:
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
         su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        strncpy(su->sun_path, ux, sizeof(su->sun_path));
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;

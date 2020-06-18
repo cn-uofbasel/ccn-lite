@@ -234,7 +234,7 @@ Usage:
             is_last = 1;
         }
 
-        strcpy(url, url_orig);
+        strncpy(url, url_orig, strlen(url_orig));
         offs = CCNL_MAX_PACKET_SIZE;
         name = ccnl_URItoPrefix(url, suite, &chunknum);
 

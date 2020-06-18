@@ -1383,7 +1383,7 @@ ccnl_crypto_ux_open(char *frompath)
     }
     unlink(frompath);
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
+    strncpy(name.sun_path, frompath, sizeof(name.sun_path));
     if (bind(sock, (struct sockaddr *) &name,
             sizeof(struct sockaddr_un))) {
         perror("binding name to datagram socket");
@@ -1422,7 +1422,7 @@ int ux_sendto2(int sock, char *topath, unsigned char *data, size_t len)
 
     /* Construct name of socket to send to. */
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    strncpy(name.sun_path, topath, sizeof(name.sun_path));
 
     /* Send message. */
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,

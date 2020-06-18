@@ -135,7 +135,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
 
     unlink(path);
     ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    strncpy(ux->sun_path, path, sizeof(ux->sun_path));
 
     if (bind(sock, (struct sockaddr *) ux, sizeof(struct sockaddr_un))) {
         perror("binding name to datagram socket");
@@ -225,7 +225,7 @@ ccnl_eth_sendto(int sock, uint8_t *dst, uint8_t *src,
     size_t hdrlen;
 
 #ifdef USE_DEBUG
-    strcpy((char*)buf, ll2ascii(dst, 6));
+    strncpy((char*)buf, ll2ascii(dst, 6), sizeof(buf));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %zu bytes (src=%s, dst=%s)\n",
              datalen, ll2ascii(src, 6), buf);
 #endif
@@ -702,7 +702,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             continue;
         }
 
-        strcpy(fname, path);
+        strncpy(fname, path, sizeof(fname));
         strcat(fname, "/");
         strcat(fname, de->d_name);
 

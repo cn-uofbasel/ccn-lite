@@ -62,7 +62,7 @@ ccnl_crypto_ux_open(char *frompath)
     }
     unlink(frompath);
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
+    strncpy(name.sun_path, frompath, sizeof(name.sun_path));
     if (bind(sock, (struct sockaddr *) &name,
              sizeof(struct sockaddr_un))) {
         perror("\tbinding name to datagram socket");

@@ -85,7 +85,7 @@ ccnl_crypto_create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
     sockunion su;
     DEBUGMSG(DEBUG, "  adding UNIX face unixsrc=%s\n", ux_path);
     su.sa.sa_family = AF_UNIX;
-    strcpy(su.ux.sun_path, (char*) ux_path);
+    strncpy(su.ux.sun_path, (char*) ux_path, sizeof(su.ux.sun_path));
     relay->crypto_face = ccnl_get_face_or_create(relay, -1, &su.sa, sizeof(struct sockaddr_un));
     if(!relay->crypto_face) return 0;
     relay->crypto_face->flags = CCNL_FACE_FLAGS_STATIC;
