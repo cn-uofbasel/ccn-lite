@@ -76,7 +76,7 @@ udp_sendto(int sock, char *dest, unsigned char *data, int len)
 {
     struct sockaddr_in dst;
     char buf[256];
-    strcpy(buf, dest);
+    strncpy(buf, dest, sizeof(buf));
 
     dst.sin_family = PF_INET;
     dst.sin_addr.s_addr = inet_addr(strtok(buf, "/"));
@@ -94,7 +94,7 @@ ux_open()
     int sock, bufsize;
     struct sockaddr_un name;
 
-    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
+    snprintf(mysockname, sizeof(mysockname), "/tmp/.ccn-lite-peek-%d.sock", getpid());
     unlink(mysockname);
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -103,7 +103,7 @@ ux_open()
         exit(1);
     }
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, mysockname);
+    strncpy(name.sun_path, mysockname, sizeof(name.sun_path));
     if (bind(sock, (struct sockaddr *) &name,
              sizeof(struct sockaddr_un))) {
         perror("binding path name to datagram socket");
@@ -124,7 +124,7 @@ ux_sendto(int sock, char *topath, uint8_t *data, size_t len)
     struct sockaddr_un name;
 
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    strncpy(name.sun_path, topath, sizeof(name.sun_path));
 
     return sendto(sock, data, len, 0, (struct sockaddr*) &name,
                   sizeof(struct sockaddr_un));

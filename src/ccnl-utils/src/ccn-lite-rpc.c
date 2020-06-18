@@ -223,7 +223,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     if (t < LRPC_NOT_SERIALIZED)
         return t;
     if (t < LRPC_APPLICATION) {
-        sprintf(tmp, "v%02x", t);
+        snprintf(tmp, sizeof(tmp), "v%02x", t);
         n = tmp;
     } else switch (t) {
     case LRPC_APPLICATION:
@@ -415,7 +415,7 @@ Usage:
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
         su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        strncpy(su->sun_path, ux, sizeof(su->sun_path));
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;

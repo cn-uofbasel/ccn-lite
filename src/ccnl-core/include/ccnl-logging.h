@@ -118,10 +118,10 @@ ccnl_debug_str2level(char *s);
 
 #  define DEBUGMSG(LVL, ...) do { int len;          \
         if ((LVL)>debug_level) break;               \
-        len = sprintf(android_logstr, "[%c] %s: ",  \
+        len = snprintf(android_logstr, sizeof(android_logstr), "[%c] %s: ",  \
             ccnl_debugLevelToChar(LVL),             \
             timestamp());                           \
-        len += sprintf(android_logstr+len, __VA_ARGS__);   \
+        len += snprintf(android_logstr+len, sizeof(android_logstr)-len, __VA_ARGS__);   \
         jni_append_to_log(android_logstr);          \
     } while (0)
 
@@ -215,7 +215,7 @@ debug_memdump(void);
 static char android_logstr[1024];
 void jni_append_to_log(char *line);
 
-#  define CONSOLE(...)        do { sprintf(android_logstr, __VA_ARGS__); \
+#  define CONSOLE(...)        do { snprintf(android_logstr, sizeof(android_logstr), __VA_ARGS__); \
                                    jni_append_to_log(android_logstr); \
                               } while(0)
 #  define CONSTSTR(s)         s

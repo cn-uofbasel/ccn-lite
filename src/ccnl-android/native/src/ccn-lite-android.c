@@ -326,9 +326,9 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
+        strncpy(fname, path, sizeof(fname));
         strcat(fname, "/");
-        strcat(fname, de->d_name);
+        strncat(fname, de->d_name, sizeof(fname) - strlen(fname) - 1);
 
         if (stat(fname, &s)) {
             perror("stat");
@@ -658,12 +658,12 @@ ccnl_android_init()
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 #ifdef USE_ECHO
 #ifdef USE_SUITE_CCNTLV
-    strcpy(hello, echopath);
+    strncpy(hello, echopath, sizeof(hello));
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, &dummy);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV
-    strcpy(hello, echopath);
+    strncpy(hello, echopath, sizeof(hello));
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
@@ -676,7 +676,7 @@ ccnl_android_init()
                         strlen(secret_key), keyid);
 #endif
 
-    sprintf(hello, "ccn-lite-android, %s",
+    snprintf(hello, sizeof(hello), "ccn-lite-android, %s",
             ctime(&theRelay.startup_time) + 4);
 
     return hello;
@@ -714,12 +714,12 @@ ccnl_android_getTransport()
         struct ifreq *r = &ifr[i];
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
-            sprintf(addr, "(%s)  UDP    ", ifr[i].ifr_name);
+            snprintf(addr, sizeof(addr), "(%s)  UDP    ", ifr[i].ifr_name);
             for (i = 0; i < theRelay.ifcount; i++) {
                 if (theRelay.ifs[i].addr.sa.sa_family != AF_INET)
                     continue;
                 sin->sin_port = theRelay.ifs[i].addr.ip4.sin_port;
-                sprintf(addr + strlen(addr), "%s    ",
+                snprintf(addr + strlen(addr), sizeof(addr) - strlen(addr), "%s    ",
                         ccnl_addr2ascii((sockunion*)sin));
             }
             ccnl_free(ifr);

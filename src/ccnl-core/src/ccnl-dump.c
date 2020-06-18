@@ -323,7 +323,7 @@ int get_prefix_dump(int lev, void *p, int *len, char** val)
     if (pre) {
 //    INDENT(lev);
         *len = pre->compcnt;
-        sprintf(*val, "%s", ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
+        snprintf(*val, CCNL_MAX_PREFIX_SIZE, "%s", ccnl_prefix_to_str(pre,s,CCNL_MAX_PREFIX_SIZE));
         return 1;
     }
 

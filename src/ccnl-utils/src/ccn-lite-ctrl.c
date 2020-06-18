@@ -1181,7 +1181,7 @@ mkAddToRelayCacheRequest(uint8_t *out, size_t outlen, char *fname,
     }
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", *suite);
+    snprintf((char*)h, sizeof(h), "%d", *suite);
     if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
                              (char*) h, strlen((char*)h), &len2)) {
         goto Bail;
@@ -1199,14 +1199,14 @@ mkAddToRelayCacheRequest(uint8_t *out, size_t outlen, char *fname,
     }
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", *prefix->chunknum);
+    snprintf((char*)h, sizeof(h), "%d", *prefix->chunknum);
     if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
                             (char*) h, strlen((char*)h), &len2)) {
         goto Bail;
     }
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", chunkflag);
+    snprintf((char*)h, sizeof(h), "%d", chunkflag);
     if (ccnl_ccnb_mkBlob(contentobj+len2, contentobj + 4000, CCNL_DTAG_CHUNKFLAG, CCN_TT_DTAG,  // chunkflag
                             (char*) h, strlen((char*)h), &len2)) {
         goto Bail;
@@ -1383,7 +1383,7 @@ ccnl_crypto_ux_open(char *frompath)
     }
     unlink(frompath);
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
+    strncpy(name.sun_path, frompath, sizeof(name.sun_path));
     if (bind(sock, (struct sockaddr *) &name,
             sizeof(struct sockaddr_un))) {
         perror("binding name to datagram socket");
@@ -1422,7 +1422,7 @@ int ux_sendto2(int sock, char *topath, unsigned char *data, size_t len)
 
     /* Construct name of socket to send to. */
     name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    strncpy(name.sun_path, topath, sizeof(name.sun_path));
 
     /* Send message. */
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
@@ -1440,7 +1440,7 @@ make_next_seg_debug_interest(int num, uint8_t *out, size_t outlen, size_t *resle
     size_t len = 0;
     unsigned char cp[100];
 
-    sprintf((char*)cp, "seqnum-%d", num);
+    snprintf((char*)cp, sizeof(cp), "seqnum-%d", num);
 
     if (ccnl_ccnb_mkHeader(out, out + outlen, CCN_DTAG_INTEREST, CCN_TT_DTAG, &len)) {  // interest
         return -1;
@@ -1848,7 +1848,7 @@ help:
         int hasNext = 0;
 
         // socket for receiving
-        sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
+        snprintf(mysockname, sizeof(mysockname), "/tmp/.ccn-light-ctrl-%d.sock", getpid());
 
         if (!use_udp) {
             sock = ccnl_crypto_ux_open(mysockname);
@@ -1935,13 +1935,13 @@ help:
             char sigoutput[200];
 
             if (verified) {
-                sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
+                snprintf(sigoutput, sizeof(sigoutput), "All parts (%d) have been verified", numOfParts);
                 if (ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, recvbuffer2 + sizeof(char) * recvbufferlen +1000,
                                         CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput, &recvbufferlen2)) {
                     goto Bail;
                 }
             } else {
-                sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
+                snprintf(sigoutput, sizeof(sigoutput), "NOT all parts (%d) have been verified", numOfParts);
                 if (ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, recvbuffer2 + sizeof(char) * recvbufferlen +1000,
                                         CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput, &recvbufferlen2)) {
                     goto Bail;

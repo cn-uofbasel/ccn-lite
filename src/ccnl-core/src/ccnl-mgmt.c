@@ -240,7 +240,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 size_t contentpos;
 
                 DEBUGMSG(INFO, "  .. adding to cache %zu %zu bytes\n", len4, len5);
-                sprintf(uri, "/mgmt/seqnum-%zu", it);
+                snprintf(uri, sizeof(uri), "/mgmt/seqnum-%zu", it);
                 pkt = ccnl_calloc(1, sizeof(*pkt));
                 if (!pkt) {
                     goto Bail;
@@ -417,7 +417,7 @@ ccnl_mgmt_create_interface_stmt(size_t num_interfaces, int *interfaceifndx, long
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", interfaceifndx[it]);
+        snprintf(str, sizeof(str), "%d", interfaceifndx[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
@@ -433,24 +433,24 @@ ccnl_mgmt_create_interface_stmt(size_t num_interfaces, int *interfaceifndx, long
 
         memset(str, 0, sizeof(str));
         if (interfacedevtype[it] == 1) {
-            sprintf(str, "%p", (void *) interfacedev[it]);
+            snprintf(str, sizeof(str), "%p", (void *) interfacedev[it]);
             if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_ETH, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
         } else if(interfacedevtype[it] == 2) {
-            sprintf(str, "%p", (void *) interfacedev[it]);
+            snprintf(str, sizeof(str), "%p", (void *) interfacedev[it]);
             if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SOCK, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
         } else {
-            sprintf(str, "%p", (void *) interfacedev[it]);
+            snprintf(str, sizeof(str), "%p", (void *) interfacedev[it]);
             if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SOCK, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", interfacereflect[it]);
+        snprintf(str, sizeof(str), "%d", interfacereflect[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
@@ -478,31 +478,31 @@ ccnl_mgmt_create_faces_stmt(size_t num_faces, int *faceid, long *facenext,
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", faceid[it]);
+        snprintf(str, sizeof(str), "%d", faceid[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCN_DTAG_FACEID, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) facenext[it]);
+        snprintf(str, sizeof(str), "%p", (void *) facenext[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str,"%p", (void *)faceprev[it]);
+        snprintf(str, sizeof(str), "%p", (void *)faceprev[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str,"%d", faceifndx[it]);
+        snprintf(str, sizeof(str), "%d", faceifndx[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str,"%02x", faceflags[it]);
+        snprintf(str, sizeof(str), "%02x", faceflags[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
@@ -525,7 +525,7 @@ ccnl_mgmt_create_faces_stmt(size_t num_faces, int *faceid, long *facenext,
                 return -1;
             }
         } else {
-            sprintf(str,"peer=?");
+            snprintf(str, sizeof(str), "peer=?");
             if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PEER, CCN_TT_DTAG, str, len3)) {
                 return -1;
             }
@@ -554,31 +554,31 @@ ccnl_mgmt_create_fwds_stmt(size_t num_fwds, long *fwd, long *fwdnext, long *fwdf
          }
 
          memset(str, 0, sizeof(str));
-         sprintf(str, "%p", (void *)fwd[it]);
+         snprintf(str, sizeof(str),  "%p", (void *)fwd[it]);
          if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FWD, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
 
          memset(str, 0, sizeof(str));
-         sprintf(str, "%p", (void *)fwdnext[it]);
+         snprintf(str, sizeof(str),  "%p", (void *)fwdnext[it]);
          if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
 
          memset(str, 0, sizeof(str));
-         sprintf(str, "%p", (void *)fwdface[it]);
+         snprintf(str, sizeof(str),  "%p", (void *)fwdface[it]);
          if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_FACE, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
 
          memset(str, 0, sizeof(str));
-         sprintf(str, "%d", fwdfaceid[it]);
+         snprintf(str, sizeof(str),  "%d", fwdfaceid[it]);
          if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCN_DTAG_FACEID, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
 
          memset(str, 0, sizeof(str));
-         sprintf(str, "%d", suite[it]);
+         snprintf(str, sizeof(str),  "%d", suite[it]);
          if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SUITE, CCN_TT_DTAG, str, len3)) {
              return -1;
          }
@@ -611,49 +611,49 @@ ccnl_mgmt_create_interest_stmt(size_t num_interests, long *interest, long *inter
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) interest[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) interest[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) interestnext[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) interestnext[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) interestprev[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) interestprev[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", interestlast[it]);
+        snprintf(str, sizeof(str),  "%d", interestlast[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_LAST, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", interestmin[it]);
+        snprintf(str, sizeof(str),  "%d", interestmin[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_MIN, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", interestmax[it]);
+        snprintf(str, sizeof(str),  "%d", interestmax[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_MAX, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", interestretries[it]);
+        snprintf(str, sizeof(str),  "%d", interestretries[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) interestpublisher[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) interestpublisher[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
@@ -684,31 +684,31 @@ ccnl_mgmt_create_content_stmt(size_t num_contents, long *content, long *contentn
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) content[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) content[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) contentnext[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) contentnext[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_NEXT, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%p", (void *) contentprev[it]);
+        snprintf(str, sizeof(str),  "%p", (void *) contentprev[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_PREV, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", contentlast_use[it]);
+        snprintf(str, sizeof(str),  "%d", contentlast_use[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
 
         memset(str, 0, sizeof(str));
-        sprintf(str, "%d", contentserved_cnt[it]);
+        snprintf(str, sizeof(str),  "%d", contentserved_cnt[it]);
         if (ccnl_ccnb_mkStrBlob(stmt+*len3, stmtend, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str, len3)) {
             return -1;
         }
@@ -1542,7 +1542,7 @@ SoftBail:
         }
     }
     if (f) {
-        sprintf((char *)faceidstr,"%i",f->faceid);
+        snprintf((char *)faceidstr, sizeof(faceidstr), "%i",f->faceid);
         if (ccnl_ccnb_mkStrBlob(faceinst_buf+len3, faceinst_buf + FACEINST_BUF_SIZE, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr, &len3)) {
             goto Bail;
         }
@@ -2425,7 +2425,7 @@ SoftBail:
 
     //    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
-    sprintf((char*)h, "%d", (int)suite[0]);
+    snprintf((char*)h, sizeof(h), "%d", (int)suite[0]);
     if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h, &len3)) {
         goto Bail;
     }
@@ -2640,7 +2640,7 @@ SoftBail:
         goto Bail;
     }
     memset(h,0,sizeof(h));
-    sprintf((char*)h, "%d", (int)suite[0]);
+    snprintf((char*)h, sizeof(h), "%d", (int)suite[0]);
     if (ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, fwdentry_buf + FWDENTRY_BUF_SIZE, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h, &len3)) {
         goto Bail;
     }

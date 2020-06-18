@@ -151,7 +151,7 @@ inet_ntoa(struct in_addr in)
     static char buf[16];
     unsigned int i, len = 0, a = ntohl(in.s_addr);
     for (i = 0; i < 4; i++) {
-        len += sprintf(buf+len, "%s%d", i ? "." : "", 0xff & (a >> 8*(3-i)));
+        len += snprintf(buf+len, sizeof(buf)-len, "%s%d", i ? "." : "", 0xff & (a >> 8*(3-i)));
     }
     return buf;
 }
@@ -518,7 +518,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     DEBUGMSG(DEBUG, "UNIX socket is %p\n", (void*)s);
 
     ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    strncpy(ux->sun_path, path, sizeof(ux->sun_path));
     rc = s->ops->bind(s, (struct sockaddr*) ux,
                 offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
     if (rc < 0) {
@@ -690,7 +690,7 @@ ccnl_init(void)
         theRelay.crypto_path = p;
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
-        sprintf(h, "%s-2", p);
+        snprintf(h, sizeof(h), "%s-2", p);
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         if (i->sock) {
             DEBUGMSG(DEBUG, "ccnl_open_unixpath worked\n");
