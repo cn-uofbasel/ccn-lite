@@ -327,7 +327,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
         strncpy(fname, path, sizeof(fname));
         strcat(fname, "/");
-        strcat(fname, de->d_name);
+        strncat(fname, de->d_name, sizeof(fname) - strlen(fname) - 1);
 
         if (stat(fname, &s)) {
             perror("stat");
