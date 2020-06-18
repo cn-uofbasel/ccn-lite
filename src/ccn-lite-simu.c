@@ -53,6 +53,7 @@
 
 #define local_producer(...) 0
 #define cache_strategy_remove(...)      0
+#define cache_strategy_cache(...)       0
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
