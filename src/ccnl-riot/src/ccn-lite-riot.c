@@ -46,11 +46,6 @@
 #include "ccnl-pkt-builder.h"
 
 /**
- * @brief May be defined for a particular caching strategy
- */
-int cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c);
-
-/**
  * @brief RIOT specific local variables
  * @{
  */
@@ -64,11 +59,6 @@ static msg_t _msg_queue[CCNL_QUEUE_SIZE];
  * @brief stack for the CCN-Lite eventloop
  */
 static char _ccnl_stack[CCNL_STACK_SIZE];
-
-/**
- * caching strategy removal function
- */
-static ccnl_cache_strategy_func _cs_remove_func = NULL;
 
 /**
  * currently configured suite
@@ -594,19 +584,4 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, int buf_len
     }
 
     return ret;
-}
-
-void
-ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func)
-{
-    _cs_remove_func = func;
-}
-
-int
-cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c)
-{
-    if (_cs_remove_func) {
-        return _cs_remove_func(relay, c);
-    }
-    return 0;
 }

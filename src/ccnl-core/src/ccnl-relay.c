@@ -35,6 +35,16 @@
 
 
 
+/**
+ * caching strategy removal function
+ */
+static ccnl_cache_strategy_func _cs_remove_func = NULL;
+
+/**
+ * caching strategy decision function
+ */
+static ccnl_cache_strategy_func _cs_decision_func = NULL;
+
 struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
                         struct sockaddr *sa, size_t addrlen)
@@ -558,7 +568,8 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
 
     if (ccnl->max_cache_entries > 0 &&
-        ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
+        ccnl->contentcnt >= ccnl->max_cache_entries && !cache_strategy_remove(ccnl, c)) {
+        // remove oldest content
         struct ccnl_content_s *c2, *oldest = NULL;
         uint32_t age = 0;
         for (c2 = ccnl->contents; c2; c2 = c2->next) {
@@ -1054,4 +1065,35 @@ ccnl_cs_lookup(struct ccnl_relay_s *ccnl, char *prefix)
         ccnl_free(spref);
     }
     return NULL;
+}
+
+void
+ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func)
+{
+    _cs_remove_func = func;
+}
+
+void
+ccnl_set_cache_strategy_cache(ccnl_cache_strategy_func func)
+{
+    _cs_decision_func = func;
+}
+
+int
+cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c)
+{
+    if (_cs_remove_func) {
+        return _cs_remove_func(relay, c);
+    }
+    return 0;
+}
+
+int
+cache_strategy_cache(struct ccnl_relay_s *relay, struct ccnl_content_s *c)
+{
+    if (_cs_decision_func) {
+        return _cs_decision_func(relay, c);
+    }
+    // If no caching decision strategy is defined, cache everything
+    return 1;
 }
