@@ -558,6 +558,18 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (ccnl_prefix_cmp(c->pkt->pfx, NULL, cit->pkt->pfx, CMP_EXACT) == 0) {
             DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
+#if USE_TENTATIVE_CACHE
+            if (c->pkt->flags & CCNL_PKT_TENTATIVE) {
+                cit->last_used = c->last_used;
+                if (cit->del_cb) {
+                    cit->del_cb(cit->del_cb_ctx);
+                    cit->del_cb = NULL;
+                    cit->del_cb_ctx = NULL;
+                }
+                ccnl_content_free(c);
+                return cit;
+            }
+#endif
             return NULL;
         }
     }
