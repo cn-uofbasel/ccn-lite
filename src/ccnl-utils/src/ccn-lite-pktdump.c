@@ -491,13 +491,13 @@ ccnl_ccntlv_type2name(uint16_t ctx, uint16_t type, int rawxml)
     }
     if (tn) {
         if(!rawxml)
-            sprintf(tmp, "%s\\%s", tn, cn);
+            snprintf(tmp, sizeof(tmp), "%s\\%s", tn, cn);
         else
-            sprintf(tmp, "%s", tn);
+            snprintf(tmp, sizeof(tmp), "%s", tn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+        snprintf(tmp, sizeof(tmp), "type=0x%04x\\%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+        snprintf(tmp, sizeof(tmp), "type=0x%04x\\ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -529,7 +529,7 @@ ccntlv_parse_sequence(size_t lev, uint16_t ctx, unsigned char *base,
 
         n = ccnl_ccntlv_type2name(ctx, typ, rawxml);
         if (!n) {
-            sprintf(tmp, "type=%hu", typ);
+            snprintf(tmp, sizeof(tmp), "type=%hu", typ);
             n = tmp;
         }
 
@@ -822,7 +822,7 @@ ndn_parse_sequence(size_t lev, uint8_t *base, uint8_t **buf,
 
         n = ndn_type2name(typ);
         if (!n) {
-            sprintf(tmp, "type=%lu", typ);
+            snprintf(tmp, sizeof(tmp), "type=%lu", typ);
             n = tmp;
         }
 
@@ -987,7 +987,7 @@ localrpc_parse(size_t lev, uint8_t *base, uint8_t **buf, size_t *len,
             case LRPC_NONCE:
                 n = "Nonce"; break;
             default:
-                sprintf(tmp, "Type=0x%x", (unsigned short)typ);
+                snprintf(tmp, sizeof(tmp), "Type=0x%x", (unsigned short)typ);
                 n = tmp;
                 break;
             }

@@ -144,7 +144,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     if (!relay)
         return;
 
-    sprintf(tmp, "%s/.%d", name, seqn);
+    snprintf(tmp, sizeof(tmp), "%s/.%d", name, seqn);
     DEBUGMSG(VERBOSE, "  %s\n", tmp);
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
@@ -177,7 +177,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     if (!relay)
         return;
 
-    sprintf(tmp, "%s/.%d", name, seqn);
+    snprintf(tmp, sizeof(tmp), "%s/.%d", name, seqn);
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
@@ -464,7 +464,7 @@ ccnl_simu_init(int max_cache_entries, int mtu)
 */
 
     // turn node 'C' into a repository for three movies
-    sprintf(dat, "%d", (int) sizeof(dat));
+    snprintf(dat, SIMU_CHUNK_SIZE, "%d", (int) sizeof(dat));
     for (i = 0; i < SIMU_NUMBER_OF_CHUNKS; i++) {
         ccnl_simu_add2cache('C', "/ccnl/simu/movie1", i, dat, sizeof(dat));
         ccnl_simu_add2cache('C', "/ccnl/simu/movie2", i, dat, sizeof(dat));

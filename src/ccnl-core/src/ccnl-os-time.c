@@ -100,7 +100,7 @@ timestamp(void)
 {
     static char ts[16], *cp;
 
-    sprintf(ts, "%.4g", CCNL_NOW());
+    snprintf(ts, sizeof(ts), "%.4g", CCNL_NOW());
     cp = strchr(ts, '.');
     if (!cp)
         strcat(ts, ".0000");

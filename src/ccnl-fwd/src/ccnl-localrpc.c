@@ -368,7 +368,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     {
         char *p = ccnl_malloc(100);
-        sprintf(p, "rpc_cacheRemove: removed %d entries\n", cnt);
+        snprintf(p, 100, "rpc_cacheRemove: removed %d entries\n", cnt);
         ccnl_emit_RpcReturn(relay, from, nonce, 415, p, NULL);
         ccnl_free(p);
     }

@@ -538,7 +538,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
 
         //receiving interface
         memset(h,0,sizeof(h));
-        sprintf(h,"%s-2",crypto_face_path);
+        snprintf(h, sizeof(h), "%s-2",crypto_face_path);
         i = &relay->ifs[relay->ifcount];
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         i->mtu = 4096;

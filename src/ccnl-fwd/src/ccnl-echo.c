@@ -60,7 +60,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     ccnl_prefix_to_str(pfx,s,CCNL_MAX_PREFIX_SIZE);
 
     cp = ccnl_malloc(strlen(s) + 60);
-    sprintf(cp, "%s\n%suptime %s\n", s, ctime(&t), timestamp());
+    snprintf(cp, strlen(s) + 60, "%s\n%suptime %s\n", s, ctime(&t), timestamp());
 
     reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0, NULL);
     ccnl_free(cp);

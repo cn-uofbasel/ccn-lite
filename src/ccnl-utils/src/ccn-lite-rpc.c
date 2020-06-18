@@ -223,7 +223,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     if (t < LRPC_NOT_SERIALIZED)
         return t;
     if (t < LRPC_APPLICATION) {
-        sprintf(tmp, "v%02x", t);
+        snprintf(tmp, sizeof(tmp), "v%02x", t);
         n = tmp;
     } else switch (t) {
     case LRPC_APPLICATION:

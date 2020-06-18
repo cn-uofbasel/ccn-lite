@@ -675,7 +675,7 @@ ccnl_android_init()
                         strlen(secret_key), keyid);
 #endif
 
-    sprintf(hello, "ccn-lite-android, %s",
+    snprintf(hello, sizeof(hello), "ccn-lite-android, %s",
             ctime(&theRelay.startup_time) + 4);
 
     return hello;
@@ -713,12 +713,12 @@ ccnl_android_getTransport()
         struct ifreq *r = &ifr[i];
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
-            sprintf(addr, "(%s)  UDP    ", ifr[i].ifr_name);
+            snprintf(addr, sizeof(addr), "(%s)  UDP    ", ifr[i].ifr_name);
             for (i = 0; i < theRelay.ifcount; i++) {
                 if (theRelay.ifs[i].addr.sa.sa_family != AF_INET)
                     continue;
                 sin->sin_port = theRelay.ifs[i].addr.ip4.sin_port;
-                sprintf(addr + strlen(addr), "%s    ",
+                snprintf(addr + strlen(addr), sizeof(addr) - strlen(addr), "%s    ",
                         ccnl_addr2ascii((sockunion*)sin));
             }
             ccnl_free(ifr);

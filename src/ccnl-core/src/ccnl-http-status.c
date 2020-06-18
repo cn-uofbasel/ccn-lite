@@ -211,13 +211,13 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     char s[CCNL_MAX_PREFIX_SIZE];
 
     strcpy(txt, hdr);
-    len += sprintf(txt+len,
+    len += snprintf(txt+len, sizeof(txt) - len,
                    "<html><head><title>ccn-lite-relay status</title>\n"
                    "<style type=\"text/css\">\n"
                    "body {font-family: sans-serif;}\n"
                    "</style>\n"
                    "</head><body>\n");
-    len += sprintf(txt+len, "\n<table borders=0>\n<tr><td>"
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<table borders=0>\n<tr><td>"
                    "<a href=\"\">[refresh]</a>&nbsp;&nbsp;<td>"
                    "ccn-lite-relay Status Page &nbsp;&nbsp;");
     //uname(&uts);
@@ -226,12 +226,12 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     t = time(NULL);
     cp = ctime(&t);
     cp[strlen(cp)-1] = 0;
-    len += sprintf(txt+len, "<tr><td><td><font size=-1>%s &nbsp;&nbsp;", cp);
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td><td><font size=-1>%s &nbsp;&nbsp;", cp);
     cp = ctime(&ccnl->startup_time);
     cp[strlen(cp)-1] = 0;
-    len += sprintf(txt+len, " (started %s)</font>\n</table>\n", cp);
+    len += snprintf(txt+len, sizeof(txt) - len, " (started %s)</font>\n</table>\n", cp);
 
-    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Forwarding table</em></table><ul>\n");
     for (fwd = ccnl->fib, cnt = 0; fwd; fwd = fwd->next, cnt++);
     if (cnt > 0) {
@@ -248,18 +248,18 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             else
 #endif
             if(fwda[i]->face)
-                sprintf(fname, "f%d", fwda[i]->face->faceid);
+                snprintf(fname, sizeof(fname), "f%d", fwda[i]->face->faceid);
             else
                 sprintf(fname, "?");
-            len += sprintf(txt+len,
+            len += snprintf(txt+len, sizeof(txt) - len,
                            "<li>via %4s: <font face=courier>%s</font>\n",
                            fname, ccnl_prefix_to_str(fwda[i]->prefix,s,CCNL_MAX_PREFIX_SIZE));
         }
         ccnl_free(fwda);
     }
-    len += sprintf(txt+len, "</ul>\n");
+    len += snprintf(txt+len, sizeof(txt) - len, "</ul>\n");
 
-    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Faces</em></table><ul>\n");
     for (f = ccnl->faces, cnt = 0; f; f = f->next, cnt++);
     if (cnt > 0) {
@@ -269,28 +269,28 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fa[i] = f;
         qsort(fa, cnt, sizeof(f), ccnl_cmpfaceid);
         for (i = 0; i < cnt; i++) {
-            len += sprintf(txt+len,
+            len += snprintf(txt+len, sizeof(txt) - len,
                            "<li><strong>f%d</strong> (via i%d) &nbsp;"
                            "peer=<font face=courier>%s</font> &nbsp;ttl=",
                            fa[i]->faceid, fa[i]->ifndx,
                            ccnl_addr2ascii(&(fa[i]->peer)));
             if (fa[i]->flags & CCNL_FACE_FLAGS_STATIC)
-                len += sprintf(txt+len, "static");
+                len += snprintf(txt+len, sizeof(txt) - len, "static");
             else
-                len += sprintf(txt+len, "%.1fsec",
+                len += snprintf(txt+len, sizeof(txt) - len, "%.1fsec",
                         fa[i]->last_used + CCNL_FACE_TIMEOUT - CCNL_NOW());
             for (j = 0, bpt = fa[i]->outq; bpt; bpt = bpt->next, j++);
-            len += sprintf(txt+len, " &nbsp;qlen=%d\n", j);
+            len += snprintf(txt+len, sizeof(txt) - len, " &nbsp;qlen=%d\n", j);
         }
         ccnl_free(fa);
     }
-    len += sprintf(txt+len, "</ul>\n");
+    len += snprintf(txt+len, sizeof(txt) - len, "</ul>\n");
 
-    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Interfaces</em></table><ul>\n");
     for (i = 0; i < ccnl->ifcount; i++) {
 #ifdef USE_STATS
-        len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
+        len += snprintf(txt+len, sizeof(txt) - len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
                        "qlen=%zu/%d"
                        "&nbsp;&nbsp;rx=%u&nbsp;&nbsp;tx=%u"
@@ -299,7 +299,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
                        ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN,
                        ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt);
 #else
-        len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
+        len += snprintf(txt+len, sizeof(txt) - len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
                        "qlen=%d/%d"
                        "\n",
@@ -307,40 +307,40 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
                        ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN);
 #endif
     }
-    len += sprintf(txt+len, "</ul>\n");
+    len += snprintf(txt+len, sizeof(txt) - len, "</ul>\n");
 
-    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Misc stats</em></table><ul>\n");
     for (cnt = 0, bpt = ccnl->nonces; bpt; bpt = bpt->next, cnt++);
-    len += sprintf(txt+len, "<li>Nonces: %d\n", cnt);
+    len += snprintf(txt+len, sizeof(txt) - len, "<li>Nonces: %d\n", cnt);
     for (cnt = 0, ipt = ccnl->pit; ipt; ipt = ipt->next, cnt++);
-    len += sprintf(txt+len, "<li>Pending interests: %d\n", cnt);
-    len += sprintf(txt+len, "<li>Content chunks: %d (max=%d)\n",
+    len += snprintf(txt+len, sizeof(txt) - len, "<li>Pending interests: %d\n", cnt);
+    len += snprintf(txt+len, sizeof(txt) - len, "<li>Content chunks: %d (max=%d)\n",
                    ccnl->contentcnt, ccnl->max_cache_entries);
-    len += sprintf(txt+len, "</ul>\n");
+    len += snprintf(txt+len, sizeof(txt) - len, "</ul>\n");
 
-    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Config</em></table><table borders=0>\n");
-    len += sprintf(txt+len, "<tr><td>content.timeout:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>content.timeout:"
                    "<td align=right> %d<td>\n", CCNL_CONTENT_TIMEOUT);
-    len += sprintf(txt+len, "<tr><td>face.timeout:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>face.timeout:"
                    "<td align=right> %d<td>\n", CCNL_FACE_TIMEOUT);
-    len += sprintf(txt+len, "<tr><td>interest.maxretransmit:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>interest.maxretransmit:"
                    "<td align=right> %d<td>\n", CCNL_MAX_INTEREST_RETRANSMIT);
-    len += sprintf(txt+len, "<tr><td>interest.timeout:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>interest.timeout:"
                    "<td align=right> %d<td>\n", CCNL_INTEREST_TIMEOUT);
-    len += sprintf(txt+len, "<tr><td>nonces.max:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>nonces.max:"
                    "<td align=right> %d<td>\n", CCNL_MAX_NONCES);
 
     //len += sprintf(txt+len, "<tr><td>compile.featureset:<td><td> %s\n",
     //               compile_string);
-    len += sprintf(txt+len, "<tr><td>compile.time:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>compile.time:"
                    "<td><td>%s %s\n", __DATE__, __TIME__);
-    len += sprintf(txt+len, "<tr><td>compile.ccnl_core_version:"
+    len += snprintf(txt+len, sizeof(txt) - len, "<tr><td>compile.ccnl_core_version:"
                    "<td><td>%s\n", CCNL_VERSION);
-    len += sprintf(txt+len, "</table>\n");
+    len += snprintf(txt+len, sizeof(txt) - len, "</table>\n");
 
-    len += sprintf(txt+len, "\n<p><hr></body></html>\n");
+    len += snprintf(txt+len, sizeof(txt) - len, "\n<p><hr></body></html>\n");
 
     http->out = (unsigned char*) txt;
     http->outoffs = 0;

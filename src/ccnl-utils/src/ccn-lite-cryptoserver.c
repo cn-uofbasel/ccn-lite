@@ -168,7 +168,7 @@ handle_verify(uint8_t **buf, size_t *buflen, int sock, char *callback){
         goto Bail;
     }
     memset(h,0,sizeof(h));
-    sprintf(h,"%d", verified);
+    snprintf(h, sizeof(h), "%d", verified);
     if (ccnl_ccnb_mkStrBlob(component_buf+len3, component_buf + complen, CCNL_DTAG_VERIFIED, CCN_TT_DTAG, h, &len3)) {
         goto Bail;
     }
