@@ -23,10 +23,19 @@
 #ifndef CCNL_PKT_NDNTLV_H
 #define CCNL_PKT_NDNTLV_H
 
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+# define UINT8_MAX		(255)
+#endif
 #include <stddef.h>
-
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-content.h"
+#else
+#include "../../ccnl-core/include/ccnl-content.h"
+#endif
+
 
 /**
  * Default interest lifetime in milliseconds. If the element is omitted by a user, a default

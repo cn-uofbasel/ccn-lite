@@ -26,7 +26,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #else //CCNL_LINUXKERNEL
-#include <ccnl-core.h>
+#include "../include/ccnl-core.h"
 #endif //CCNL_LINUXKERNEL
 
 #ifdef CCNL_RIOT

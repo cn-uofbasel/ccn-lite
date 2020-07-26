@@ -22,11 +22,19 @@
 
 // see ccnl-defs.h for the ENC constants
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-core.h"
-
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-ndntlv.h"
+#else
+#include "../../ccnl-core/include/ccnl-core.h"
+#include "../include/ccnl-pkt-ccnb.h"
+#include "../include/ccnl-pkt-ccntlv.h"
+#include "../include/ccnl-pkt-ndntlv.h"
+#endif
+
+
 
 int8_t
 ccnl_switch_dehead(uint8_t **buf, size_t *len, int32_t *code)

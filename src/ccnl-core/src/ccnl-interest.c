@@ -30,13 +30,13 @@
 #include "ccnl-logging.h"
 #include "ccnl-pkt-util.h"
 #else
-#include <ccnl-relay.h>
-#include <ccnl-interest.h>
-#include <ccnl-malloc.h>
-#include <ccnl-os-time.h>
-#include <ccnl-prefix.h>
-#include <ccnl-logging.h>
-#include <ccnl-pkt-util.h>
+#include "../include/ccnl-relay.h"
+#include "../include/ccnl-interest.h"
+#include "../include/ccnl-malloc.h"
+#include "../include/ccnl-os-time.h"
+#include "../include/ccnl-prefix.h"
+#include "../include/ccnl-logging.h"
+#include "../include/ccnl-pkt-util.h"
 #endif
 
 #ifdef CCNL_RIOT

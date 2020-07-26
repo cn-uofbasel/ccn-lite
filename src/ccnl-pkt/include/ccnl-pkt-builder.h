@@ -20,6 +20,7 @@
 #ifndef CCNL_PKT_BUILDER
 #define CCNL_PKT_BUILDER
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-core.h"
 
 #include "ccnl-pkt.h"
@@ -28,6 +29,17 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-pkt-localrpc.h"
+#else
+#include "../../ccnl-core/include/ccnl-core.h"
+
+#include "../../ccnl-core/include/ccnl-pkt.h"
+#include "../include/ccnl-pkt-ccnb.h"
+#include "../include/ccnl-pkt-ccntlv.h"
+#include "../include/ccnl-pkt-ndntlv.h"
+#include "../include/ccnl-pkt-switch.h"
+#include "../include/ccnl-pkt-localrpc.h"
+#endif
+
 
 #ifdef USE_SUITE_CCNB
 int8_t ccnb_isContent(uint8_t *buf, size_t len);

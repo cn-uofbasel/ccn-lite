@@ -24,7 +24,11 @@
 #ifndef CCNL_FWD_H
 #define CCNL_FWD_H
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-core.h"
+#else
+#include "../../ccnl-core/include/ccnl-core.h"
+#endif
 
 /**
  * @brief       Functionpointer to a CCN-lite Forwarder Function

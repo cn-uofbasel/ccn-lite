@@ -27,10 +27,10 @@
 #include "ccnl-logging.h"
 #include <string.h>
 #else
-#include <ccnl-sched.h>
-#include <ccnl-malloc.h>
-#include <ccnl-os-time.h>
-#include <ccnl-logging.h>
+#include "../include/ccnl-sched.h"
+#include "../include/ccnl-malloc.h"
+#include "../include/ccnl-os-time.h"
+#include "../include/ccnl-logging.h"
 #endif
 
 

@@ -30,13 +30,13 @@
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
 #else
-#include <ccnl-os-time.h>
-#include <ccnl-buf.h>
-#include <ccnl-logging.h>
-#include <ccnl-relay.h>
-#include <ccnl-forward.h>
-#include <ccnl-prefix.h>
-#include <ccnl-malloc.h>
+#include "../include/ccnl-os-time.h"
+#include "../include/ccnl-buf.h"
+#include "../include/ccnl-logging.h"
+#include "../include/ccnl-relay.h"
+#include "../include/ccnl-forward.h"
+#include "../include/ccnl-prefix.h"
+#include "../include/ccnl-malloc.h"
 #endif
 
 struct ccnl_buf_s*

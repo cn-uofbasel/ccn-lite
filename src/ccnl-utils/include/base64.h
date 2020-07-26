@@ -7,7 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 
 /**
  * @brief Initializes the base64 decoding table

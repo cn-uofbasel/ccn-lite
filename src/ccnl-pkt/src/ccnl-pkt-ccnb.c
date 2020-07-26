@@ -37,8 +37,8 @@
 #include <ctype.h>
 #include <assert.h>
 #else
-#include <ccnl-pkt-ccnb.h>
-#include <ccnl-core.h>
+#include "../include/ccnl-pkt-ccnb.h"
+#include "../../ccnl-core/include/ccnl-core.h"
 #endif
 
 

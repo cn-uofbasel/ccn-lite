@@ -34,10 +34,10 @@
 #endif
 #include <unistd.h>
 #else
-#include <ccnl-if.h>
-#include <ccnl-os-time.h>
-#include <ccnl-malloc.h>
-#include <ccnl-logging.h>
+#include "../include/ccnl-if.h"
+#include "../include/ccnl-os-time.h"
+#include "../include/ccnl-malloc.h"
+#include "../include/ccnl-logging.h"
 #endif
 
 void

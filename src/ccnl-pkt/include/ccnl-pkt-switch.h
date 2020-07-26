@@ -23,7 +23,11 @@
 #ifndef CCNL_PKT_SWITCH_H
 #define CCNL_PKT_SWITCH_H
 
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 #include <stddef.h>
 
 int8_t
@@ -33,9 +37,10 @@ int
 ccnl_enc2suite(int enc);
 
 #ifdef NEEDS_PACKET_CRAFTING
+#ifndef CCNL_LINUXKERNEL
 int
 ccnl_switch_prependCodeVal(unsigned long val, int *offset, unsigned char *buf);
-
+#endif
 int8_t
 ccnl_switch_prependCoding(uint64_t code, size_t *offset, uint8_t *buf, size_t *res);
 

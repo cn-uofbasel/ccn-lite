@@ -19,28 +19,29 @@
  * File history:
  * 2017-06-16 created
  */
-
-
+#ifndef CCNL_LINUXKERNEL
+#include <inttypes.h>
+#include <limits.h>
 #include "ccnl-fwd.h"
-
 #include "ccnl-core.h"
 #include "ccnl-producer.h"
 #include "ccnl-callbacks.h"
-
 #include "ccnl-pkt-util.h"
-
-#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
-#include <inttypes.h>
-#include <limits.h>
 #else
-#include <ccnl-pkt-ccnb.h>
-#include <ccnl-pkt-ccntlv.h>
-#include <ccnl-pkt-ndntlv.h>
-#include <ccnl-pkt-switch.h>
+#include <linux/types.h>
+#include "../include/ccnl-fwd.h"
+#include "../../ccnl-core/include/ccnl-core.h"
+#include "../../ccnl-core/include/ccnl-producer.h"
+#include "../../ccnl-core/include/ccnl-callbacks.h"
+#include "../../ccnl-core/include/ccnl-pkt-util.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ccnb.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ccntlv.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ndntlv.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-switch.h"
 #endif
 
 //#include "ccnl-logging.h"
@@ -83,11 +84,12 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             return ccnl_crypto(relay, pkt->buf, pkt->pfx, from);
         }
 #endif /* USE_SUITE_CCNB && USE_SIGNATURES*/
-
+#ifndef CCNL_LINUXKERNEL
     if (ccnl_callback_rx_on_data(relay, from, *pkt)) {
         *pkt = NULL;
         return 0;
     }
+#endif
 
     // CONFORM: Step 1:
     for (c = relay->contents; c; c = c->next) {
@@ -219,9 +221,11 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 #endif
+#ifndef CCNL_LINUXKERNEL
     if (local_producer(relay, from, *pkt)) {
         return 0;
     }
+#endif
 #if defined(USE_SUITE_CCNB) && defined(USE_MGMT)
     if ((*pkt)->suite == CCNL_SUITE_CCNB && (*pkt)->pfx->compcnt == 4 &&
                                   !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {

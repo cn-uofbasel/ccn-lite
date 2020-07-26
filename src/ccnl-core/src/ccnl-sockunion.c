@@ -27,8 +27,8 @@
 #include <string.h>
 #include "ccnl-logging.h"
 #else
-#include <ccnl-logging.h>
-#include <ccnl-sockunion.h>
+#include "../include/ccnl-logging.h"
+#include "../include/ccnl-sockunion.h"
 #endif
 
 int

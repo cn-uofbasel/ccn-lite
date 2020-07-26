@@ -29,12 +29,12 @@
 #include "ccnl-logging.h"
 #include "ccnl-defs.h"
 #else
-#include <ccnl-content.h>
-#include <ccnl-malloc.h>
-#include <ccnl-prefix.h>
-#include <ccnl-pkt.h>
-#include <ccnl-os-time.h>
-#include <ccnl-logging.h>
+#include "../include/ccnl-content.h"
+#include "../include/ccnl-malloc.h"
+#include "../include/ccnl-prefix.h"
+#include "../include/ccnl-pkt.h"
+#include "../include/ccnl-os-time.h"
+#include "../include/ccnl-logging.h"
 #endif
 
 // TODO: remove unused ccnl parameter

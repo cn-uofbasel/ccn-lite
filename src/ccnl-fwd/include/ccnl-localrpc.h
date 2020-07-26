@@ -22,8 +22,14 @@
 #ifndef CCNL_LOCALRPC_H
 #define CCNL_LOCALRPC_H
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-relay.h"
 #include "ccnl-face.h"
+#else
+#include "../../ccnl-core/include/ccnl-relay.h"
+#include "../../ccnl-core/include/ccnl-face.h"
+#endif
+
 
 
 /**

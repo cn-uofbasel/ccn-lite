@@ -24,7 +24,11 @@
 #ifndef CCNL_PKT_CCNB_H
 #define CCNL_PKT_CCNB_H
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-core.h"
+#else
+#include "../../ccnl-core/include/ccnl-core.h"
+#endif
 
 // ----------------------------------------------------------------------
 

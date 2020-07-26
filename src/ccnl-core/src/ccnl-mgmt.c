@@ -33,14 +33,14 @@
 #include <errno.h>
 #include <limits.h>
 #else
-#include <ccnl-mgmt.h>
-#include <ccnl-core.h>
-#include <ccnl-pkt-ccnb.h>
-#include <ccnl-pkt-builder.h>
-#include <ccnl-dump.h>
-#include <ccnl-crypto.h>
-#include <ccnl-forward.h>
-#include <ccnl-pkt-switch.h>
+#include "../include/ccnl-mgmt.h"
+#include "../include/ccnl-core.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ccnb.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-builder.h"
+#include "../include/ccnl-dump.h"
+#include "../include/ccnl-crypto.h"
+#include "../include/ccnl-forward.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-switch.h"
 #endif
 
 

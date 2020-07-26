@@ -18,7 +18,7 @@
  * File history:
  * 2017-06-20 created
  */
-
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-dispatch.h"
 
 #include "ccnl-os-time.h"
@@ -37,6 +37,27 @@
 #include "ccnl-pkt-localrpc.h"
 
 #include "ccnl-logging.h"
+#else
+#include "../include/ccnl-dispatch.h"
+
+#include "../../ccnl-core/include/ccnl-os-time.h"
+
+#include "../include/ccnl-localrpc.h"
+
+#include "../../ccnl-core/include/ccnl-relay.h"
+#include "../../ccnl-core/include/ccnl-pkt-util.h"
+
+#include "../include/ccnl-fwd.h"
+
+#include "../../ccnl-pkt/include/ccnl-pkt-ccnb.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ccntlv.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ndntlv.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-switch.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-localrpc.h"
+
+#include "../../ccnl-core/include/ccnl-logging.h"
+#endif
+
 
 struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
