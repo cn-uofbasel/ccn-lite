@@ -25,6 +25,8 @@
 
 #ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
 #endif
 
  #ifdef CCNL_ARDUINO

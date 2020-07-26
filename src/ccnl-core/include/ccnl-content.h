@@ -24,7 +24,11 @@
 #define CCNL_CONTENT_H
 
 #include <stdbool.h>
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 
 #ifdef CCNL_RIOT
 #include "evtimer_msg.h"
