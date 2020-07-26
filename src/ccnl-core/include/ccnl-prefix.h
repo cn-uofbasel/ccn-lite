@@ -25,11 +25,7 @@
 #define CCNL_PREFIX_H
 
 #include <stddef.h>
-#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
-#else
-#include <linux/types.h>
-#endif
 #ifndef CCNL_LINUXKERNEL
 #include <unistd.h>
 #endif
