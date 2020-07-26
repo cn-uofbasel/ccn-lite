@@ -108,6 +108,7 @@ debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
  * @return Upon failure, the function returns NULL
  * @return Upon success, a pointer to the memory block allocated by the function
  */
+/*
 static inline void*
 ccnl_malloc(size_t s);
 
@@ -115,7 +116,7 @@ static inline void*
 ccnl_calloc(size_t num, size_t size);
 
 static inline void
-ccnl_free(void *ptr);
+ccnl_free(void *ptr);*/
 #endif
 
 #endif 
