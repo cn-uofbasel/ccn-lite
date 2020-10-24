@@ -77,16 +77,35 @@
 
 #define USE_LINKLAYER
 
-#include <ccnl-defs.h>
-#include <ccnl-frag.h>
-#include <ccnl-mgmt.h>
-#include <ccnl-crypto.h>
-#include <ccnl-os-time.h>
-#include <ccnl-logging.h>
-#include <ccnl-dispatch.h>
-#include <ccnl-malloc.h>
-#include <ccnl-producer.h>
-#include <ccnl-pkt-switch.h>
+
+#include "../../ccnl-core/include/ccnl-defs.h"
+#include "../../ccnl-core/include/ccnl-frag.h"
+#include "../../ccnl-core/include/ccnl-mgmt.h"
+#include "../../ccnl-core/include/ccnl-crypto.h"
+#include "../../ccnl-core/include/ccnl-os-time.h"
+#include "../../ccnl-core/include/ccnl-logging.h"
+#include "../../ccnl-fwd/include/ccnl-dispatch.h"
+#include "../../ccnl-core/include/ccnl-malloc.h"
+#include "../../ccnl-core/include/ccnl-producer.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-switch.h"
+
+static inline void*
+ccnl_malloc(int s)
+{
+return kmalloc(s, GFP_ATOMIC);
+}
+
+static inline void*
+ccnl_calloc(int n, int s)
+{
+return kcalloc(n, s, GFP_ATOMIC);
+}
+
+static inline void
+ccnl_free(void *ptr)
+{
+kfree(ptr);
+}
 
 #include "../../ccnl-pkt/src/ccnl-pkt-switch.c"
 #ifdef USE_SUITE_NDNTLV
@@ -158,23 +177,7 @@ inet_ntoa(struct in_addr in)
 #endif
 // ----------------------------------------------------------------------
 
-static inline void*
-ccnl_malloc(int s)
-{
-    return kmalloc(s, GFP_ATOMIC);
-}
 
-static inline void*
-ccnl_calloc(int n, int s)
-{
-    return kcalloc(n, s, GFP_ATOMIC);
-}
-
-static inline void
-ccnl_free(void *ptr)
-{
-    kfree(ptr);
-}
 
 static void ccnl_lnxkernel_cleanup(void);
 char* ccnl_addr2ascii(sockunion *su);

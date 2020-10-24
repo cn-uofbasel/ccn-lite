@@ -23,11 +23,17 @@
 #ifndef CCNL_PKT_CCNTLV_H
 #define CCNL_PKT_CCNTLV_H
 
-#ifndef  CCNL_LINUXKERNEL
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
 #endif
 
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-core.h"
+#else
+#include "../../ccnl-core/include/ccnl-core.h"
+#endif
 
 #ifndef CCN_UDP_PORT
 # define CCN_UDP_PORT                    9695

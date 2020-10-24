@@ -25,6 +25,8 @@
 
 #ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
 #endif
 
  #ifdef CCNL_ARDUINO
@@ -103,10 +105,26 @@ ccnl_rem_timer(void *h);
 
 #ifdef CCNL_LINUXKERNEL
 struct ccnl_timerlist_s {
-    struct timer_list tl;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
+        struct legacy_timer_emu {
+            struct timer_list t;
+            void (*function)(unsigned long);
+            unsigned long data;
+    }tl;
+#else
+struct timer_list tl;
+#endif
     void (*fct)(void *ptr, void *aux);
     void *ptr, *aux;
 };
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+static void legacy_timer_emu_func(struct timer_list *t)
+{
+	struct legacy_timer_emu *lt = from_timer(lt, t, t);
+	lt->function(lt->data);
+}
+#endif
 
 static struct ccnl_timerlist_s *spare_timer;
 

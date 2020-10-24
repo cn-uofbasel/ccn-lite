@@ -32,8 +32,8 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #else
-#include <ccnl-pkt-ccntlv.h>
-#include <ccnl-core.h>
+#include "../include/ccnl-pkt-ccntlv.h"
+#include "../../ccnl-core/include/ccnl-core.h"
 #endif
 
 

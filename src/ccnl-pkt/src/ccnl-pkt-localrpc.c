@@ -32,9 +32,9 @@
 #include <ccnl-pkt-localrpc.h>
 
 #else
-#include <ccnl-pkt-localrpc.h>
-#include <ccnl-core.h>
-#include <ccnl-pkt-ndntlv.h>
+#include "../include/ccnl-pkt-localrpc.h"
+#include "../../ccnl-core/include/ccnl-core.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ndntlv.h"
 #endif
 
 // ----------------------------------------------------------------------

@@ -23,8 +23,13 @@
 #ifndef CCNL_PKT_LOCALRPC_H
 #define CCNL_PKT_LOCALRPC_H
 
-#include "ccnl-face.h"
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-relay.h"
+#include "ccnl-face.h"
+#else
+#include "../../ccnl-core/include/ccnl-relay.h"
+#include "../../ccnl-core/include/ccnl-face.h"
+#endif
 
 struct rpc_exec_s { // execution context
     struct rdr_ds_s *ostack; // operands

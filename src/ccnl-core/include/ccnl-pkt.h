@@ -25,13 +25,21 @@
 #define CCNL_PKT_H
 
 #include <stddef.h>
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 
 #include "ccnl-buf.h"
 #include "ccnl-prefix.h"
 
 #ifdef USE_SUITE_NDNTLV
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt-ndntlv.h"
+#else
+#include "../../ccnl-pkt/include/ccnl-pkt-ndntlv.h"
+#endif
 #endif
 
 // packet flags:  0000ebtt

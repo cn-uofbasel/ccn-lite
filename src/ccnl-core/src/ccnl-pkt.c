@@ -19,7 +19,7 @@
  * File history:
  * 2017-06-16 created
  */
-
+#ifndef CCNL_LINUXKERNEL
 #include "ccnl-pkt.h"
 
 #include "ccnl-os-time.h"
@@ -30,6 +30,18 @@
 #include "ccnl-malloc.h"
 
 #include "ccnl-logging.h"
+#else
+#include "../include/ccnl-pkt.h"
+
+#include "../include/ccnl-os-time.h"
+#include "../include/ccnl-defs.h"
+#include "../../ccnl-pkt/include/ccnl-pkt-ccntlv.h"
+
+#include "../include/ccnl-prefix.h"
+#include "../include/ccnl-malloc.h"
+
+#include "../include/ccnl-logging.h"
+#endif
 
 void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt)

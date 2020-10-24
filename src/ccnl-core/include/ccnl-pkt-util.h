@@ -22,7 +22,11 @@
 #ifndef CCNL_PKT_UTIL_H
 #define CCNL_PKT_UTIL_H
 
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 #include <stddef.h>
 
 #include "ccnl-pkt.h"

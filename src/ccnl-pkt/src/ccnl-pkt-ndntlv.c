@@ -32,8 +32,11 @@
 #include <assert.h>
 #include <stdint.h>
 #else
-#include <ccnl-pkt-ndntlv.h>
-#include <ccnl-core.h>
+#include <linux/types.h>
+#include "../include/ccnl-pkt-ndntlv.h"
+#include "../../ccnl-core/include/ccnl-core.h"
+# define UINT32_MAX		(4294967295U)
+# define UINT16_MAX		(65535)
 #endif
 
 

@@ -4,7 +4,11 @@
  *
  */
 #include <assert.h>
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 #include <string.h>
 
 #ifdef CCNL_ARDUINO

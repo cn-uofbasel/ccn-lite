@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdio.h>
 #else
-#include <ccnl-logging.h>
+#include "../include/ccnl-logging.h"
 #endif
 
 int debug_level;

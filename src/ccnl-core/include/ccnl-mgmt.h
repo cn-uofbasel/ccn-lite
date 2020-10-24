@@ -23,7 +23,11 @@
 
 #ifdef USE_MGMT
 
+#ifndef CCNL_LINUXKERNEL
 #include <stdint.h>
+#else
+#include <linux/types.h>
+#endif
 
 struct ccnl_buf_s;
 struct ccnl_relay_s;
