@@ -480,7 +480,7 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
         /* TODO: receive from socket or interface */
         _timeout_msg.type = CCNL_MSG_TIMEOUT;
-        xtimer_set_msg64(&_wait_timer, timeout, &_timeout_msg, sched_active_pid);
+        xtimer_set_msg64(&_wait_timer, timeout, &_timeout_msg, thread_getpid());
         msg_t m;
         msg_receive(&m);
         if (m.type == GNRC_NETAPI_MSG_TYPE_RCV) {
