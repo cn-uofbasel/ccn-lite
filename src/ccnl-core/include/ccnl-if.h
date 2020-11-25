@@ -24,7 +24,7 @@
 #define CCNL_IF_H
 
 #if defined(CCNL_RIOT)
-#include "kernel_types.h"
+#include "sched.h"
 #endif
 
 #include "ccnl-sched.h"

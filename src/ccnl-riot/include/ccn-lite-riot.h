@@ -21,7 +21,7 @@
  */
 
 #include <unistd.h>
-#include "kernel_types.h"
+#include "sched.h"
 #include "arpa/inet.h"
 #include "net/packet.h"
 #include "net/ethernet/hdr.h"

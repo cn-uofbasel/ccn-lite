@@ -29,7 +29,7 @@
 #include <time.h>
 
 /* RIOT specific includes */
-#include "kernel_types.h"
+#include "sched.h"
 #include "random.h"
 #include "timex.h"
 #include "xtimer.h"
