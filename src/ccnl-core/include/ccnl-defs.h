@@ -37,12 +37,7 @@
 #define CCNL_BROADCAST_OCTET            0xFF
 
 #if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
-# if defined(CCNL_RIOT)
-#  include "net/gnrc/netif.h"
-#  define CCNL_MAX_INTERFACES            GNRC_NETIF_NUMOF
-# else
-#  define CCNL_MAX_INTERFACES            1
-# endif
+# define CCNL_MAX_INTERFACES             1
 # define CCNL_MAX_IF_QLEN                14
 #ifndef CCNL_MAX_PACKET_SIZE
 # define CCNL_MAX_PACKET_SIZE            120
