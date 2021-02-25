@@ -143,7 +143,7 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
 
     int res;
     uint16_t mtu;
-    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(mtu), sizeof(mtu));
+    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PDU_SIZE, 0, &(mtu), sizeof(mtu));
     if (res < 0) {
         DEBUGMSG(ERROR, "error: unable to determine MTU for if=<%u>\n", (unsigned) i->if_pid);
         return -ECANCELED;
