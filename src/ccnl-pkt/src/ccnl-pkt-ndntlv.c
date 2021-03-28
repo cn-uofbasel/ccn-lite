@@ -151,7 +151,7 @@ ccnl_ndntlv_bytes2pkt(uint64_t pkttype, uint8_t *start,
     pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
 
     /* set default lifetime, in case InterestLifetime guider is absent */
-    pkt->s.ndntlv.interestlifetime = CCNL_INTEREST_TIMEOUT;
+    pkt->s.ndntlv.interestlifetime = CCNL_INTEREST_TIMEOUT * 1000;    // ms
 
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
