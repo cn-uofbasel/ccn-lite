@@ -360,7 +360,6 @@ void
     char *spref;
 
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
-    evtimer_init_msg(&ccnl_evtimer);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
     while(!ccnl->halt_flag) {
@@ -449,6 +448,7 @@ void
 kernel_pid_t
 ccnl_start(void)
 {
+    evtimer_init_msg(&ccnl_evtimer);
     loopback_face = ccnl_get_face_or_create(&ccnl_relay, -1, NULL, 0);
     loopback_face->flags |= CCNL_FACE_FLAGS_STATIC;
 
