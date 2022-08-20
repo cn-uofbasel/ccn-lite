@@ -533,6 +533,10 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     c2 = c->next;
     DBL_LINKED_LIST_REMOVE(ccnl->contents, c);
 
+#ifdef CCNL_RIOT
+    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&c->evtmsg_cstimeout);
+#endif
+
 //    free_content(c);
     if (c->pkt) {
         ccnl_prefix_free(c->pkt->pfx);
@@ -543,9 +547,6 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     ccnl_free(c);
 
     ccnl->contentcnt--;
-#ifdef CCNL_RIOT
-    evtimer_del((evtimer_t *)(&ccnl_evtimer), (evtimer_event_t *)&c->evtmsg_cstimeout);
-#endif
     return c2;
 }
 
