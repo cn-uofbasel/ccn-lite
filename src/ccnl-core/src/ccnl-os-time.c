@@ -42,6 +42,7 @@ struct ccnl_timer_s *eventqueue;
 #include <timex.h>
 #include <div.h>
 
+__attribute__((weak))
 int gettimeofday(struct timeval *__restrict __p, void *__restrict __tz)
 {
     (void) __tz;
