@@ -907,7 +907,7 @@ ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
             }
             ccnl_prefix_free(fwd->prefix);
             ccnl_free(fwd);
-            break;
+            return res;
         }
     }
 
