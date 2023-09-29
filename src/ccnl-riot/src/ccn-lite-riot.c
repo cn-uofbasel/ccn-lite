@@ -278,7 +278,7 @@ int
 ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     (void) ccnl;
-    DEBUGMSG(DEBUG, "Received something of size %u for the application\n", c->pkt->contlen);
+    DEBUGMSG(DEBUG, "Received something of size %u for the application\n", (unsigned)c->pkt->contlen);
 
     gnrc_pktsnip_t *pkt= gnrc_pktbuf_add(NULL, c->pkt->content,
                                          c->pkt->contlen,
