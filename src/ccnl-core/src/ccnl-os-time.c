@@ -38,12 +38,15 @@ struct ccnl_timer_s *eventqueue;
 
 
 #if defined(CCNL_RIOT) && !(defined(__FreeBSD__) || defined(__APPLE__) || defined(__linux__))
-#include <xtimer.h>
+#include <ztimer64.h>
+#include <timex.h>
+#include <div.h>
 
+__attribute__((weak))
 int gettimeofday(struct timeval *__restrict __p, void *__restrict __tz)
 {
     (void) __tz;
-    uint64_t now = xtimer_now_usec64();
+    uint64_t now = ztimer64_now(ZTIMER64_USEC);
     __p->tv_sec = div_u64_by_1000000(now);
     __p->tv_usec = now - (__p->tv_sec * US_PER_SEC);
 
@@ -108,7 +111,7 @@ timestamp(void)
         cp[5] = '\0';
     else while (strlen(cp) < 5)
         strcat(cp, "0");
-        
+
     return ts;
 }
 

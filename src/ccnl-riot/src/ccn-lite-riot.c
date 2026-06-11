@@ -29,21 +29,21 @@
 #include <time.h>
 
 /* RIOT specific includes */
-#include "sched.h"
-#include "random.h"
-#include "timex.h"
-#include "xtimer.h"
-#include "net/gnrc/netreg.h"
+#include "ccn-lite-riot.h"
+#include "ccnl-fwd.h"
+#include "ccnl-os-time.h"
+#include "ccnl-pkt-builder.h"
+#include "ccnl-producer.h"
+#include "net/gnrc/netapi.h"
 #include "net/gnrc/netif.h"
 #include "net/gnrc/netif/hdr.h"
-#include "net/gnrc/netapi.h"
+#include "net/gnrc/netreg.h"
 #include "net/packet.h"
-#include "ccn-lite-riot.h"
-
-#include "ccnl-os-time.h"
-#include "ccnl-fwd.h"
-#include "ccnl-producer.h"
-#include "ccnl-pkt-builder.h"
+#include "random.h"
+#include "sched.h"
+#include "time_units.h"
+#include "utlist.h"
+#include "ztimer64.h"
 
 /**
  * @brief RIOT specific local variables
@@ -360,7 +360,6 @@ void
     char *spref;
 
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
-    evtimer_init_msg(&ccnl_evtimer);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
     while(!ccnl->halt_flag) {
@@ -449,6 +448,7 @@ void
 kernel_pid_t
 ccnl_start(void)
 {
+    evtimer_init_msg(&ccnl_evtimer);
     loopback_face = ccnl_get_face_or_create(&ccnl_relay, -1, NULL, 0);
     loopback_face->flags |= CCNL_FACE_FLAGS_STATIC;
 
@@ -464,7 +464,7 @@ ccnl_start(void)
     return ccnl_event_loop_pid;
 }
 
-static xtimer_t _wait_timer;
+static ztimer64_t _wait_timer;
 static msg_t _timeout_msg;
 int
 ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
@@ -480,7 +480,7 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
         /* TODO: receive from socket or interface */
         _timeout_msg.type = CCNL_MSG_TIMEOUT;
-        xtimer_set_msg64(&_wait_timer, timeout, &_timeout_msg, thread_getpid());
+        ztimer64_set_msg(ZTIMER64_USEC, &_wait_timer, timeout, &_timeout_msg, thread_getpid());
         msg_t m;
         msg_receive(&m);
         if (m.type == GNRC_NETAPI_MSG_TYPE_RCV) {
@@ -500,7 +500,7 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
                 gnrc_pktbuf_release(pkt);
                 continue;
             }
-            xtimer_remove(&_wait_timer);
+            ztimer64_remove(ZTIMER64_USEC, &_wait_timer);
             break;
         }
         else if (m.type == CCNL_MSG_TIMEOUT) {
