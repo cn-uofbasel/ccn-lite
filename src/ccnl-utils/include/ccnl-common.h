@@ -86,7 +86,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #else // CCNL_UAPI_H_ is defined
 
 #include "base64.c"
-#ifdef RIOT_VERSION
+#ifdef RIOT_OS
 #include "ccnl-defs.h"
 #include "net/packet.h"
 #include <unistd.h>
