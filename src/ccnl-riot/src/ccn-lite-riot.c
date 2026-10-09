@@ -459,7 +459,7 @@ ccnl_start(void)
     /* start the CCN-Lite event-loop */
     ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
                                           CCNL_THREAD_PRIORITY,
-                                          THREAD_CREATE_STACKTEST, _ccnl_event_loop,
+                                          0, _ccnl_event_loop,
                                           &ccnl_relay, "ccnl");
     return ccnl_event_loop_pid;
 }
